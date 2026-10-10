@@ -199,8 +199,13 @@ public class GameScreen extends ScreenAdapter {
             }
         }
 
-        arrows.removeAll(a -> !a.alive);
-        enemies.removeAll(e -> e.hp <= 0);
+        // --- Suppression des objets morts (compatible LibGDX Array) ---
+        for (int i = arrows.size - 1; i >= 0; i--) {
+            if (!arrows.get(i).alive) arrows.removeIndex(i);
+        }
+        for (int i = enemies.size - 1; i >= 0; i--) {
+            if (enemies.get(i).hp <= 0) enemies.removeIndex(i);
+        }
     }
 
     private void spawnEnemy() {
