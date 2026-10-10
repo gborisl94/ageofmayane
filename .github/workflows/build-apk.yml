@@ -8,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,44 +21,10 @@ jobs:
       - name: Setup Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
-
-      - name: Download gdx-liftoff
-        run: |
-          curl -sL -o /tmp/liftoff.jar https://github.com/libgdx/gdx-liftoff/releases/download/v1.12.1.1.1/gdx-liftoff-1.12.1.1.1.jar
-          ls -la /tmp/liftoff.jar
-
-      - name: Generate LibGDX project
-        run: |
-          mkdir -p /tmp/gen
-          cd /tmp/gen
-          java -jar /tmp/liftoff.jar \
-            --name age-of-mayane \
-            --package com.ageofmayane.game \
-            --mainClass AgeOfMayaneGame \
-            --destination /tmp/gen \
-            --android true \
-            --desktop false \
-            --ios false \
-            --html false \
-            --javaVersion 17 \
-            --gdxVersion 1.12.1 \
-            --noQuestions || true
-          echo "=== Contenu genere ==="
-          find /tmp/gen -maxdepth 3 -type d | head -50
-
-      - name: Copy generated structure into repo
-        run: |
-          if [ -d /tmp/gen/age-of-mayane ]; then
-            cp -r /tmp/gen/age-of-mayane/. .
-          else
-            cp -r /tmp/gen/. .
-          fi
-          ls -la
 
       - name: Download game source files
         run: |
@@ -78,49 +42,20 @@ jobs:
           curl -sL -o "$PKG_PATH/AgeOfMayaneGame.java"    "$BASE/AgeOfMayaneGame.java"
           curl -sL -o "$ANDROID_PATH/AndroidLauncher.java" "$BASE/AndroidLauncher.java"
 
-          echo "=== Fichiers telecharges (verification) ==="
-          head -3 "$PKG_PATH/Assets.java"        || echo "FAIL Assets"
-          head -3 "$PKG_PATH/Player.java"        || echo "FAIL Player"
-          head -3 "$PKG_PATH/Enemy.java"         || echo "FAIL Enemy"
-          head -3 "$PKG_PATH/Arrow.java"         || echo "FAIL Arrow"
-          head -3 "$PKG_PATH/AgeOfMayaneGame.java" || echo "FAIL Game"
-          head -3 "$ANDROID_PATH/AndroidLauncher.java" || echo "FAIL Launcher"
-
-      - name: Apply manifest & gradle tweaks
-        run: |
-          rm -rf core/src/main/java/com/indie 2>/dev/null || true
-          rm -rf android/src/main/java/com/indie 2>/dev/null || true
-
-          if [ -f android/AndroidManifest.xml ]; then
-            sed -i 's/android:label="[^"]*"/android:label="Age of Mayane"/' android/AndroidManifest.xml || true
-            sed -i 's/android:screenOrientation="[^"]*"/android:screenOrientation="landscape"/' android/AndroidManifest.xml || true
-            sed -i 's/android:name="\.[A-Za-z0-9_.]*"/android:name="com.ageofmayane.game.android.AndroidLauncher"/' android/AndroidManifest.xml || true
-          fi
-
-          if [ -f android/build.gradle ]; then
-            sed -i 's/applicationId "[^"]*"/applicationId "com.ageofmayane.game"/' android/build.gradle || true
-            sed -i 's/namespace "[^"]*"/namespace "com.ageofmayane.game"/' android/build.gradle || true
-          fi
-
-          if [ -f settings.gradle ]; then
-            sed -i "s/rootProject.name = .*/rootProject.name = 'age-of-mayane'/" settings.gradle || true
-          fi
+          echo "=== Fichiers presents ==="
+          find core/src/main/java -name "*.java"
+          find android/src/main/java -name "*.java"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.7
 
-      - name: Commit generated files back to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Auto-generate LibGDX structure [skip ci]" || echo "Nothing to commit"
-          git push || echo "Push failed"
+      - name: Generate gradle wrapper
+        run: gradle wrapper --gradle-version 8.7
 
       - name: Build Debug APK
-        run: gradle android:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew android:assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
