@@ -40,10 +40,12 @@ public class GameScreen extends ScreenAdapter {
 
     @Override
     public void show() {
+        Gdx.app.log("AGE_OF_MAYANE", "GameScreen.show() start");
         sr = new ShapeRenderer();
         camera = new OrthographicCamera();
         camera.setToOrtho(false, WORLD_W, WORLD_H);
         reset();
+        Gdx.app.log("AGE_OF_MAYANE", "GameScreen.show() done");
     }
 
     private void reset() {
@@ -82,18 +84,6 @@ public class GameScreen extends ScreenAdapter {
         for (Arrow a : arrows)  a.render(sr);
         if (!gameOver) player.render(sr);
         sr.end();
-
-        game.batch.setProjectionMatrix(camera.combined);
-        game.batch.begin();
-        game.font.setColor(Assets.HUD);
-        game.font.draw(game.batch, "SCORE  " + score, 20, WORLD_H - 20);
-        game.font.draw(game.batch, "WAVE   " + wave,  20, WORLD_H - 60);
-        game.font.draw(game.batch, "HP     " + player.hp, 20, WORLD_H - 100);
-        if (gameOver) {
-            game.font.draw(game.batch, "GAME OVER", WORLD_W / 2f - 90, WORLD_H / 2f + 20);
-            game.font.draw(game.batch, "TAP TO RESTART", WORLD_W / 2f - 150, WORLD_H / 2f - 20);
-        }
-        game.batch.end();
     }
 
     private void renderGrid() {
@@ -199,7 +189,6 @@ public class GameScreen extends ScreenAdapter {
             }
         }
 
-        // --- Suppression des objets morts (compatible LibGDX Array) ---
         for (int i = arrows.size - 1; i >= 0; i--) {
             if (!arrows.get(i).alive) arrows.removeIndex(i);
         }
@@ -229,6 +218,6 @@ public class GameScreen extends ScreenAdapter {
 
     @Override
     public void dispose() {
-        sr.dispose();
+        if (sr != null) sr.dispose();
     }
 }
