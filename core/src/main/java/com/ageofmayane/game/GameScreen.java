@@ -34,8 +34,11 @@ public class GameScreen extends ScreenAdapter {
     static final float ENEMY_SIZE = 56f;
     static final float ARROW_SIZE = 20f;
 
-    // Correction d'orientation des images (0 = l'image regarde vers la droite,
-    // -90 = elle regarde vers le haut, 90 = vers le bas, 180 = vers la gauche)
+    // Correction d'orientation des images :
+    // 0 = l'image regarde vers la droite
+    // -90 = elle regarde vers le haut
+    // 90 = vers le bas
+    // 180 = vers la gauche
     static final float PLAYER_ROT = 0f;
     static final float ENEMY_ROT = 0f;
     static final float ARROW_ROT = 0f;
@@ -86,8 +89,8 @@ public class GameScreen extends ScreenAdapter {
         restart();
     }
 
-    // Charge une image ; renvoie null si elle est introuvable (le jeu
-    // dessinera alors un cercle de couleur a la place).
+    // Charge une image ; renvoie null si elle est introuvable
+    // (le jeu dessinera alors un cercle de couleur a la place).
     private Texture loadTexture(String name) {
         try {
             Texture t = new Texture(Gdx.files.internal(name));
