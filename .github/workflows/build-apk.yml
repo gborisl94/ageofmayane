@@ -2,7 +2,6 @@ name: Build Age of Mayane APK
 
 on:
   push:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -33,7 +32,7 @@ jobs:
           mkdir -p "$PKG_PATH"
           mkdir -p "$ANDROID_PATH"
 
-          BASE="https://raw.githubusercontent.com/gborisl94/ageofmayane/main/templates"
+          BASE="https://raw.githubusercontent.com/gborisl94/ageofmayane/${{ github.ref_name }}/templates"
 
           curl -sL -o "$PKG_PATH/Assets.java"             "$BASE/Assets.java"
           curl -sL -o "$PKG_PATH/Player.java"             "$BASE/Player.java"
@@ -60,6 +59,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: age-of-mayane-debug
+          name: age-of-mayane-${{ github.ref_name }}-debug
           path: android/build/outputs/apk/debug/*.apk
           if-no-files-found: error
