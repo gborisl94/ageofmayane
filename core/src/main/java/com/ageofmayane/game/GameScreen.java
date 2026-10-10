@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -15,7 +16,6 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 
 public class GameScreen extends ScreenAdapter {
 
-    // Taille du monde virtuel (paysage)
     static final float W = 1280f;
     static final float H = 720f;
 
@@ -29,6 +29,17 @@ public class GameScreen extends ScreenAdapter {
     static final float ARROW_SPEED = 650f;
     static final float FIRE_DELAY = 0.18f;
 
+    // Taille d'affichage (hauteur en pixels du monde virtuel)
+    static final float PLAYER_SIZE = 64f;
+    static final float ENEMY_SIZE = 56f;
+    static final float ARROW_SIZE = 20f;
+
+    // Correction d'orientation des images (0 = l'image regarde vers la droite,
+    // -90 = elle regarde vers le haut, 90 = vers le bas, 180 = vers la gauche)
+    static final float PLAYER_ROT = 0f;
+    static final float ENEMY_ROT = 0f;
+    static final float ARROW_ROT = 0f;
+
     private final Game game;
 
     private FitViewport viewport;
@@ -36,13 +47,18 @@ public class GameScreen extends ScreenAdapter {
     private SpriteBatch batch;
     private BitmapFont font;
 
-    // Etat du jeu
+    private Texture texPlayer;
+    private Texture texEnemy;
+    private Texture texArrow;
+
     private final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
     private final Array<Fleche> fleches = new Array<Fleche>();
     private final Array<Ennemi> ennemis = new Array<Ennemi>();
     private final Stick moveStick = new Stick();
     private final Stick aimStick = new Stick();
     private final Vector2 tmp = new Vector2();
+
+    private float facing = 0f; // orientation du joueur en degres
 
     private int lives;
     private int score;
@@ -52,15 +68,8 @@ public class GameScreen extends ScreenAdapter {
     private float gameOverTimer;
     private boolean gameOver;
 
-    // Constructeur sans argument
-    public GameScreen() {
-        this(null);
-    }
-
-    // Constructeur avec le Game (setScreen(new GameScreen(this)))
-    public GameScreen(Game game) {
-        this.game = game;
-    }
+    public GameScreen() { this(null); }
+    public GameScreen(Game game) { this.game = game; }
 
     @Override
     public void show() {
@@ -69,7 +78,25 @@ public class GameScreen extends ScreenAdapter {
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(2f);
+
+        texPlayer = loadTexture("player.png");
+        texEnemy = loadTexture("enemy.png");
+        texArrow = loadTexture("arrow.png");
+
         restart();
+    }
+
+    // Charge une image ; renvoie null si elle est introuvable (le jeu
+    // dessinera alors un cercle de couleur a la place).
+    private Texture loadTexture(String name) {
+        try {
+            Texture t = new Texture(Gdx.files.internal(name));
+            t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            return t;
+        } catch (Throwable e) {
+            Gdx.app.error("Mayane", "Texture introuvable : " + name, e);
+            return null;
+        }
     }
 
     private void restart() {
@@ -78,6 +105,7 @@ public class GameScreen extends ScreenAdapter {
         ennemis.clear();
         moveStick.end();
         aimStick.end();
+        facing = 0f;
         lives = 5;
         score = 0;
         fireTimer = 0;
@@ -87,13 +115,9 @@ public class GameScreen extends ScreenAdapter {
         gameOver = false;
     }
 
-    // ---------------------------------------------------------------
-    // Boucle principale
-    // ---------------------------------------------------------------
     @Override
     public void render(float delta) {
         if (delta > 0.05f) delta = 0.05f;
-
         update(delta);
         draw();
     }
@@ -109,7 +133,13 @@ public class GameScreen extends ScreenAdapter {
 
         if (invulnerable > 0) invulnerable -= delta;
 
-        // Deplacement du joueur
+        // Orientation : visee en priorite, sinon deplacement
+        if (aimStick.dir.len() > DEAD_ZONE) {
+            facing = aimStick.dir.angleDeg();
+        } else if (moveStick.dir.len() > DEAD_ZONE) {
+            facing = moveStick.dir.angleDeg();
+        }
+
         if (moveStick.dir.len() > DEAD_ZONE) {
             playerPos.x += moveStick.dir.x * PLAYER_SPEED * delta;
             playerPos.y += moveStick.dir.y * PLAYER_SPEED * delta;
@@ -117,24 +147,22 @@ public class GameScreen extends ScreenAdapter {
             playerPos.y = MathUtils.clamp(playerPos.y, PLAYER_RADIUS, H - PLAYER_RADIUS);
         }
 
-        // Tir automatique dans la direction du stick droit
         fireTimer -= delta;
         if (aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
             fireTimer = FIRE_DELAY;
             Fleche f = new Fleche();
             f.pos.set(playerPos);
             f.vel.set(aimStick.dir).nor().scl(ARROW_SPEED);
+            f.angle = f.vel.angleDeg();
             fleches.add(f);
         }
 
-        // Apparition des ennemis
         spawnTimer -= delta;
         if (spawnTimer <= 0f) {
             spawnEnemy();
             spawnTimer = Math.max(0.35f, 1.3f - score * 0.02f);
         }
 
-        // Mise a jour des fleches
         for (int i = fleches.size - 1; i >= 0; i--) {
             Fleche f = fleches.get(i);
             f.pos.x += f.vel.x * delta;
@@ -146,18 +174,16 @@ public class GameScreen extends ScreenAdapter {
             }
         }
 
-        // Mise a jour des ennemis
         float enemySpeed = Math.min(80f + score * 1.5f, 200f);
         for (int i = ennemis.size - 1; i >= 0; i--) {
             Ennemi e = ennemis.get(i);
-
             tmp.set(playerPos).sub(e.pos);
             if (tmp.len2() > 0.001f) {
+                e.angle = tmp.angleDeg();
                 tmp.nor().scl(enemySpeed * delta);
                 e.pos.add(tmp);
             }
 
-            // Touche par une fleche ?
             boolean mort = false;
             float rr = (ENEMY_RADIUS + ARROW_RADIUS);
             for (int j = fleches.size - 1; j >= 0; j--) {
@@ -173,7 +199,6 @@ public class GameScreen extends ScreenAdapter {
                 continue;
             }
 
-            // Touche le joueur ?
             float pr = (ENEMY_RADIUS + PLAYER_RADIUS);
             if (e.pos.dst2(playerPos) < pr * pr) {
                 ennemis.removeIndex(i);
@@ -201,17 +226,12 @@ public class GameScreen extends ScreenAdapter {
         ennemis.add(e);
     }
 
-    // ---------------------------------------------------------------
-    // Gestion des deux joysticks flottants (multitouch)
-    // ---------------------------------------------------------------
     private void pollTouches() {
-        // Fin de toucher
         if (moveStick.active() && !Gdx.input.isTouched(moveStick.pointer)) moveStick.end();
         if (aimStick.active() && !Gdx.input.isTouched(aimStick.pointer)) aimStick.end();
 
         for (int i = 0; i < 5; i++) {
             if (!Gdx.input.isTouched(i)) continue;
-
             tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
             viewport.unproject(tmp);
             float x = tmp.x;
@@ -229,9 +249,20 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Affichage
-    // ---------------------------------------------------------------
+    // Dessine une texture centree en (cx, cy), de hauteur h, avec rotation.
+    // La largeur suit les proportions de l'image.
+    private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
+        float w = h * t.getWidth() / (float) t.getHeight();
+        batch.draw(t,
+                cx - w / 2f, cy - h / 2f,
+                w / 2f, h / 2f,
+                w, h,
+                1f, 1f,
+                rotation,
+                0, 0, t.getWidth(), t.getHeight(),
+                false, false);
+    }
+
     private void draw() {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -242,47 +273,54 @@ public class GameScreen extends ScreenAdapter {
         shapes.setProjectionMatrix(viewport.getCamera().combined);
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
-        // Formes pleines
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        boolean playerVisible = !gameOver
+                && (invulnerable <= 0f || ((int) (invulnerable * 10f)) % 2 == 0);
 
-        // Ennemis
-        shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
-        for (Ennemi e : ennemis) {
-            shapes.circle(e.pos.x, e.pos.y, ENEMY_RADIUS, 20);
-        }
-
-        // Fleches
-        shapes.setColor(1f, 0.9f, 0.3f, 1f);
-        for (Fleche f : fleches) {
-            shapes.circle(f.pos.x, f.pos.y, ARROW_RADIUS, 10);
-        }
-
-        // Joueur (clignote quand invulnerable)
-        boolean visible = invulnerable <= 0f || ((int) (invulnerable * 10f)) % 2 == 0;
-        if (visible && !gameOver) {
-            shapes.setColor(1f, 0.4f, 0.7f, 1f);
-            shapes.circle(playerPos.x, playerPos.y, PLAYER_RADIUS, 24);
-            // Petit trait indiquant la direction de visee
-            if (aimStick.dir.len() > DEAD_ZONE) {
-                tmp.set(aimStick.dir).nor().scl(PLAYER_RADIUS + 10f).add(playerPos);
-                shapes.setColor(1f, 1f, 1f, 1f);
-                shapes.circle(tmp.x, tmp.y, 5f, 8);
+        // --- 1) Sprites (images PNG) ---
+        batch.begin();
+        batch.setColor(Color.WHITE);
+        if (texEnemy != null) {
+            for (Ennemi e : ennemis) {
+                drawSprite(texEnemy, e.pos.x, e.pos.y, ENEMY_SIZE, e.angle + ENEMY_ROT);
             }
         }
+        if (texArrow != null) {
+            for (Fleche f : fleches) {
+                drawSprite(texArrow, f.pos.x, f.pos.y, ARROW_SIZE, f.angle + ARROW_ROT);
+            }
+        }
+        if (texPlayer != null && playerVisible) {
+            drawSprite(texPlayer, playerPos.x, playerPos.y, PLAYER_SIZE, facing + PLAYER_ROT);
+        }
+        batch.end();
 
-        // Joysticks
+        // --- 2) Formes : cercles de secours (si image absente) + joysticks ---
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        if (texEnemy == null) {
+            shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
+            for (Ennemi e : ennemis) shapes.circle(e.pos.x, e.pos.y, ENEMY_RADIUS, 20);
+        }
+        if (texArrow == null) {
+            shapes.setColor(1f, 0.9f, 0.3f, 1f);
+            for (Fleche f : fleches) shapes.circle(f.pos.x, f.pos.y, ARROW_RADIUS, 10);
+        }
+        if (texPlayer == null && playerVisible) {
+            shapes.setColor(1f, 0.4f, 0.7f, 1f);
+            shapes.circle(playerPos.x, playerPos.y, PLAYER_RADIUS, 24);
+        }
+
         drawStick(moveStick, new Color(1f, 1f, 1f, 0.15f), new Color(1f, 1f, 1f, 0.45f));
         drawStick(aimStick, new Color(1f, 0.5f, 0.5f, 0.15f), new Color(1f, 0.5f, 0.5f, 0.45f));
 
         shapes.end();
 
-        // Contour de l'arene
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(0.3f, 0.3f, 0.45f, 1f);
         shapes.rect(1, 1, W - 2, H - 2);
         shapes.end();
 
-        // Textes
+        // --- 3) Textes ---
         batch.begin();
         font.setColor(Color.WHITE);
         font.draw(batch, "Score : " + score, 20, H - 20);
@@ -314,6 +352,15 @@ public class GameScreen extends ScreenAdapter {
         if (shapes != null) shapes.dispose();
         if (batch != null) batch.dispose();
         if (font != null) font.dispose();
+        if (texPlayer != null) texPlayer.dispose();
+        if (texEnemy != null) texEnemy.dispose();
+        if (texArrow != null) texArrow.dispose();
+        shapes = null;
+        batch = null;
+        font = null;
+        texPlayer = null;
+        texEnemy = null;
+        texArrow = null;
     }
 
     @Override
@@ -321,17 +368,16 @@ public class GameScreen extends ScreenAdapter {
         dispose();
     }
 
-    // ---------------------------------------------------------------
-    // Classes internes (pas de conflit avec Player/Enemy/Arrow)
-    // ---------------------------------------------------------------
     static class Fleche {
         final Vector2 pos = new Vector2();
         final Vector2 vel = new Vector2();
+        float angle = 0f;
         float life = 1.5f;
     }
 
     static class Ennemi {
         final Vector2 pos = new Vector2();
+        float angle = 0f;
     }
 
     static class Stick {
@@ -340,9 +386,7 @@ public class GameScreen extends ScreenAdapter {
         final Vector2 current = new Vector2();
         final Vector2 dir = new Vector2();
 
-        boolean active() {
-            return pointer != -1;
-        }
+        boolean active() { return pointer != -1; }
 
         void begin(int p, float x, float y) {
             pointer = p;
