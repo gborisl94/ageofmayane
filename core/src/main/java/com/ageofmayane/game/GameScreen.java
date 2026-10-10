@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -29,16 +30,10 @@ public class GameScreen extends ScreenAdapter {
     static final float ARROW_SPEED = 650f;
     static final float FIRE_DELAY = 0.18f;
 
-    // Taille d'affichage (hauteur en pixels du monde virtuel)
     static final float PLAYER_SIZE = 64f;
     static final float ENEMY_SIZE = 56f;
     static final float ARROW_SIZE = 20f;
 
-    // Correction d'orientation des images :
-    // 0 = l'image regarde vers la droite
-    // -90 = elle regarde vers le haut
-    // 90 = vers le bas
-    // 180 = vers la gauche
     static final float PLAYER_ROT = 0f;
     static final float ENEMY_ROT = 0f;
     static final float ARROW_ROT = 0f;
@@ -46,6 +41,7 @@ public class GameScreen extends ScreenAdapter {
     private final Game game;
 
     private FitViewport viewport;
+    private OrthographicCamera camera;
     private ShapeRenderer shapes;
     private SpriteBatch batch;
     private BitmapFont font;
@@ -61,7 +57,10 @@ public class GameScreen extends ScreenAdapter {
     private final Stick aimStick = new Stick();
     private final Vector2 tmp = new Vector2();
 
-    private float facing = 0f; // orientation du joueur en degres
+    // Contrôleur externe pour le zoom
+    private ZoomController zoomController;
+
+    private float facing = 0f;
 
     private int lives;
     private int score;
@@ -77,6 +76,7 @@ public class GameScreen extends ScreenAdapter {
     @Override
     public void show() {
         viewport = new FitViewport(W, H);
+        camera = (OrthographicCamera) viewport.getCamera();
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
@@ -86,11 +86,11 @@ public class GameScreen extends ScreenAdapter {
         texEnemy = loadTexture("enemy.png");
         texArrow = loadTexture("arrow.png");
 
+        zoomController = new ZoomController(W, H);
+
         restart();
     }
 
-    // Charge une image ; renvoie null si elle est introuvable
-    // (le jeu dessinera alors un cercle de couleur a la place).
     private Texture loadTexture(String name) {
         try {
             Texture t = new Texture(Gdx.files.internal(name));
@@ -116,6 +116,7 @@ public class GameScreen extends ScreenAdapter {
         invulnerable = 0;
         gameOverTimer = 0;
         gameOver = false;
+        if (zoomController != null) zoomController.reset();
     }
 
     @Override
@@ -126,7 +127,7 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void update(float delta) {
-        pollTouches();
+        pollTouches(delta);
 
         if (gameOver) {
             gameOverTimer += delta;
@@ -136,7 +137,6 @@ public class GameScreen extends ScreenAdapter {
 
         if (invulnerable > 0) invulnerable -= delta;
 
-        // Orientation : visee en priorite, sinon deplacement
         if (aimStick.dir.len() > DEAD_ZONE) {
             facing = aimStick.dir.angleDeg();
         } else if (moveStick.dir.len() > DEAD_ZONE) {
@@ -229,9 +229,11 @@ public class GameScreen extends ScreenAdapter {
         ennemis.add(e);
     }
 
-    private void pollTouches() {
+    private void pollTouches(float delta) {
         if (moveStick.active() && !Gdx.input.isTouched(moveStick.pointer)) moveStick.end();
         if (aimStick.active() && !Gdx.input.isTouched(aimStick.pointer)) aimStick.end();
+
+        zoomController.resetFrame();
 
         for (int i = 0; i < 5; i++) {
             if (!Gdx.input.isTouched(i)) continue;
@@ -240,6 +242,12 @@ public class GameScreen extends ScreenAdapter {
             float x = tmp.x;
             float y = tmp.y;
 
+            // Zoom buttons (délégué au ZoomController)
+            if (zoomController.handleTouch(x, y, delta)) {
+                continue;
+            }
+
+            // Joysticks
             if (i == moveStick.pointer) {
                 moveStick.move(x, y);
             } else if (i == aimStick.pointer) {
@@ -252,8 +260,6 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-    // Dessine une texture centree en (cx, cy), de hauteur h, avec rotation.
-    // La largeur suit les proportions de l'image.
     private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
         float w = h * t.getWidth() / (float) t.getHeight();
         batch.draw(t,
@@ -272,14 +278,17 @@ public class GameScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
+        // Application du zoom à la caméra
+        zoomController.applyToCamera(camera);
         viewport.apply();
-        shapes.setProjectionMatrix(viewport.getCamera().combined);
-        batch.setProjectionMatrix(viewport.getCamera().combined);
+
+        shapes.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(camera.combined);
 
         boolean playerVisible = !gameOver
                 && (invulnerable <= 0f || ((int) (invulnerable * 10f)) % 2 == 0);
 
-        // --- 1) Sprites (images PNG) ---
+        // --- 1) Sprites ---
         batch.begin();
         batch.setColor(Color.WHITE);
         if (texEnemy != null) {
@@ -297,7 +306,7 @@ public class GameScreen extends ScreenAdapter {
         }
         batch.end();
 
-        // --- 2) Formes : cercles de secours (si image absente) + joysticks ---
+        // --- 2) Formes : cercles de secours + joysticks ---
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
         if (texEnemy == null) {
@@ -318,12 +327,16 @@ public class GameScreen extends ScreenAdapter {
 
         shapes.end();
 
+        // --- 3) Boutons zoom (via ZoomController) ---
+        zoomController.draw(shapes, batch, font);
+
+        // Contour arène
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(0.3f, 0.3f, 0.45f, 1f);
         shapes.rect(1, 1, W - 2, H - 2);
         shapes.end();
 
-        // --- 3) Textes ---
+        // --- 4) HUD ---
         batch.begin();
         font.setColor(Color.WHITE);
         font.draw(batch, "Score : " + score, 20, H - 20);
