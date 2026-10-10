@@ -1,20 +1,37 @@
 apply plugin: 'com.android.application'
 
+configurations { natives }
+
 android {
-    namespace "com.ageofmayane.game"
+    namespace 'com.ageofmayane.game.android'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.ageofmayane.game"
+        applicationId 'com.ageofmayane.game'
         minSdk 21
         targetSdk 34
         versionCode 1
-        versionName "1.0.0"
+        versionName '1.0'
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
     }
 
     buildTypes {
@@ -22,17 +39,38 @@ android {
             minifyEnabled false
         }
     }
-
-    packagingOptions {
-        jniLibs { useLegacyPackaging = true }
-    }
 }
 
 dependencies {
     implementation project(':core')
-    implementation "com.badlogicgames.gdx:gdx-backend-android:1.12.1"
-    implementation "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-armeabi-v7a"
-    implementation "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-arm64-v8a"
-    implementation "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-x86"
-    implementation "com.badlogicgames.gdx:gdx-platform:1.12.1:natives-x86_64"
+    implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+}
+
+// Copie les .so de LibGDX dans jniLibs avant le packaging
+tasks.register('copyAndroidNatives') {
+    doFirst {
+        def abis = ['armeabi-v7a', 'arm64-v8a']
+        configurations.natives.copy().files.each { jar ->
+            abis.each { abi ->
+                if (jar.name.endsWith("natives-${abi}.jar")) {
+                    def outputDir = file("src/main/jniLibs/${abi}")
+                    outputDir.mkdirs()
+                    copy {
+                        from zipTree(jar)
+                        into outputDir
+                        include "*.so"
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.matching {
+    it.name.startsWith('merge') && it.name.contains('JniLibFolders')
+}.configureEach {
+    dependsOn 'copyAndroidNatives'
 }
