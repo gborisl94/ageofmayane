@@ -71,20 +71,20 @@ jobs:
 
           BASE="https://raw.githubusercontent.com/gborisl94/ageofmayane/main/templates"
 
-          curl -sL -o "$PKG_PATH/Assets.java"           "$BASE/Assets.java"
-          curl -sL -o "$PKG_PATH/Player.java"           "$BASE/Player.java"
-          curl -sL -o "$PKG_PATH/Enemy.java"            "$BASE/Enemy.java"
-          curl -sL -o "$PKG_PATH/Arrow.java"            "$BASE/Arrow.java"
-          curl -sL -o "$PKG_PATH/AgeOfMayaneGame.java"  "$BASE/AgeOfMayaneGame.java"
+          curl -sL -o "$PKG_PATH/Assets.java"             "$BASE/Assets.java"
+          curl -sL -o "$PKG_PATH/Player.java"             "$BASE/Player.java"
+          curl -sL -o "$PKG_PATH/Enemy.java"              "$BASE/Enemy.java"
+          curl -sL -o "$PKG_PATH/Arrow.java"              "$BASE/Arrow.java"
+          curl -sL -o "$PKG_PATH/AgeOfMayaneGame.java"    "$BASE/AgeOfMayaneGame.java"
           curl -sL -o "$ANDROID_PATH/AndroidLauncher.java" "$BASE/AndroidLauncher.java"
 
-          echo "=== Fichiers telecharges ==="
-          head -3 "$PKG_PATH/Assets.java"
-          head -3 "$PKG_PATH/Player.java"
-          head -3 "$PKG_PATH/Enemy.java"
-          head -3 "$PKG_PATH/Arrow.java"
-          head -3 "$PKG_PATH/AgeOfMayaneGame.java"
-          head -3 "$ANDROID_PATH/AndroidLauncher.java"
+          echo "=== Fichiers telecharges (verification) ==="
+          head -3 "$PKG_PATH/Assets.java"        || echo "FAIL Assets"
+          head -3 "$PKG_PATH/Player.java"        || echo "FAIL Player"
+          head -3 "$PKG_PATH/Enemy.java"         || echo "FAIL Enemy"
+          head -3 "$PKG_PATH/Arrow.java"         || echo "FAIL Arrow"
+          head -3 "$PKG_PATH/AgeOfMayaneGame.java" || echo "FAIL Game"
+          head -3 "$ANDROID_PATH/AndroidLauncher.java" || echo "FAIL Launcher"
 
       - name: Apply manifest & gradle tweaks
         run: |
