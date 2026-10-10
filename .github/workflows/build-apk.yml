@@ -1,0 +1,489 @@
+name: Build Age of Mayane APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download gdx-liftoff
+        run: |
+          curl -sL -o /tmp/liftoff.jar https://github.com/libgdx/gdx-liftoff/releases/download/v1.12.1.1.1/gdx-liftoff-1.12.1.1.1.jar
+          ls -la /tmp/liftoff.jar
+
+      - name: Generate LibGDX project
+        run: |
+          mkdir -p /tmp/gen
+          cd /tmp/gen
+          java -jar /tmp/liftoff.jar \
+            --name age-of-mayane \
+            --package com.ageofmayane.game \
+            --mainClass AgeOfMayaneGame \
+            --destination /tmp/gen \
+            --android true \
+            --desktop false \
+            --ios false \
+            --html false \
+            --javaVersion 17 \
+            --gdxVersion 1.12.1 \
+            --noQuestions || true
+          echo "=== Contenu genere ==="
+          find /tmp/gen -maxdepth 3 -type d | head -50
+
+      - name: Copy generated structure into repo
+        run: |
+          if [ -d /tmp/gen/age-of-mayane ]; then
+            cp -r /tmp/gen/age-of-mayane/. .
+          else
+            cp -r /tmp/gen/. .
+          fi
+          ls -la
+
+      - name: Overwrite game source files
+        run: |
+          PKG_PATH="core/src/main/java/com/ageofmayane/game"
+          ANDROID_PATH="android/src/main/java/com/ageofmayane/game/android"
+          mkdir -p "$PKG_PATH"
+          mkdir -p "$ANDROID_PATH"
+
+          cat > "$PKG_PATH/Assets.java" << 'EOF'
+          package com.ageofmayane.game;
+
+          import com.badlogic.gdx.graphics.Color;
+
+          public class Assets {
+              public static final Color BG         = new Color(0.05f, 0.05f, 0.08f, 1f);
+              public static final Color PLAYER     = new Color(0.20f, 0.90f, 0.40f, 1f);
+              public static final Color PLAYER_AIM = new Color(0.80f, 1.00f, 0.85f, 1f);
+              public static final Color ENEMY      = new Color(0.90f, 0.20f, 0.30f, 1f);
+              public static final Color ENEMY_FAST = new Color(1.00f, 0.45f, 0.15f, 1f);
+              public static final Color ARROW      = new Color(1.00f, 0.90f, 0.30f, 1f);
+              public static final Color HUD        = new Color(1f, 1f, 1f, 1f);
+              public static final Color GRID       = new Color(0.12f, 0.12f, 0.18f, 1f);
+          }
+          EOF
+
+          cat > "$PKG_PATH/Player.java" << 'EOF'
+          package com.ageofmayane.game;
+
+          import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+          import com.badlogic.gdx.math.Vector2;
+
+          public class Player {
+              public Vector2 position = new Vector2();
+              public Vector2 velocity = new Vector2();
+              public Vector2 aim = new Vector2(1, 0);
+              public float speed = 320f;
+              public float radius = 22f;
+              public float fireCooldown = 0f;
+              public float fireRate = 0.22f;
+              public int hp = 3;
+              public float invulnTimer = 0f;
+
+              public void update(float delta) {
+                  position.add(velocity.cpy().scl(delta));
+                  if (fireCooldown > 0) fireCooldown -= delta;
+                  if (invulnTimer > 0) invulnTimer -= delta;
+              }
+
+              public boolean canFire() { return fireCooldown <= 0f; }
+              public void onFire()     { fireCooldown = fireRate; }
+              public boolean isInvulnerable() { return invulnTimer > 0f; }
+
+              public void render(ShapeRenderer sr) {
+                  boolean blink = isInvulnerable() && ((int)(invulnTimer * 20) % 2 == 0);
+                  if (!blink) {
+                      sr.setColor(Assets.PLAYER);
+                      sr.circle(position.x, position.y, radius, 32);
+                  }
+                  Vector2 tip = position.cpy().add(aim.cpy().nor().scl(radius + 14));
+                  sr.setColor(Assets.PLAYER_AIM);
+                  sr.rectLine(position.x, position.y, tip.x, tip.y, 4f);
+              }
+          }
+          EOF
+
+          cat > "$PKG_PATH/Enemy.java" << 'EOF'
+          package com.ageofmayane.game;
+
+          import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+          import com.badlogic.gdx.math.Vector2;
+
+          public class Enemy {
+              public enum Type { SLOW, FAST }
+              public Vector2 position;
+              public float speed;
+              public float radius;
+              public float hp;
+              public Type type;
+
+              public Enemy(float x, float y, Type type) {
+                  this.position = new Vector2(x, y);
+                  this.type = type;
+                  if (type == Type.SLOW) { speed = 90f; radius = 20f; hp = 1; }
+                  else                   { speed = 180f; radius = 15f; hp = 1; }
+              }
+
+              public void update(float delta, Vector2 target) {
+                  Vector2 dir = target.cpy().sub(position);
+                  if (dir.len2() > 0.01f) {
+                      dir.nor().scl(speed * delta);
+                      position.add(dir);
+                  }
+              }
+
+              public void render(ShapeRenderer sr) {
+                  sr.setColor(type == Type.FAST ? Assets.ENEMY_FAST : Assets.ENEMY);
+                  sr.circle(position.x, position.y, radius, 24);
+              }
+          }
+          EOF
+
+          cat > "$PKG_PATH/Arrow.java" << 'EOF'
+          package com.ageofmayane.game;
+
+          import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+          import com.badlogic.gdx.math.Vector2;
+
+          public class Arrow {
+              public Vector2 position;
+              public Vector2 velocity;
+              public float radius = 6f;
+              public boolean alive = true;
+
+              public Arrow(Vector2 start, Vector2 dir) {
+                  position = start.cpy();
+                  velocity = dir.cpy().nor().scl(760f);
+              }
+
+              public void update(float delta) {
+                  position.add(velocity.cpy().scl(delta));
+              }
+
+              public void render(ShapeRenderer sr) {
+                  sr.setColor(Assets.ARROW);
+                  Vector2 tail = position.cpy().sub(velocity.cpy().nor().scl(14f));
+                  sr.rectLine(tail.x, tail.y, position.x, position.y, 3f);
+                  sr.circle(position.x, position.y, 3f, 12);
+              }
+          }
+          EOF
+
+          cat > "$PKG_PATH/AgeOfMayaneGame.java" << 'EOF'
+          package com.ageofmayane.game;
+
+          import com.badlogic.gdx.Game;
+          import com.badlogic.gdx.graphics.g2d.BitmapFont;
+          import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
+          public class AgeOfMayaneGame extends Game {
+              public SpriteBatch batch;
+              public BitmapFont font;
+
+              @Override
+              public void create() {
+                  batch = new SpriteBatch();
+                  font = new BitmapFont();
+                  font.getData().setScale(2f);
+                  setScreen(new GameScreen(this));
+              }
+
+              @Override
+              public void dispose() {
+                  batch.dispose();
+                  font.dispose();
+                  super.dispose();
+              }
+          }
+          EOF
+
+          cat > "$PKG_PATH/GameScreen.java" << 'EOF'
+          package com.ageofmayane.game;
+
+          import com.badlogic.gdx.Gdx;
+          import com.badlogic.gdx.Input;
+          import com.badlogic.gdx.ScreenAdapter;
+          import com.badlogic.gdx.graphics.GL20;
+          import com.badlogic.gdx.graphics.OrthographicCamera;
+          import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+          import com.badlogic.gdx.math.MathUtils;
+          import com.badlogic.gdx.math.Vector2;
+          import com.badlogic.gdx.math.Vector3;
+          import com.badlogic.gdx.utils.Array;
+
+          public class GameScreen extends ScreenAdapter {
+              private static final float WORLD_W = 1280f;
+              private static final float WORLD_H = 720f;
+
+              private final AgeOfMayaneGame game;
+              private OrthographicCamera camera;
+              private ShapeRenderer sr;
+
+              private Player player;
+              private final Array<Enemy> enemies = new Array<>();
+              private final Array<Arrow> arrows  = new Array<>();
+
+              private float spawnTimer = 0f;
+              private float spawnInterval = 1.1f;
+              private float difficultyTimer = 0f;
+              private int score = 0;
+              private int wave = 1;
+              private boolean gameOver = false;
+
+              private final Vector2 leftStickOrigin  = new Vector2();
+              private final Vector2 rightStickOrigin = new Vector2();
+              private final Vector2 leftStickCur     = new Vector2();
+              private final Vector2 rightStickCur    = new Vector2();
+              private boolean leftActive = false, rightActive = false;
+
+              public GameScreen(AgeOfMayaneGame game) { this.game = game; }
+
+              @Override
+              public void show() {
+                  sr = new ShapeRenderer();
+                  camera = new OrthographicCamera();
+                  camera.setToOrtho(false, WORLD_W, WORLD_H);
+                  reset();
+              }
+
+              private void reset() {
+                  player = new Player();
+                  player.position.set(WORLD_W / 2f, WORLD_H / 2f);
+                  enemies.clear();
+                  arrows.clear();
+                  spawnTimer = 0;
+                  spawnInterval = 1.1f;
+                  difficultyTimer = 0;
+                  score = 0;
+                  wave = 1;
+                  gameOver = false;
+              }
+
+              @Override
+              public void render(float delta) {
+                  if (delta > 0.05f) delta = 0.05f;
+
+                  if (!gameOver) {
+                      handleInput(delta);
+                      update(delta);
+                  } else {
+                      if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.justTouched()) reset();
+                  }
+
+                  Gdx.gl.glClearColor(Assets.BG.r, Assets.BG.g, Assets.BG.b, 1f);
+                  Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+                  camera.update();
+                  sr.setProjectionMatrix(camera.combined);
+
+                  sr.begin(ShapeRenderer.ShapeType.Filled);
+                  renderGrid();
+                  for (Enemy e : enemies) e.render(sr);
+                  for (Arrow a : arrows)  a.render(sr);
+                  if (!gameOver) player.render(sr);
+                  sr.end();
+
+                  game.batch.setProjectionMatrix(camera.combined);
+                  game.batch.begin();
+                  game.font.setColor(Assets.HUD);
+                  game.font.draw(game.batch, "SCORE  " + score, 20, WORLD_H - 20);
+                  game.font.draw(game.batch, "WAVE   " + wave,  20, WORLD_H - 60);
+                  game.font.draw(game.batch, "HP     " + player.hp, 20, WORLD_H - 100);
+                  if (gameOver) {
+                      game.font.draw(game.batch, "GAME OVER", WORLD_W / 2f - 90, WORLD_H / 2f + 20);
+                      game.font.draw(game.batch, "TAP TO RESTART", WORLD_W / 2f - 150, WORLD_H / 2f - 20);
+                  }
+                  game.batch.end();
+              }
+
+              private void renderGrid() {
+                  sr.setColor(Assets.GRID);
+                  for (float x = 0; x <= WORLD_W; x += 80f) sr.rectLine(x, 0, x, WORLD_H, 1f);
+                  for (float y = 0; y <= WORLD_H; y += 80f) sr.rectLine(0, y, WORLD_W, y, 1f);
+              }
+
+              private void handleInput(float delta) {
+                  Vector2 move = new Vector2();
+                  Vector2 aim  = new Vector2();
+
+                  if (Gdx.input.isKeyPressed(Input.Keys.W)) move.y += 1;
+                  if (Gdx.input.isKeyPressed(Input.Keys.S)) move.y -= 1;
+                  if (Gdx.input.isKeyPressed(Input.Keys.A)) move.x -= 1;
+                  if (Gdx.input.isKeyPressed(Input.Keys.D)) move.x += 1;
+
+                  if (Gdx.input.isKeyPressed(Input.Keys.UP))    aim.y += 1;
+                  if (Gdx.input.isKeyPressed(Input.Keys.DOWN))  aim.y -= 1;
+                  if (Gdx.input.isKeyPressed(Input.Keys.LEFT))  aim.x -= 1;
+                  if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) aim.x += 1;
+
+                  int w = Gdx.graphics.getWidth();
+                  for (int i = 0; i < 2; i++) {
+                      if (!Gdx.input.isTouched(i)) {
+                          if (i == 0) leftActive = false; else rightActive = false;
+                          continue;
+                      }
+                      int tx = Gdx.input.getX(i);
+                      int ty = Gdx.input.getY(i);
+                      boolean leftSide = tx < w / 2;
+                      Vector3 world = camera.unproject(new Vector3(tx, ty, 0));
+
+                      if (leftSide && !rightActive) {
+                          if (!leftActive) { leftActive = true; leftStickOrigin.set(world.x, world.y); }
+                          leftStickCur.set(world.x, world.y);
+                          Vector2 d = leftStickCur.cpy().sub(leftStickOrigin);
+                          if (d.len() > 12f) move.set(d.nor());
+                      } else if (!leftSide && !leftActive) {
+                          if (!rightActive) { rightActive = true; rightStickOrigin.set(world.x, world.y); }
+                          rightStickCur.set(world.x, world.y);
+                          Vector2 d = rightStickCur.cpy().sub(rightStickOrigin);
+                          if (d.len() > 12f) aim.set(d.nor());
+                      }
+                  }
+
+                  if (move.len2() > 0) player.velocity.set(move.nor().scl(player.speed));
+                  else                player.velocity.setZero();
+
+                  if (aim.len2() > 0) {
+                      player.aim.set(aim.nor());
+                      if (player.canFire()) {
+                          arrows.add(new Arrow(player.position, player.aim));
+                          player.onFire();
+                      }
+                  } else if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && player.canFire()) {
+                      arrows.add(new Arrow(player.position, player.aim));
+                      player.onFire();
+                  }
+              }
+
+              private void update(float delta) {
+                  player.update(delta);
+                  player.position.x = MathUtils.clamp(player.position.x, player.radius, WORLD_W - player.radius);
+                  player.position.y = MathUtils.clamp(player.position.y, player.radius, WORLD_H - player.radius);
+
+                  difficultyTimer += delta;
+                  if (difficultyTimer > 12f) {
+                      difficultyTimer = 0;
+                      wave++;
+                      spawnInterval = Math.max(0.35f, spawnInterval - 0.12f);
+                  }
+
+                  spawnTimer += delta;
+                  if (spawnTimer >= spawnInterval) { spawnTimer = 0; spawnEnemy(); }
+
+                  for (Enemy e : enemies) e.update(delta, player.position);
+
+                  for (Arrow a : arrows) {
+                      a.update(delta);
+                      if (a.position.x < -20 || a.position.x > WORLD_W + 20
+                       || a.position.y < -20 || a.position.y > WORLD_H + 20) {
+                          a.alive = false;
+                          continue;
+                      }
+                      for (Enemy e : enemies) {
+                          if (e.hp > 0 && e.position.dst2(a.position) < (e.radius + a.radius) * (e.radius + a.radius)) {
+                              e.hp = 0;
+                              a.alive = false;
+                              score += (e.type == Enemy.Type.FAST) ? 20 : 10;
+                              break;
+                          }
+                      }
+                  }
+
+                  if (!player.isInvulnerable()) {
+                      for (Enemy e : enemies) {
+                          if (e.hp > 0 && e.position.dst2(player.position) < (e.radius + player.radius) * (e.radius + player.radius)) {
+                              player.hp--;
+                              player.invulnTimer = 1.5f;
+                              if (player.hp <= 0) { gameOver = true; break; }
+                          }
+                      }
+                  }
+
+                  arrows.removeAll(a -> !a.alive);
+                  enemies.removeAll(e -> e.hp <= 0);
+              }
+
+              private void spawnEnemy() {
+                  int side = MathUtils.random(3);
+                  float x, y;
+                  switch (side) {
+                      case 0: x = MathUtils.random(WORLD_W); y = WORLD_H + 40; break;
+                      case 1: x = MathUtils.random(WORLD_W); y = -40;          break;
+                      case 2: x = -40;                       y = MathUtils.random(WORLD_H); break;
+                      default:x = WORLD_W + 40;              y = MathUtils.random(WORLD_H); break;
+                  }
+                  Enemy.Type type = (wave >= 2 && MathUtils.randomBoolean(0.25f))
+                          ? Enemy.Type.FAST : Enemy.Type.SLOW;
+                  enemies.add(new Enemy(x, y, type));
+              }
+
+              @Override
+              public void resize(int width, int height) {
+                  camera.setToOrtho(false, WORLD_W, WORLD_H);
+              }
+
+              @Override
+              public void dispose() {
+                  sr.dispose();
+              }
+          }
+          EOF
+
+          cat > "$ANDROID_PATH/AndroidLauncher.java" << 'EOF'
+          package com.ageofmayane.game.android;
+
+          import android.os.Bundle;
+          import com.badlogic.gdx.backends.android.AndroidApplication;
+          import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
+          import com.ageofmayane.game.AgeOfMayaneGame;
+
+          public class AndroidLauncher extends AndroidApplication {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
+                  config.useAccelerometer = false;
+                  config.useCompass = false;
+                  config.useGyroscope = false;
+                  config.useImmersiveMode = true;
+                  initialize(new AgeOfMayaneGame(), config);
+              }
+          }
+          EOF
+
+          rm -rf core/src/main/java/com/indie 2>/dev/null || true
+          rm -rf android/src/main/java/com/indie 2>/dev/null || true
+
+          if [ -f android/AndroidManifest.xml ]; then
+            sed -i 's/android:label="[^"]*"/android:label="Age of Mayane"/' android/AndroidManifest.xml || true
+            sed -i 's/android:screenOrientation="[^"]*"/android:screenOrientation="landscape"/' android/AndroidManifest.xml || true
+          fi
+
+          if [ -f android/build.gradle ]; then
+            sed -i 's/applicationId "[^"]*"/applicationId "com.ageofmayane.game"/' android/build.gradle || true
+            sed -i 's/namespace "[^"]*"/namespace "com.ageofmayane.game"/' android/build.gradle || true
+          fi
+
+          if [ -f settings.gradle ]; then
+            sed -i "s/rootProject.name = .*/rootProject.name = 'age-of-mayane'/" settings.gradle || true
+          fi
+
+          if [ -f android/AndroidManifest.xml ]; then
+            sed -i 's/android:name="\.[A-Za-z0-9_.]*"/android:name="com.ageofmayane.game.
