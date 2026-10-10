@@ -6,18 +6,24 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class AgeOfMayaneGame extends Game {
     public SpriteBatch batch;
+    public String lastError = "";
+    public static AgeOfMayaneGame INSTANCE;
 
     @Override
     public void create() {
-        Gdx.app.log("AGE_OF_MAYANE", "=== CREATE START ===");
+        INSTANCE = this;
         try {
             batch = new SpriteBatch();
-            Gdx.app.log("AGE_OF_MAYANE", "SpriteBatch OK");
             setScreen(new GameScreen(this));
-            Gdx.app.log("AGE_OF_MAYANE", "=== CREATE DONE ===");
         } catch (Throwable t) {
-            Gdx.app.error("AGE_OF_MAYANE", "ERREUR: " + t.getClass().getName() + " - " + t.getMessage(), t);
-            throw new RuntimeException(t);
+            lastError = "CREATE ERREUR:\n" + t.getClass().getSimpleName() + ": " + t.getMessage();
+            StringBuilder sb = new StringBuilder(lastError + "\n\nSTACK:\n");
+            for (StackTraceElement e : t.getStackTrace()) {
+                sb.append("  ").append(e.toString()).append("\n");
+                if (sb.length() > 3000) break;
+            }
+            lastError = sb.toString();
+            Gdx.app.error("AGE_OF_MAYANE", lastError);
         }
     }
 
