@@ -12,7 +12,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
@@ -39,14 +38,23 @@ public class GameScreen extends ScreenAdapter {
     static final float ENEMY_ROT = 0f;
     static final float ARROW_ROT = 0f;
 
+    // Proprietaires d'un toucher
+    static final int MAX_POINTERS = 5;
+    static final int OWNER_NONE = 0;
+    static final int OWNER_MOVE = 1;
+    static final int OWNER_AIM = 2;
+    static final int OWNER_ZOOM = 3;
+    static final int OWNER_IGNORED = 4;
+
     private final Game game;
 
-    // Caméra du monde (zoomée)
-    private FitViewport viewport;
+    // Camera du MONDE (zoomee) et camera UI (fixe)
     private OrthographicCamera camera;
-
-    // Caméra UI (fixe, pour HUD et boutons)
     private OrthographicCamera uiCamera;
+    private FitViewport viewport;
+    private FitViewport uiViewport;
+
+    private ZoomController zoom;
 
     private ShapeRenderer shapes;
     private SpriteBatch batch;
@@ -61,15 +69,16 @@ public class GameScreen extends ScreenAdapter {
     private final Array<Ennemi> ennemis = new Array<Ennemi>();
     private final Stick moveStick = new Stick();
     private final Stick aimStick = new Stick();
-
     private final Vector2 tmp = new Vector2();
-    private final Vector3 tmp3 = new Vector3();
-
-    private ZoomController zoomController;
+    private final int[] owner = new int[MAX_POINTERS];
+    private boolean newTouch;
 
     private float facing = 0f;
+
     private int lives;
     private int score;
+    private String scoreText = "";
+    private String livesText = "";
     private float fireTimer;
     private float spawnTimer;
     private float invulnerable;
@@ -79,24 +88,38 @@ public class GameScreen extends ScreenAdapter {
     public GameScreen() { this(null); }
     public GameScreen(Game game) { this.game = game; }
 
+    // ---------------------------------------------------------------
+    // Cycle de vie
+    // ---------------------------------------------------------------
     @Override
     public void show() {
-        viewport = new FitViewport(W, H);
-        camera = (OrthographicCamera) viewport.getCamera();
+        // Securite : si show() est rappele, on libere d'abord l'ancien contenu
+        disposeResources();
 
+        camera = new OrthographicCamera();
         uiCamera = new OrthographicCamera();
+        camera.setToOrtho(false, W, H);
         uiCamera.setToOrtho(false, W, H);
+        viewport = new FitViewport(W, H, camera);
+        uiViewport = new FitViewport(W, H, uiCamera);
+
+        int sw = Math.max(1, Gdx.graphics.getWidth());
+        int sh = Math.max(1, Gdx.graphics.getHeight());
+        viewport.update(sw, sh, true);
+        uiViewport.update(sw, sh, true);
 
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(2f);
+        font.getRegion().getTexture().setFilter(
+                Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        zoom = new ZoomController(W, H);
 
         texPlayer = loadTexture("player.png");
         texEnemy = loadTexture("enemy.png");
         texArrow = loadTexture("arrow.png");
-
-        zoomController = new ZoomController(W, H);
 
         restart();
     }
@@ -118,30 +141,46 @@ public class GameScreen extends ScreenAdapter {
         ennemis.clear();
         moveStick.end();
         aimStick.end();
+        for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
         facing = 0f;
-        lives = 5;
-        score = 0;
+        setLives(5);
+        setScore(0);
         fireTimer = 0;
         spawnTimer = 1f;
         invulnerable = 0;
         gameOverTimer = 0;
         gameOver = false;
-        if (zoomController != null) zoomController.reset();
+        // Le niveau de zoom est volontairement conserve entre les parties
     }
 
+    private void setScore(int s) {
+        score = s;
+        scoreText = "Score : " + s;
+    }
+
+    private void setLives(int l) {
+        lives = l;
+        livesText = "Vies : " + l;
+    }
+
+    // ---------------------------------------------------------------
+    // Boucle principale
+    // ---------------------------------------------------------------
     @Override
     public void render(float delta) {
-        if (delta > 0.05f) delta = 0.05f;
+        if (viewport == null || shapes == null) return;
+        if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
         update(delta);
         draw();
     }
 
     private void update(float delta) {
-        pollTouches(delta);
+        pollTouches();
+        zoom.update(delta);
 
         if (gameOver) {
             gameOverTimer += delta;
-            if (gameOverTimer > 0.6f && Gdx.input.justTouched()) restart();
+            if (gameOverTimer > 0.6f && newTouch) restart();
             return;
         }
 
@@ -208,7 +247,7 @@ public class GameScreen extends ScreenAdapter {
             }
             if (mort) {
                 ennemis.removeIndex(i);
-                score++;
+                setScore(score + 1);
                 continue;
             }
 
@@ -216,7 +255,7 @@ public class GameScreen extends ScreenAdapter {
             if (e.pos.dst2(playerPos) < pr * pr) {
                 ennemis.removeIndex(i);
                 if (invulnerable <= 0f) {
-                    lives--;
+                    setLives(lives - 1);
                     invulnerable = 1f;
                     if (lives <= 0) {
                         gameOver = true;
@@ -239,40 +278,55 @@ public class GameScreen extends ScreenAdapter {
         ennemis.add(e);
     }
 
-    private void pollTouches(float delta) {
-        if (moveStick.active() && !Gdx.input.isTouched(moveStick.pointer)) moveStick.end();
-        if (aimStick.active() && !Gdx.input.isTouched(aimStick.pointer)) aimStick.end();
+    // ---------------------------------------------------------------
+    // Entrees tactiles (tout en espace UI, independant du zoom)
+    // ---------------------------------------------------------------
+    private void pollTouches() {
+        zoom.resetFrame();
+        newTouch = false;
 
-        zoomController.resetFrame();
-
-        for (int i = 0; i < 5; i++) {
-            if (!Gdx.input.isTouched(i)) continue;
-
-            // --- 1) Tester les boutons zoom en ESPACE ÉCRAN (Vector3 requis) ---
-            tmp3.set(Gdx.input.getX(i), Gdx.input.getY(i), 0f);
-            uiCamera.unproject(tmp3);
-            if (zoomController.handleTouch(tmp3.x, tmp3.y, delta)) {
+        for (int i = 0; i < MAX_POINTERS; i++) {
+            if (!Gdx.input.isTouched(i)) {
+                if (moveStick.pointer == i) moveStick.end();
+                if (aimStick.pointer == i) aimStick.end();
+                owner[i] = OWNER_NONE;
                 continue;
             }
 
-            // --- 2) Sinon, c'est un joystick en ESPACE MONDE (Vector2 OK) ---
             tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-            viewport.unproject(tmp);
+            uiViewport.unproject(tmp);
             float x = tmp.x;
             float y = tmp.y;
 
-            if (i == moveStick.pointer) {
+            if (owner[i] == OWNER_NONE) {
+                // Nouveau toucher : 1) bouton de zoom ? 2) sinon joystick
+                if (zoom.handleTouch(x, y)) {
+                    owner[i] = OWNER_ZOOM;
+                } else {
+                    newTouch = true;
+                    if (x < W / 2f && !moveStick.active()) {
+                        owner[i] = OWNER_MOVE;
+                        moveStick.begin(i, x, y);
+                    } else if (x >= W / 2f && !aimStick.active()) {
+                        owner[i] = OWNER_AIM;
+                        aimStick.begin(i, x, y);
+                    } else {
+                        owner[i] = OWNER_IGNORED;
+                    }
+                }
+            } else if (owner[i] == OWNER_ZOOM) {
+                zoom.handleTouch(x, y);
+            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
                 moveStick.move(x, y);
-            } else if (i == aimStick.pointer) {
+            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
                 aimStick.move(x, y);
-            } else if (x < W / 2f && !moveStick.active()) {
-                moveStick.begin(i, x, y);
-            } else if (x >= W / 2f && !aimStick.active()) {
-                aimStick.begin(i, x, y);
             }
         }
     }
 
+    // ---------------------------------------------------------------
+    // Affichage
+    // ---------------------------------------------------------------
     private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
         float w = h * t.getWidth() / (float) t.getHeight();
         batch.draw(t,
@@ -291,19 +345,16 @@ public class GameScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // ============================================================
-        // PHASE 1 : LE MONDE (avec zoom)
-        // ============================================================
-        zoomController.applyToCamera(camera);
+        // Camera du monde : zoom + suivi du joueur
+        zoom.applyToCamera(camera, playerPos.x, playerPos.y, W, H);
         viewport.apply();
-
         shapes.setProjectionMatrix(camera.combined);
         batch.setProjectionMatrix(camera.combined);
 
         boolean playerVisible = !gameOver
                 && (invulnerable <= 0f || ((int) (invulnerable * 10f)) % 2 == 0);
 
-        // --- Sprites ---
+        // --- 1) Sprites (camera zoomee) ---
         batch.begin();
         batch.setColor(Color.WHITE);
         if (texEnemy != null) {
@@ -321,48 +372,53 @@ public class GameScreen extends ScreenAdapter {
         }
         batch.end();
 
-        // --- Formes : fallbacks + joysticks ---
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-
-        if (texEnemy == null) {
-            shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
-            for (Ennemi e : ennemis) shapes.circle(e.pos.x, e.pos.y, ENEMY_RADIUS, 20);
+        // --- 2) Cercles de secours (camera zoomee) ---
+        boolean needFallback = texEnemy == null || texArrow == null
+                || (texPlayer == null && playerVisible);
+        if (needFallback) {
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            if (texEnemy == null) {
+                shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
+                for (Ennemi e : ennemis) shapes.circle(e.pos.x, e.pos.y, ENEMY_RADIUS, 20);
+            }
+            if (texArrow == null) {
+                shapes.setColor(1f, 0.9f, 0.3f, 1f);
+                for (Fleche f : fleches) shapes.circle(f.pos.x, f.pos.y, ARROW_RADIUS, 10);
+            }
+            if (texPlayer == null && playerVisible) {
+                shapes.setColor(1f, 0.4f, 0.7f, 1f);
+                shapes.circle(playerPos.x, playerPos.y, PLAYER_RADIUS, 24);
+            }
+            shapes.end();
         }
-        if (texArrow == null) {
-            shapes.setColor(1f, 0.9f, 0.3f, 1f);
-            for (Fleche f : fleches) shapes.circle(f.pos.x, f.pos.y, ARROW_RADIUS, 10);
-        }
-        if (texPlayer == null && playerVisible) {
-            shapes.setColor(1f, 0.4f, 0.7f, 1f);
-            shapes.circle(playerPos.x, playerPos.y, PLAYER_RADIUS, 24);
-        }
 
-        drawStick(moveStick, new Color(1f, 1f, 1f, 0.15f), new Color(1f, 1f, 1f, 0.45f));
-        drawStick(aimStick, new Color(1f, 0.5f, 0.5f, 0.15f), new Color(1f, 0.5f, 0.5f, 0.45f));
-
-        shapes.end();
-
-        // --- Contour arène ---
+        // --- 3) Contour de l'arene (camera zoomee) ---
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(0.3f, 0.3f, 0.45f, 1f);
         shapes.rect(1, 1, W - 2, H - 2);
         shapes.end();
 
-        // ============================================================
-        // PHASE 2 : UI (fixe, sans zoom)
-        // ============================================================
-        uiCamera.update();
+        // ===== A partir d'ici : camera UI fixe =====
+        uiViewport.apply();
         shapes.setProjectionMatrix(uiCamera.combined);
         batch.setProjectionMatrix(uiCamera.combined);
 
-        // --- Boutons zoom ---
-        zoomController.draw(shapes, batch, font);
+        // Joysticks
+        if (moveStick.active() || aimStick.active()) {
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            drawStick(moveStick, 1f, 1f, 1f);
+            drawStick(aimStick, 1f, 0.5f, 0.5f);
+            shapes.end();
+        }
 
-        // --- HUD texte ---
+        // --- 4) Boutons de zoom (camera UI) ---
+        zoom.draw(shapes, batch, font);
+
+        // --- 5) HUD texte (camera UI) ---
         batch.begin();
         font.setColor(Color.WHITE);
-        font.draw(batch, "Score : " + score, 20, H - 20);
-        font.draw(batch, "Vies : " + lives, W - 160, H - 20);
+        font.draw(batch, scoreText, 20, H - 20);
+        font.draw(batch, livesText, W - 160, H - 20);
         if (gameOver) {
             font.setColor(1f, 0.4f, 0.4f, 1f);
             font.draw(batch, "GAME OVER", W / 2f - 100, H / 2f + 30);
@@ -372,22 +428,27 @@ public class GameScreen extends ScreenAdapter {
         batch.end();
     }
 
-    private void drawStick(Stick s, Color base, Color knob) {
+    private void drawStick(Stick s, float r, float g, float b) {
         if (!s.active()) return;
-        shapes.setColor(base);
+        shapes.setColor(r, g, b, 0.15f);
         shapes.circle(s.origin.x, s.origin.y, STICK_RADIUS, 32);
-        shapes.setColor(knob);
+        shapes.setColor(r, g, b, 0.45f);
         shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
-        uiCamera.setToOrtho(false, W, H);
+        if (viewport == null || uiViewport == null) return;
+        int w = Math.max(1, width);
+        int h = Math.max(1, height);
+        viewport.update(w, h, true);
+        uiViewport.update(w, h, true);
     }
 
-    @Override
-    public void dispose() {
+    // ---------------------------------------------------------------
+    // Liberation des ressources
+    // ---------------------------------------------------------------
+    private void disposeResources() {
         if (shapes != null) shapes.dispose();
         if (batch != null) batch.dispose();
         if (font != null) font.dispose();
@@ -400,13 +461,26 @@ public class GameScreen extends ScreenAdapter {
         texPlayer = null;
         texEnemy = null;
         texArrow = null;
+        viewport = null;
+        uiViewport = null;
+        camera = null;
+        uiCamera = null;
+        zoom = null;
+    }
+
+    @Override
+    public void dispose() {
+        disposeResources();
     }
 
     @Override
     public void hide() {
-        dispose();
+        disposeResources();
     }
 
+    // ---------------------------------------------------------------
+    // Classes internes
+    // ---------------------------------------------------------------
     static class Fleche {
         final Vector2 pos = new Vector2();
         final Vector2 vel = new Vector2();
