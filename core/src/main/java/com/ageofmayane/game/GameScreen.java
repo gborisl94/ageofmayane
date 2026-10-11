@@ -47,6 +47,9 @@ public class GameScreen extends ScreenAdapter {
     static final int OWNER_ZOOM = 3;
     static final int OWNER_IGNORED = 4;
 
+    // Duree du flash rouge quand on prend un degat
+    static final float HIT_FLASH_DURATION = 0.35f;
+
     private final Game game;
     private GameRenderer renderer;
 
@@ -60,6 +63,7 @@ public class GameScreen extends ScreenAdapter {
     final Stick aimStick = new Stick();
     float facing = 0f;
     float invulnerable;
+    float hitFlash = 0f;
     boolean gameOver;
     boolean victory;
     String scoreText = "";
@@ -101,6 +105,7 @@ public class GameScreen extends ScreenAdapter {
         setScore(0);
         fireTimer = 0f;
         invulnerable = 0f;
+        hitFlash = 0f;
         endTimer = 0f;
         gameOver = false;
         victory = false;
@@ -137,6 +142,7 @@ public class GameScreen extends ScreenAdapter {
     }
 
     if (invulnerable > 0f) invulnerable -= delta;
+    if (hitFlash > 0f) hitFlash -= delta;
 
     if (aimStick.dir.len() > DEAD_ZONE) {
         facing = aimStick.dir.angleDeg();
@@ -258,93 +264,96 @@ private void updateEnemies(float delta) {
 private void hurtPlayer() {
     setLives(lives - 1);
     invulnerable = 1f;
+    hitFlash = HIT_FLASH_DURATION;
     damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
     if (lives <= 0) {
         gameOver = true;
         endTimer = 0f;
     }
-}private void enterRoom(Room room) {
-    fleches.clear();
-    ennemis.clear();
-    damage.clear();
-    if (!room.cleared) spawnRoomEnemies(room);
-}
-
-private void spawnRoomEnemies(Room room) {
-    if (room.boss) {
-        Ennemi b = new Ennemi();
-        b.boss = true;
-        b.hp = BOSS_HP;
-        b.maxHp = BOSS_HP;
-        b.radius = BOSS_RADIUS;
-        b.size = BOSS_SIZE;
-        b.pos.set(W / 2f, H / 2f);
-        ennemis.add(b);
+}    private void enterRoom(Room room) {
+        fleches.clear();
+        ennemis.clear();
+        damage.clear();
+        if (!room.cleared) spawnRoomEnemies(room);
     }
-    for (int i = 0; i < room.enemyCount; i++) {
-        Ennemi e = new Ennemi();
-        e.hp = ENEMY_HP;
-        e.maxHp = ENEMY_HP;
-        findSpawnPoint(e.pos, ENEMY_RADIUS);
-        ennemis.add(e);
-    }
-    if (ennemis.size == 0) dungeon.markCleared();
-}
 
-private void findSpawnPoint(Vector2 out, float radius) {
-    for (int i = 0; i < 40; i++) {
-        float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
-        float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
-        out.set(x, y);
-        if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
-        if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
-        return;
-    }
-    out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
-            MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
-}
-
-private void pollTouches() {
-    zoom.resetFrame();
-    newTouch = false;
-
-    for (int i = 0; i < MAX_POINTERS; i++) {
-        if (!Gdx.input.isTouched(i)) {
-            if (moveStick.pointer == i) moveStick.end();
-            if (aimStick.pointer == i) aimStick.end();
-            owner[i] = OWNER_NONE;
-            continue;
+    private void spawnRoomEnemies(Room room) {
+        if (room.boss) {
+            Ennemi b = new Ennemi();
+            b.boss = true;
+            b.hp = BOSS_HP;
+            b.maxHp = BOSS_HP;
+            b.radius = BOSS_RADIUS;
+            b.size = BOSS_SIZE;
+            b.pos.set(W / 2f, H / 2f);
+            ennemis.add(b);
         }
+        for (int i = 0; i < room.enemyCount; i++) {
+            Ennemi e = new Ennemi();
+            e.hp = ENEMY_HP;
+            e.maxHp = ENEMY_HP;
+            findSpawnPoint(e.pos, ENEMY_RADIUS);
+            ennemis.add(e);
+        }
+        if (ennemis.size == 0) dungeon.markCleared();
+    }
 
-        tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-        renderer.uiViewport.unproject(tmp);
-        float x = tmp.x;
-        float y = tmp.y;
+    private void findSpawnPoint(Vector2 out, float radius) {
+        for (int i = 0; i < 40; i++) {
+            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
+            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
+            out.set(x, y);
+            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
+            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+            return;
+        }
+        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
+                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
+    }
 
-        if (owner[i] == OWNER_NONE) {
-            if (zoom.handleTouch(x, y)) {
-                owner[i] = OWNER_ZOOM;
-            } else {
-                newTouch = true;
-                if (x < W / 2f && !moveStick.active()) {
-                    owner[i] = OWNER_MOVE;
-                    moveStick.begin(i, x, y);
-                } else if (x >= W / 2f && !aimStick.active()) {
-                    owner[i] = OWNER_AIM;
-                    aimStick.begin(i, x, y);
-                } else {
-                    owner[i] = OWNER_IGNORED;
-                }
+    private void pollTouches() {
+        zoom.resetFrame();
+        newTouch = false;
+
+        for (int i = 0; i < MAX_POINTERS; i++) {
+            if (!Gdx.input.isTouched(i)) {
+                if (moveStick.pointer == i) moveStick.end();
+                if (aimStick.pointer == i) aimStick.end();
+                owner[i] = OWNER_NONE;
+                continue;
             }
-        } else if (owner[i] == OWNER_ZOOM) {
-            zoom.handleTouch(x, y);
-        } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
-            moveStick.move(x, y);
-        } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
-            aimStick.move(x, y);
+
+            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
+            renderer.uiViewport.unproject(tmp);
+            float x = tmp.x;
+            float y = tmp.y;
+
+            if (owner[i] == OWNER_NONE) {
+                if (zoom.handleTouch(x, y)) {
+                    owner[i] = OWNER_ZOOM;
+                } else {
+                    newTouch = true;
+                    if (x < W / 2f && !moveStick.active()) {
+                        owner[i] = OWNER_MOVE;
+                        moveStick.begin(i, x, y);
+                    } else if (x >= W / 2f && !aimStick.active()) {
+                        owner[i] = OWNER_AIM;
+                        aimStick.begin(i, x, y);
+                    } else {
+                        owner[i] = OWNER_IGNORED;
+                    }
+                }
+            } else if (owner[i] == OWNER_ZOOM) {
+                zoom.handleTouch(x, y);
+            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
+                moveStick.move(x, y);
+            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
+                aimStick.move(x, y);
+            }
         }
     }
-}    @Override
+
+    @Override
     public void resize(int width, int height) {
         if (renderer != null) renderer.resize(width, height);
     }
