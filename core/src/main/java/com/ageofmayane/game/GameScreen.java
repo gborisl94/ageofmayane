@@ -38,10 +38,13 @@ public class GameScreen extends ScreenAdapter {
     static final float BOSS_KNOCKBACK = 140f;
     static final int BOSS_SCORE = 5;
 
+    static final int XP_PER_ENEMY = 5;
+    static final int XP_PER_BOSS = 100;
+    static final int XP_PER_ROOM = 20;
+
     static final float SPAWN_MIN_DIST = 280f;
     static final float CHEST_INTERACT_DIST = 120f;
 
-    // Bouton OUVRIR (espace UI) - a DROITE sous les boutons zoom
     static final float OPEN_BTN_W = 260f;
     static final float OPEN_BTN_H = 80f;
     static final float OPEN_BTN_X = W - OPEN_BTN_W - 30f;
@@ -60,6 +63,7 @@ public class GameScreen extends ScreenAdapter {
     private GameRenderer renderer;
 
     ZoomController zoom;
+    XpSystem xpSystem;
     final DungeonManager dungeon = new DungeonManager();
     final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
     final Array<Fleche> fleches = new Array<Fleche>();
@@ -96,6 +100,7 @@ public class GameScreen extends ScreenAdapter {
         renderer = new GameRenderer();
         renderer.create();
         zoom = new ZoomController(W, H);
+        xpSystem = new XpSystem();
         restart();
     }
 
@@ -207,6 +212,7 @@ public class GameScreen extends ScreenAdapter {
     Room cur = dungeon.getCurrent();
     if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
         dungeon.markCleared();
+        xpSystem.addXp(XP_PER_ROOM);
     }
 }
 
@@ -261,6 +267,7 @@ private void updateEnemies(float delta) {
         if (mort) {
             ennemis.removeIndex(i);
             setScore(score + (e.boss ? BOSS_SCORE : 1));
+            xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
             if (e.boss) {
                 victory = true;
                 endTimer = 0f;
@@ -306,7 +313,6 @@ private void updateWeaponDrops(float delta) {
 private void updateChest(float delta) {
     if (chest == null) return;
     chest.update(delta);
-    // Pas d'ouverture auto : le joueur doit appuyer sur le bouton OUVRIR
 }
 
 private void hurtPlayer() {
@@ -377,7 +383,6 @@ private void hurtPlayer() {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                // Bouton OUVRIR (prioritaire)
                 if (canInteractWithChest()
                         && x >= OPEN_BTN_X && x <= OPEN_BTN_X + OPEN_BTN_W
                         && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
