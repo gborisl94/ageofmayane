@@ -3,6 +3,7 @@ package com.ageofmayane.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -70,6 +71,7 @@ public class GameScreen extends ScreenAdapter {
     final Array<Ennemi> ennemis = new Array<Ennemi>();
     final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
     final DamageNumbers damage = new DamageNumbers();
+    final ParticleSystem particles = new ParticleSystem();
     final Stick moveStick = new Stick();
     final Stick aimStick = new Stick();
     Weapon equippedWeapon;
@@ -77,6 +79,8 @@ public class GameScreen extends ScreenAdapter {
     float facing = 0f;
     float invulnerable;
     float hitFlash = 0f;
+    float bossFleeMessageTimer = 0f;
+    boolean bossFledThisRun = false;
     boolean gameOver;
     boolean victory;
     String scoreText = "";
@@ -112,6 +116,7 @@ public class GameScreen extends ScreenAdapter {
         ennemis.clear();
         weaponDrops.clear();
         damage.clear();
+        particles.clear();
         moveStick.end();
         aimStick.end();
         for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
@@ -121,6 +126,8 @@ public class GameScreen extends ScreenAdapter {
         fireTimer = 0f;
         invulnerable = 0f;
         hitFlash = 0f;
+        bossFleeMessageTimer = 0f;
+        bossFledThisRun = false;
         endTimer = 0f;
         gameOver = false;
         victory = false;
@@ -164,6 +171,7 @@ public class GameScreen extends ScreenAdapter {
     pollTouches();
     zoom.update(delta);
     damage.update(delta);
+    particles.update(delta);
 
     if (gameOver || victory) {
         endTimer += delta;
@@ -173,6 +181,7 @@ public class GameScreen extends ScreenAdapter {
 
     if (invulnerable > 0f) invulnerable -= delta;
     if (hitFlash > 0f) hitFlash -= delta;
+    if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
 
     if (aimStick.dir.len() > DEAD_ZONE) {
         facing = aimStick.dir.angleDeg();
@@ -202,6 +211,30 @@ public class GameScreen extends ScreenAdapter {
         f.vel.set(aimStick.dir).nor().scl(ARROW_SPEED);
         f.angle = f.vel.angleDeg();
         fleches.add(f);
+
+        // Effet selon l'arc equipe
+        if (equippedWeapon != null) {
+            String s = equippedWeapon.spriteName;
+            if (s != null) {
+                if (s.equals("bow_fire.png")) {
+                    particles.spawnFire(playerPos.x, playerPos.y, 3);
+                } else if (s.equals("bow_ice.png")) {
+                    particles.spawnWaterJet(playerPos.x, playerPos.y,
+                            f.angle, 3);
+                } else if (s.equals("bow_void.png")) {
+                    particles.spawnPoisonJet(playerPos.x, playerPos.y,
+                            f.angle, 3);
+                } else if (s.equals("bow_legendary.png")) {
+                    particles.spawnFire(playerPos.x, playerPos.y, 2);
+                    particles.spawnLightning(playerPos.x, playerPos.y,
+                            f.angle, 2);
+                } else if (s.equals("bow_fast.png")
+                        || s.equals("bow_triple.png")) {
+                    particles.spawnLightning(playerPos.x, playerPos.y,
+                            f.angle, 2);
+                }
+            }
+        }
     }
 
     updateArrows(delta);
@@ -243,6 +276,35 @@ private void updateEnemies(float delta) {
     for (int i = ennemis.size - 1; i >= 0; i--) {
         Ennemi e = ennemis.get(i);
 
+        // === CHAMPION QUI FUIT ===
+        if (e.boss && e.fleeing) {
+            e.fleeTimer += delta;
+            e.pos.x -= 400f * delta;
+            e.pos.y += 250f * delta;
+            e.angle = 135f;
+
+            if (Math.random() < 0.4f) {
+                particles.spawnSmoke(e.pos.x, e.pos.y, 1);
+            }
+
+            if (e.fleeTimer > 2.5f || e.pos.x < -150f || e.pos.y > H + 150f) {
+                ennemis.removeIndex(i);
+                bossFledThisRun = true;
+                continue;
+            }
+            continue;
+        }
+
+        // === VERIFIER SI LE CHAMPION VEUT FUIR ===
+        if (e.boss && !e.fleeing && e.hp > 0 && e.hp <= BOSS_HP * 0.2f) {
+            if (Math.random() < 0.5f * delta) {
+                e.fleeing = true;
+                e.fleeTimer = 0f;
+                bossFleeMessageTimer = 3.5f;
+                particles.spawnSmoke(e.pos.x, e.pos.y, 8);
+            }
+        }
+
         tmp.set(playerPos).sub(e.pos);
         if (tmp.len2() > 0.001f) {
             e.angle = tmp.angleDeg();
@@ -258,6 +320,35 @@ private void updateEnemies(float delta) {
                 fleches.removeIndex(j);
                 e.hp--;
                 damage.add(e.pos.x, e.pos.y + e.size / 2f, "-1", false);
+
+                if (equippedWeapon != null && equippedWeapon.spriteName != null) {
+                    String s = equippedWeapon.spriteName;
+                    if (s.equals("bow_fire.png")) {
+                        particles.spawnFire(e.pos.x, e.pos.y, 4);
+                        particles.spawnSmoke(e.pos.x, e.pos.y, 2);
+                    } else if (s.equals("bow_ice.png")) {
+                        particles.spawnWater(e.pos.x, e.pos.y, 5);
+                    } else if (s.equals("bow_void.png")) {
+                        particles.spawnPoison(e.pos.x, e.pos.y, 6);
+                    } else if (s.equals("bow_legendary.png")) {
+                        particles.spawnFire(e.pos.x, e.pos.y, 3);
+                        particles.spawnLightning(e.pos.x, e.pos.y,
+                                e.angle + 180f, 2);
+                    } else if (s.equals("bow_fast.png")
+                            || s.equals("bow_triple.png")) {
+                        particles.spawnLightning(e.pos.x, e.pos.y,
+                                e.angle + 180f, 3);
+                    } else {
+                        Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f)
+                                              : new Color(1f, 0.9f, 0.4f, 1f);
+                        particles.spawnHitSpark(e.pos.x, e.pos.y, spark);
+                    }
+                } else {
+                    Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f)
+                                          : new Color(1f, 0.9f, 0.4f, 1f);
+                    particles.spawnHitSpark(e.pos.x, e.pos.y, spark);
+                }
+
                 if (e.hp <= 0) {
                     mort = true;
                     break;
@@ -265,6 +356,17 @@ private void updateEnemies(float delta) {
             }
         }
         if (mort) {
+            Color pcolor = e.boss ? new Color(0.9f, 0.2f, 0.2f, 1f)
+                                   : new Color(0.2f, 0.9f, 0.9f, 1f);
+            if (e.boss) {
+                particles.spawnBossExplosion(e.pos.x, e.pos.y, pcolor);
+                particles.spawnBlood(e.pos.x, e.pos.y, 30);
+                particles.spawnSmoke(e.pos.x, e.pos.y, 20);
+            } else {
+                particles.spawnEnemyExplosion(e.pos.x, e.pos.y, pcolor);
+                particles.spawnBlood(e.pos.x, e.pos.y, 12);
+                particles.spawnSmoke(e.pos.x, e.pos.y, 5);
+            }
             ennemis.removeIndex(i);
             setScore(score + (e.boss ? BOSS_SCORE : 1));
             xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
@@ -320,6 +422,8 @@ private void hurtPlayer() {
     invulnerable = 1f;
     hitFlash = HIT_FLASH_DURATION;
     damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
+    particles.spawnHitSpark(playerPos.x, playerPos.y,
+            new Color(1f, 0.3f, 0.3f, 1f));
     if (lives <= 0) {
         gameOver = true;
         endTimer = 0f;
