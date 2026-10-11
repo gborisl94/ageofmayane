@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
@@ -60,7 +61,9 @@ public class GameScreen extends ScreenAdapter {
     private final Array<Ennemi> ennemis = new Array<Ennemi>();
     private final Stick moveStick = new Stick();
     private final Stick aimStick = new Stick();
+
     private final Vector2 tmp = new Vector2();
+    private final Vector3 tmp3 = new Vector3();
 
     private ZoomController zoomController;
 
@@ -245,14 +248,14 @@ public class GameScreen extends ScreenAdapter {
         for (int i = 0; i < 5; i++) {
             if (!Gdx.input.isTouched(i)) continue;
 
-            // --- 1) Tester les boutons zoom en ESPACE ÉCRAN ---
-            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-            uiCamera.unproject(tmp);
-            if (zoomController.handleTouch(tmp.x, tmp.y, delta)) {
+            // --- 1) Tester les boutons zoom en ESPACE ÉCRAN (Vector3 requis) ---
+            tmp3.set(Gdx.input.getX(i), Gdx.input.getY(i), 0f);
+            uiCamera.unproject(tmp3);
+            if (zoomController.handleTouch(tmp3.x, tmp3.y, delta)) {
                 continue;
             }
 
-            // --- 2) Sinon, c'est un joystick en ESPACE MONDE ---
+            // --- 2) Sinon, c'est un joystick en ESPACE MONDE (Vector2 OK) ---
             tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
             viewport.unproject(tmp);
             float x = tmp.x;
