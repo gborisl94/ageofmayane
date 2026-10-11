@@ -555,4 +555,103 @@ public class GameScreen extends ScreenAdapter {
         shapes.setColor(r, g, b, 0.15f);
         shapes.circle(s.origin.x, s.origin.y, STICK_RADIUS, 32);
         shapes.setColor(r, g, b, 0.45f);
-        shapes.ci
+                shapes.circle(s.origin.x, s.origin.y, STICK_RADIUS, 32);
+        shapes.setColor(r, g, b, 0.45f);
+        shapes.circle(s.current.x, s.current.y, 45f, 24);
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        if (viewport == null || uiViewport == null) return;
+        int w = Math.max(1, width);
+        int h = Math.max(1, height);
+        viewport.update(w, h, true);
+        uiViewport.update(w, h, true);
+    }
+
+    // ---------------------------------------------------------------
+    // Liberation des ressources
+    // ---------------------------------------------------------------
+    private void disposeResources() {
+        if (shapes != null) shapes.dispose();
+        if (batch != null) batch.dispose();
+        if (font != null) font.dispose();
+        if (texPlayer != null) texPlayer.dispose();
+        if (texEnemy != null) texEnemy.dispose();
+        if (texArrow != null) texArrow.dispose();
+        shapes = null;
+        batch = null;
+        font = null;
+        texPlayer = null;
+        texEnemy = null;
+        texArrow = null;
+        viewport = null;
+        uiViewport = null;
+        camera = null;
+        uiCamera = null;
+        zoom = null;
+    }
+
+    @Override
+    public void dispose() {
+        disposeResources();
+    }
+
+    @Override
+    public void hide() {
+        disposeResources();
+    }
+
+    // ---------------------------------------------------------------
+    // Classes internes
+    // ---------------------------------------------------------------
+    static class Fleche {
+        final Vector2 pos = new Vector2();
+        final Vector2 vel = new Vector2();
+        float angle = 0f;
+        float life = 1.5f;
+    }
+
+    static class Ennemi {
+        final Vector2 pos = new Vector2();
+        float angle = 0f;
+        boolean boss = false;
+        int hp = 1;
+        int maxHp = 1;
+        float radius = ENEMY_RADIUS;
+        float size = ENEMY_SIZE;
+    }
+
+    static class Stick {
+        int pointer = -1;
+        final Vector2 origin = new Vector2();
+        final Vector2 current = new Vector2();
+        final Vector2 dir = new Vector2();
+
+        boolean active() { return pointer != -1; }
+
+        void begin(int p, float x, float y) {
+            pointer = p;
+            origin.set(x, y);
+            current.set(x, y);
+            dir.setZero();
+        }
+
+        void move(float x, float y) {
+            dir.set(x - origin.x, y - origin.y);
+            float len = dir.len();
+            if (len > STICK_RADIUS) {
+                dir.scl(1f / len);
+                current.set(origin).add(dir.x * STICK_RADIUS, dir.y * STICK_RADIUS);
+            } else {
+                current.set(x, y);
+                dir.scl(1f / STICK_RADIUS);
+            }
+        }
+
+        void end() {
+            pointer = -1;
+            dir.setZero();
+        }
+    }
+}
