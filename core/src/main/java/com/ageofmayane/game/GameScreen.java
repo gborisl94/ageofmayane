@@ -50,7 +50,6 @@ public class GameScreen extends ScreenAdapter {
     private final Game game;
     private GameRenderer renderer;
 
-    // Etat partage avec GameRenderer
     ZoomController zoom;
     final DungeonManager dungeon = new DungeonManager();
     final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
@@ -126,358 +125,226 @@ public class GameScreen extends ScreenAdapter {
         if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
         update(delta);
         renderer.draw(this);
-    }
-    private void update(float delta) {
-        pollTouches();
-        zoom.update(delta);
-        damage.update(delta);
+    }private void update(float delta) {
+    pollTouches();
+    zoom.update(delta);
+    damage.update(delta);
 
-        if (gameOver || victory) {
-            endTimer += delta;
-            if (endTimer > 0.6f && newTouch) restart();
-            return;
-        }
-
-        if (invulnerable > 0f) invulnerable -= delta;
-
-        if (aimStick.dir.len() > DEAD_ZONE) {
-            facing = aimStick.dir.angleDeg();
-        } else if (moveStick.dir.len() > DEAD_ZONE) {
-            facing = moveStick.dir.angleDeg();
-        }
-
-        // Deplacement + collisions avec les murs
-        if (moveStick.dir.len() > DEAD_ZONE) {
-            playerPos.x += moveStick.dir.x * PLAYER_SPEED * delta;
-            playerPos.y += moveStick.dir.y * PLAYER_SPEED * delta;
-        }
-        dungeon.collide(playerPos, PLAYER_RADIUS);
-        playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
-        playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
-
-        // Passage d'une porte
-        int exitDir = dungeon.checkDoorExit(playerPos);
-        if (exitDir >= 0) {
-            Room next = dungeon.moveThrough(exitDir, playerPos);
-            if (next != null) enterRoom(next);
-        }
-
-        // Tir automatique
-        fireTimer -= delta;
-        if (aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
-            fireTimer = FIRE_DELAY;
-            Fleche f = new Fleche();
-            f.pos.set(playerPos);
-            f.vel.set(aimStick.dir).nor().scl(ARROW_SPEED);
-            f.angle = f.vel.angleDeg();
-            fleches.add(f);
-        }
-
-        updateArrows(delta);
-        updateEnemies(delta);
-
-        // Salle nettoyee : les portes s'ouvrent
-        Room cur = dungeon.getCurrent();
-        if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
-            dungeon.markCleared();
-        }
+    if (gameOver || victory) {
+        endTimer += delta;
+        if (endTimer > 0.6f && newTouch) restart();
+        return;
     }
 
-    private void updateArrows(float delta) {
-        for (int i = fleches.size - 1; i >= 0; i--) {
-            Fleche f = fleches.get(i);
-            int steps = MathUtils.clamp((int) Math.ceil(ARROW_SPEED * delta / 8f), 1, 8);
-            float sdt = delta / steps;
-            boolean remove = false;
-            for (int s = 0; s < steps; s++) {
-                f.pos.x += f.vel.x * sdt;
-                f.pos.y += f.vel.y * sdt;
-                if (dungeon.circleHitsWall(f.pos.x, f.pos.y, ARROW_RADIUS)) {
-                    remove = true;
+    if (invulnerable > 0f) invulnerable -= delta;
+
+    if (aimStick.dir.len() > DEAD_ZONE) {
+        facing = aimStick.dir.angleDeg();
+    } else if (moveStick.dir.len() > DEAD_ZONE) {
+        facing = moveStick.dir.angleDeg();
+    }
+
+    if (moveStick.dir.len() > DEAD_ZONE) {
+        playerPos.x += moveStick.dir.x * PLAYER_SPEED * delta;
+        playerPos.y += moveStick.dir.y * PLAYER_SPEED * delta;
+    }
+    dungeon.collide(playerPos, PLAYER_RADIUS);
+    playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
+    playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
+
+    int exitDir = dungeon.checkDoorExit(playerPos);
+    if (exitDir >= 0) {
+        Room next = dungeon.moveThrough(exitDir, playerPos);
+        if (next != null) enterRoom(next);
+    }
+
+    fireTimer -= delta;
+    if (aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
+        fireTimer = FIRE_DELAY;
+        Fleche f = new Fleche();
+        f.pos.set(playerPos);
+        f.vel.set(aimStick.dir).nor().scl(ARROW_SPEED);
+        f.angle = f.vel.angleDeg();
+        fleches.add(f);
+    }
+
+    updateArrows(delta);
+    updateEnemies(delta);
+
+    Room cur = dungeon.getCurrent();
+    if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
+        dungeon.markCleared();
+    }
+}
+
+private void updateArrows(float delta) {
+    for (int i = fleches.size - 1; i >= 0; i--) {
+        Fleche f = fleches.get(i);
+        int steps = MathUtils.clamp((int) Math.ceil(ARROW_SPEED * delta / 8f), 1, 8);
+        float sdt = delta / steps;
+        boolean remove = false;
+        for (int s = 0; s < steps; s++) {
+            f.pos.x += f.vel.x * sdt;
+            f.pos.y += f.vel.y * sdt;
+            if (dungeon.circleHitsWall(f.pos.x, f.pos.y, ARROW_RADIUS)) {
+                remove = true;
+                break;
+            }
+        }
+        f.life -= delta;
+        if (remove || f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
+                || f.pos.y < -20 || f.pos.y > H + 20) {
+            fleches.removeIndex(i);
+        }
+    }
+}
+
+private void updateEnemies(float delta) {
+    float normalSpeed = Math.min(80f + score * 1.5f, 200f);
+    for (int i = ennemis.size - 1; i >= 0; i--) {
+        Ennemi e = ennemis.get(i);
+
+        tmp.set(playerPos).sub(e.pos);
+        if (tmp.len2() > 0.001f) {
+            e.angle = tmp.angleDeg();
+            float spd = e.boss ? BOSS_SPEED : normalSpeed;
+            tmp.nor().scl(spd * delta);
+            e.pos.add(tmp);
+        }
+
+        boolean mort = false;
+        float rr = e.radius + ARROW_RADIUS;
+        for (int j = fleches.size - 1; j >= 0; j--) {
+            if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
+                fleches.removeIndex(j);
+                e.hp--;
+                damage.add(e.pos.x, e.pos.y + e.size / 2f, "-1", false);
+                if (e.hp <= 0) {
+                    mort = true;
                     break;
                 }
             }
-            f.life -= delta;
-            if (remove || f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
-                    || f.pos.y < -20 || f.pos.y > H + 20) {
-                fleches.removeIndex(i);
-            }
         }
-    }
+        if (mort) {
+            ennemis.removeIndex(i);
+            setScore(score + (e.boss ? BOSS_SCORE : 1));
+            if (e.boss) {
+                victory = true;
+                endTimer = 0f;
+            }
+            continue;
+        }
 
-    private void updateEnemies(float delta) {
-        float normalSpeed = Math.min(80f + score * 1.5f, 200f);
-        for (int i = ennemis.size - 1; i >= 0; i--) {
-            Ennemi e = ennemis.get(i);
-
-            tmp.set(playerPos).sub(e.pos);
-            if (tmp.len2() > 0.001f) {
-                e.angle = tmp.angleDeg();
-                float spd = e.boss ? BOSS_SPEED : normalSpeed;
-                tmp.nor().scl(spd * delta);
+        float pr = e.radius + PLAYER_RADIUS;
+        if (e.pos.dst2(playerPos) < pr * pr) {
+            if (e.boss) {
+                if (invulnerable <= 0f) hurtPlayer();
+                tmp.set(e.pos).sub(playerPos);
+                if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
+                tmp.nor().scl(BOSS_KNOCKBACK);
                 e.pos.add(tmp);
-            }
-
-            // Touche par une fleche ?
-            boolean mort = false;
-            float rr = e.radius + ARROW_RADIUS;
-            for (int j = fleches.size - 1; j >= 0; j--) {
-                if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
-                    fleches.removeIndex(j);
-                    e.hp--;
-                    damage.add(e.pos.x, e.pos.y + e.size / 2f, "-1", false);
-                    if (e.hp <= 0) {
-                        mort = true;
-                        break;
-                    }
-                }
-            }
-            if (mort) {
+                e.pos.x = MathUtils.clamp(e.pos.x,
+                        Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
+                e.pos.y = MathUtils.clamp(e.pos.y,
+                        Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
+            } else {
                 ennemis.removeIndex(i);
-                setScore(score + (e.boss ? BOSS_SCORE : 1));
-                if (e.boss) {
-                    victory = true;
-                    endTimer = 0f;
-                }
-                continue;
-            }
-
-            // Contact avec le joueur
-            float pr = e.radius + PLAYER_RADIUS;
-            if (e.pos.dst2(playerPos) < pr * pr) {
-                if (e.boss) {
-                    if (invulnerable <= 0f) hurtPlayer();
-                    tmp.set(e.pos).sub(playerPos);
-                    if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
-                    tmp.nor().scl(BOSS_KNOCKBACK);
-                    e.pos.add(tmp);
-                    e.pos.x = MathUtils.clamp(e.pos.x,
-                            Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
-                    e.pos.y = MathUtils.clamp(e.pos.y,
-                            Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
-                } else {
-                    ennemis.removeIndex(i);
-                    if (invulnerable <= 0f) hurtPlayer();
-                }
+                if (invulnerable <= 0f) hurtPlayer();
             }
         }
-    }
-
-    private void hurtPlayer() {
-        setLives(lives - 1);
-        invulnerable = 1f;
-        damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
-        if (lives <= 0) {
-            gameOver = true;
-            endTimer = 0f;
-        }
-    }
-    // ---------------------------------------------------------------
-    // Salles et ennemis
-    // ---------------------------------------------------------------
-    private void enterRoom(Room room) {
-        fleches.clear();
-        ennemis.clear();
-        damage.clear();
-        if (!room.cleared) spawnRoomEnemies(room);
-    }
-
-    private void spawnRoomEnemies(Room room) {
-        if (room.boss) {
-            Ennemi b = new Ennemi();
-            b.boss = true;
-            b.hp = BOSS_HP;
-            b.maxHp = BOSS_HP;
-            b.radius = BOSS_RADIUS;
-            b.size = BOSS_SIZE;
-            b.pos.set(W / 2f, H / 2f);
-            ennemis.add(b);
-        }
-        for (int i = 0; i < room.enemyCount; i++) {
-            Ennemi e = new Ennemi();
-            e.hp = ENEMY_HP;
-            e.maxHp = ENEMY_HP;
-            findSpawnPoint(e.pos, ENEMY_RADIUS);
-            ennemis.add(e);
-        }
-        if (ennemis.size == 0) dungeon.markCleared();
-    }
-
-    private void findSpawnPoint(Vector2 out, float radius) {
-        for (int i = 0; i < 40; i++) {
-            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
-            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
-            out.set(x, y);
-            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
-            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
-            return;
-        }
-        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
-                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
-    }
-
-    // ---------------------------------------------------------------
-    // Entrees tactiles (espace UI, independant du zoom)
-    // ---------------------------------------------------------------
-    private void pollTouches() {
-        zoom.resetFrame();
-        newTouch = false;
-
-        for (int i = 0; i < MAX_POINTERS; i++) {
-            if (!Gdx.input.isTouched(i)) {
-                if (moveStick.pointer == i) moveStick.end();
-                if (aimStick.pointer == i) aimStick.end();
-                owner[i] = OWNER_NONE;
-                continue;
-            }
-
-            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-            renderer.uiViewport.unproject(tmp);
-            float x = tmp.x;
-            float y = tmp.y;
-
-            if (owner[i] == OWNER_NONE) {
-                if (zoom.handleTouch(x, y)) {
-                    owner[i] = OWNER_ZOOM;
-                } else {
-                    newTouch = true;
-                    if (x < W / 2f && !moveStick.active()) {
-                        owner[i] = OWNER_MOVE;
-                        moveStick.begin(i, x, y);
-                    } else if (x >= W / 2f && !aimStick.active()) {
-                        owner[i] = OWNER_AIM;
-                        aimStick.begin(i, x, y);
-                    } else {
-                        owner[i] = OWNER_IGNORED;
-                    }
-                }
-            } else if (owner[i] == OWNER_ZOOM) {
-                zoom.handleTouch(x, y);
-            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
-                moveStick.move(x, y);
-            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
-                aimStick.move(x, y);
-            }
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // Ecran / ressources
-    // ---------------------------------------------------------------
-    @Override
-    public void resize(int width, int height) {
-        if (renderer != null) renderer.resize(width, height);
-    }
-
-    private void disposeResources() {
-        if (renderer != null) renderer.dispose();
-        renderer = null;
-        zoom = null;
-    }
-
-    @Override
-    public void dispose() {
-        disposeResources();
-    }
-
-    @Override
-    public void hide() {
-        disposeResources();
     }
 }
-    // ---------------------------------------------------------------
-    // Salles et ennemis
-    // ---------------------------------------------------------------
-    private void enterRoom(Room room) {
-        fleches.clear();
-        ennemis.clear();
-        damage.clear();
-        if (!room.cleared) spawnRoomEnemies(room);
+
+private void hurtPlayer() {
+    setLives(lives - 1);
+    invulnerable = 1f;
+    damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
+    if (lives <= 0) {
+        gameOver = true;
+        endTimer = 0f;
     }
+}private void enterRoom(Room room) {
+    fleches.clear();
+    ennemis.clear();
+    damage.clear();
+    if (!room.cleared) spawnRoomEnemies(room);
+}
 
-    private void spawnRoomEnemies(Room room) {
-        if (room.boss) {
-            Ennemi b = new Ennemi();
-            b.boss = true;
-            b.hp = BOSS_HP;
-            b.maxHp = BOSS_HP;
-            b.radius = BOSS_RADIUS;
-            b.size = BOSS_SIZE;
-            b.pos.set(W / 2f, H / 2f);
-            ennemis.add(b);
-        }
-        for (int i = 0; i < room.enemyCount; i++) {
-            Ennemi e = new Ennemi();
-            e.hp = ENEMY_HP;
-            e.maxHp = ENEMY_HP;
-            findSpawnPoint(e.pos, ENEMY_RADIUS);
-            ennemis.add(e);
-        }
-        if (ennemis.size == 0) dungeon.markCleared();
+private void spawnRoomEnemies(Room room) {
+    if (room.boss) {
+        Ennemi b = new Ennemi();
+        b.boss = true;
+        b.hp = BOSS_HP;
+        b.maxHp = BOSS_HP;
+        b.radius = BOSS_RADIUS;
+        b.size = BOSS_SIZE;
+        b.pos.set(W / 2f, H / 2f);
+        ennemis.add(b);
     }
-
-    private void findSpawnPoint(Vector2 out, float radius) {
-        for (int i = 0; i < 40; i++) {
-            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
-            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
-            out.set(x, y);
-            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
-            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
-            return;
-        }
-        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
-                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
+    for (int i = 0; i < room.enemyCount; i++) {
+        Ennemi e = new Ennemi();
+        e.hp = ENEMY_HP;
+        e.maxHp = ENEMY_HP;
+        findSpawnPoint(e.pos, ENEMY_RADIUS);
+        ennemis.add(e);
     }
+    if (ennemis.size == 0) dungeon.markCleared();
+}
 
-    // ---------------------------------------------------------------
-    // Entrees tactiles (espace UI, independant du zoom)
-    // ---------------------------------------------------------------
-    private void pollTouches() {
-        zoom.resetFrame();
-        newTouch = false;
+private void findSpawnPoint(Vector2 out, float radius) {
+    for (int i = 0; i < 40; i++) {
+        float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
+        float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
+        out.set(x, y);
+        if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
+        if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+        return;
+    }
+    out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
+            MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
+}
 
-        for (int i = 0; i < MAX_POINTERS; i++) {
-            if (!Gdx.input.isTouched(i)) {
-                if (moveStick.pointer == i) moveStick.end();
-                if (aimStick.pointer == i) aimStick.end();
-                owner[i] = OWNER_NONE;
-                continue;
-            }
+private void pollTouches() {
+    zoom.resetFrame();
+    newTouch = false;
 
-            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-            renderer.uiViewport.unproject(tmp);
-            float x = tmp.x;
-            float y = tmp.y;
+    for (int i = 0; i < MAX_POINTERS; i++) {
+        if (!Gdx.input.isTouched(i)) {
+            if (moveStick.pointer == i) moveStick.end();
+            if (aimStick.pointer == i) aimStick.end();
+            owner[i] = OWNER_NONE;
+            continue;
+        }
 
-            if (owner[i] == OWNER_NONE) {
-                if (zoom.handleTouch(x, y)) {
-                    owner[i] = OWNER_ZOOM;
+        tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
+        renderer.uiViewport.unproject(tmp);
+        float x = tmp.x;
+        float y = tmp.y;
+
+        if (owner[i] == OWNER_NONE) {
+            if (zoom.handleTouch(x, y)) {
+                owner[i] = OWNER_ZOOM;
+            } else {
+                newTouch = true;
+                if (x < W / 2f && !moveStick.active()) {
+                    owner[i] = OWNER_MOVE;
+                    moveStick.begin(i, x, y);
+                } else if (x >= W / 2f && !aimStick.active()) {
+                    owner[i] = OWNER_AIM;
+                    aimStick.begin(i, x, y);
                 } else {
-                    newTouch = true;
-                    if (x < W / 2f && !moveStick.active()) {
-                        owner[i] = OWNER_MOVE;
-                        moveStick.begin(i, x, y);
-                    } else if (x >= W / 2f && !aimStick.active()) {
-                        owner[i] = OWNER_AIM;
-                        aimStick.begin(i, x, y);
-                    } else {
-                        owner[i] = OWNER_IGNORED;
-                    }
+                    owner[i] = OWNER_IGNORED;
                 }
-            } else if (owner[i] == OWNER_ZOOM) {
-                zoom.handleTouch(x, y);
-            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
-                moveStick.move(x, y);
-            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
-                aimStick.move(x, y);
             }
+        } else if (owner[i] == OWNER_ZOOM) {
+            zoom.handleTouch(x, y);
+        } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
+            moveStick.move(x, y);
+        } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
+            aimStick.move(x, y);
         }
     }
-
-    // ---------------------------------------------------------------
-    // Ecran / ressources
-    // ---------------------------------------------------------------
-    @Override
+}    @Override
     public void resize(int width, int height) {
         if (renderer != null) renderer.resize(width, height);
     }
