@@ -13,7 +13,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-/** Tout l'affichage : cameras, viewports, textures, dessin du monde et de l'UI. */
 class GameRenderer {
 
     static final float W = GameScreen.W;
@@ -120,10 +119,6 @@ class GameRenderer {
         uiCamera = null;
     }
 
-    // ---------------------------------------------------------------
-    // Outils de dessin
-    // ---------------------------------------------------------------
-
     private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
         float w = h * t.getWidth() / (float) t.getHeight();
         batch.draw(t,
@@ -136,11 +131,6 @@ class GameRenderer {
                 false, false);
     }
 
-    /**
-     * Remplit un rectangle avec une texture repetee, SANS utiliser le mode
-     * REPEAT (non supporte par OpenGL ES 2.0 pour les images non puissance
-     * de 2). Les cases du bord sont rognees, pas etirees.
-     */
     private void drawTiled(Texture t, float x, float y, float w, float h, float tile) {
         int tw = t.getWidth();
         int th = t.getHeight();
@@ -159,7 +149,6 @@ class GameRenderer {
         }
     }
 
-    /** Porte texturee : teinte verte si ouverte, rouge si fermee. */
     private void drawDoorTexture(GameScreen g, int dir) {
         Rectangle r = g.dungeon.doorRectOrNull(dir, tmpRect);
         if (r == null) return;
@@ -190,17 +179,12 @@ class GameRenderer {
         shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
 
-    // ---------------------------------------------------------------
-    // Dessin d'une image
-    // ---------------------------------------------------------------
-
     void draw(GameScreen g) {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // ===== Camera du monde (zoomee, suit le joueur) =====
         g.zoom.applyToCamera(camera, g.playerPos.x, g.playerPos.y, W, H);
         viewport.apply();
         shapes.setProjectionMatrix(camera.combined);
@@ -209,7 +193,6 @@ class GameRenderer {
         boolean playerVisible = !g.gameOver
                 && (g.invulnerable <= 0f || ((int) (g.invulnerable * 10f)) % 2 == 0);
 
-        // --- A) Sol texture ---
         if (texSol != null) {
             batch.begin();
             batch.setColor(Color.WHITE);
@@ -217,7 +200,6 @@ class GameRenderer {
             batch.end();
         }
 
-        // --- B) Sol et murs en couleur (si texture absente) ---
         if (texSol == null || texMur == null) {
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             if (texSol == null) g.dungeon.drawFloorColor(shapes);
@@ -225,7 +207,6 @@ class GameRenderer {
             shapes.end();
         }
 
-        // --- C) Murs et portes textures ---
         if (texMur != null || texPorte != null) {
             batch.begin();
             batch.setColor(Color.WHITE);
@@ -244,14 +225,12 @@ class GameRenderer {
             batch.end();
         }
 
-        // --- D) Portes en couleur (si texture absente) ---
         if (texPorte == null) {
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             g.dungeon.drawDoorsColor(shapes);
             shapes.end();
         }
 
-        // --- E) Sprites ---
         batch.begin();
         batch.setColor(Color.WHITE);
         for (int i = 0; i < g.ennemis.size; i++) {
@@ -274,10 +253,9 @@ class GameRenderer {
             drawSprite(texPlayer, g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_SIZE,
                     g.facing + GameScreen.PLAYER_ROT);
         }
-        batch.end();
 
-        // --- F) Cercles de secours + barre de vie du boss ---
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        g.damage.draw(batch, font);
+        batch.end();        shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (int i = 0; i < g.ennemis.size; i++) {
             Ennemi e = g.ennemis.get(i);
             boolean hasTex = e.boss ? (texBoss != null || texEnemy != null) : texEnemy != null;
@@ -310,22 +288,18 @@ class GameRenderer {
         }
         shapes.end();
 
-        // ===== Camera UI fixe =====
         uiViewport.apply();
         shapes.setProjectionMatrix(uiCamera.combined);
         batch.setProjectionMatrix(uiCamera.combined);
 
-        // Mini-carte + joysticks
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         g.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
         drawStick(g.moveStick, 1f, 1f, 1f);
         drawStick(g.aimStick, 1f, 0.5f, 0.5f);
         shapes.end();
 
-        // Boutons de zoom
         g.zoom.draw(shapes, batch, font);
 
-        // HUD texte
         batch.begin();
         font.setColor(Color.WHITE);
         font.draw(batch, g.scoreText, 20, H - 20);
@@ -342,5 +316,22 @@ class GameRenderer {
             font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
         }
         batch.end();
+
+        // ===== Flash rouge quand le joueur subit un degat =====
+        if (g.hitFlash > 0f) {
+            float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
+
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0f, 0f, alpha);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+
+            shapes.setColor(1f, 1f, 1f, 1f);
+        }
     }
 }
