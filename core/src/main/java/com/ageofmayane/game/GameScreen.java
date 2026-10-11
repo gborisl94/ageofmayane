@@ -39,7 +39,13 @@ public class GameScreen extends ScreenAdapter {
     static final int BOSS_SCORE = 5;
 
     static final float SPAWN_MIN_DIST = 280f;
-    static final float CHEST_PICKUP_DIST = 45f;
+    static final float CHEST_INTERACT_DIST = 120f;
+
+    // Bouton OUVRIR (espace UI) - a DROITE sous les boutons zoom
+    static final float OPEN_BTN_W = 260f;
+    static final float OPEN_BTN_H = 80f;
+    static final float OPEN_BTN_X = W - OPEN_BTN_W - 30f;
+    static final float OPEN_BTN_Y = H - 320f;
 
     static final int MAX_POINTERS = 5;
     static final int OWNER_NONE = 0;
@@ -115,7 +121,6 @@ public class GameScreen extends ScreenAdapter {
         victory = false;
         equippedWeapon = WeaponDatabase.woodBow();
 
-        // Cree un coffre au centre de la salle courante (sauf si depart)
         chest = new Chest(W / 2f, H / 2f);
 
         Room cur = dungeon.getCurrent();
@@ -130,6 +135,18 @@ public class GameScreen extends ScreenAdapter {
     private void setLives(int l) {
         lives = l;
         livesText = "Vies : " + l;
+    }
+
+    boolean canInteractWithChest() {
+        if (chest == null || chest.opened) return false;
+        return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
+    }
+
+    private void openChest() {
+        if (chest == null || chest.opened) return;
+        chest.open();
+        Weapon loot = WeaponDatabase.randomChestLoot();
+        weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
     }
 
     @Override
@@ -289,13 +306,7 @@ private void updateWeaponDrops(float delta) {
 private void updateChest(float delta) {
     if (chest == null) return;
     chest.update(delta);
-
-    // Le coffre s'ouvre seulement si le joueur passe dessus (pas besoin de salle nettoyee)
-    if (!chest.opened && chest.pos.dst2(playerPos) < CHEST_PICKUP_DIST * CHEST_PICKUP_DIST) {
-        chest.open();
-        Weapon loot = WeaponDatabase.randomChestLoot();
-        weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 40f, loot));
-    }
+    // Pas d'ouverture auto : le joueur doit appuyer sur le bouton OUVRIR
 }
 
 private void hurtPlayer() {
@@ -366,7 +377,14 @@ private void hurtPlayer() {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                if (zoom.handleTouch(x, y)) {
+                // Bouton OUVRIR (prioritaire)
+                if (canInteractWithChest()
+                        && x >= OPEN_BTN_X && x <= OPEN_BTN_X + OPEN_BTN_W
+                        && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
+                    openChest();
+                    newTouch = true;
+                    owner[i] = OWNER_IGNORED;
+                } else if (zoom.handleTouch(x, y)) {
                     owner[i] = OWNER_ZOOM;
                 } else {
                     newTouch = true;
