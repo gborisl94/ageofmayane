@@ -39,6 +39,7 @@ public class GameScreen extends ScreenAdapter {
     static final int BOSS_SCORE = 5;
 
     static final float SPAWN_MIN_DIST = 280f;
+    static final float CHEST_PICKUP_DIST = 45f;
 
     static final int MAX_POINTERS = 5;
     static final int OWNER_NONE = 0;
@@ -62,6 +63,7 @@ public class GameScreen extends ScreenAdapter {
     final Stick moveStick = new Stick();
     final Stick aimStick = new Stick();
     Weapon equippedWeapon;
+    Chest chest;
     float facing = 0f;
     float invulnerable;
     float hitFlash = 0f;
@@ -112,6 +114,9 @@ public class GameScreen extends ScreenAdapter {
         gameOver = false;
         victory = false;
         equippedWeapon = WeaponDatabase.woodBow();
+
+        // Cree un coffre au centre de la salle courante (sauf si depart)
+        chest = new Chest(W / 2f, H / 2f);
 
         Room cur = dungeon.getCurrent();
         if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
@@ -180,6 +185,7 @@ public class GameScreen extends ScreenAdapter {
     updateArrows(delta);
     updateEnemies(delta);
     updateWeaponDrops(delta);
+    updateChest(delta);
 
     Room cur = dungeon.getCurrent();
     if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
@@ -238,7 +244,6 @@ private void updateEnemies(float delta) {
         if (mort) {
             ennemis.removeIndex(i);
             setScore(score + (e.boss ? BOSS_SCORE : 1));
-            spawnWeaponDrop(e.pos.x, e.pos.y);
             if (e.boss) {
                 victory = true;
                 endTimer = 0f;
@@ -281,9 +286,15 @@ private void updateWeaponDrops(float delta) {
     }
 }
 
-void spawnWeaponDrop(float x, float y) {
-    if (Math.random() < 0.15f) {
-        weaponDrops.add(new WeaponDrop(x, y, WeaponDatabase.randomDrop()));
+private void updateChest(float delta) {
+    if (chest == null) return;
+    chest.update(delta);
+
+    // Le coffre s'ouvre seulement si le joueur passe dessus (pas besoin de salle nettoyee)
+    if (!chest.opened && chest.pos.dst2(playerPos) < CHEST_PICKUP_DIST * CHEST_PICKUP_DIST) {
+        chest.open();
+        Weapon loot = WeaponDatabase.randomChestLoot();
+        weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 40f, loot));
     }
 }
 
