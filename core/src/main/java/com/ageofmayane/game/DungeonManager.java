@@ -252,4 +252,42 @@ public class DungeonManager {
             }
         }
     }
+    // ---------------------------------------------------------------
+    // Acces pour l'affichage avec textures (GameRenderer)
+    // ---------------------------------------------------------------
+
+    public Array<Rectangle> getSolids() {
+        return solids;
+    }
+
+    /** Rectangle de la porte 'dir' de la salle courante, ou null s'il n'y en a pas. */
+    public Rectangle doorRectOrNull(int dir, Rectangle out) {
+        if (current == null || !current.hasDoor(dir)) return null;
+        return current.getDoorRect(dir, out);
+    }
+
+    public void drawFloorColor(ShapeRenderer shapes) {
+        shapes.setColor(0.11f, 0.11f, 0.16f, 1f);
+        shapes.rect(0f, 0f, Room.ROOM_W, Room.ROOM_H);
+    }
+
+    public void drawWallsColor(ShapeRenderer shapes) {
+        shapes.setColor(0.25f, 0.25f, 0.3f, 1f);
+        for (int i = 0; i < solids.size; i++) {
+            Rectangle s = solids.get(i);
+            shapes.rect(s.x, s.y, s.width, s.height);
+        }
+    }
+
+    public void drawDoorsColor(ShapeRenderer shapes) {
+        if (current == null) return;
+        boolean open = current.cleared;
+        for (int d = 0; d < 4; d++) {
+            if (!current.hasDoor(d)) continue;
+            if (open) shapes.setColor(0.4f, 0.9f, 0.4f, 1f);
+            else shapes.setColor(0.7f, 0.2f, 0.2f, 1f);
+            current.getDoorRect(d, doorTmp);
+            shapes.rect(doorTmp.x, doorTmp.y, doorTmp.width, doorTmp.height);
+        }
+    }
 }
