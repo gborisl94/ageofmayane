@@ -19,4 +19,8 @@ class Ennemi {
     int maxHp = 1;
     float radius = GameScreen.ENEMY_RADIUS;
     float size = GameScreen.ENEMY_SIZE;
+
+    // Etat de fuite (pour le champion)
+    boolean fleeing = false;
+    float fleeTimer = 0f;
 }
