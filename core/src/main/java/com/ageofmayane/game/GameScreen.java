@@ -40,8 +40,13 @@ public class GameScreen extends ScreenAdapter {
 
     private final Game game;
 
+    // Caméra du monde (zoomée)
     private FitViewport viewport;
     private OrthographicCamera camera;
+
+    // Caméra UI (fixe, pour HUD et boutons)
+    private OrthographicCamera uiCamera;
+
     private ShapeRenderer shapes;
     private SpriteBatch batch;
     private BitmapFont font;
@@ -57,11 +62,9 @@ public class GameScreen extends ScreenAdapter {
     private final Stick aimStick = new Stick();
     private final Vector2 tmp = new Vector2();
 
-    // Contrôleur externe pour le zoom
     private ZoomController zoomController;
 
     private float facing = 0f;
-
     private int lives;
     private int score;
     private float fireTimer;
@@ -77,6 +80,10 @@ public class GameScreen extends ScreenAdapter {
     public void show() {
         viewport = new FitViewport(W, H);
         camera = (OrthographicCamera) viewport.getCamera();
+
+        uiCamera = new OrthographicCamera();
+        uiCamera.setToOrtho(false, W, H);
+
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
@@ -237,17 +244,20 @@ public class GameScreen extends ScreenAdapter {
 
         for (int i = 0; i < 5; i++) {
             if (!Gdx.input.isTouched(i)) continue;
+
+            // --- 1) Tester les boutons zoom en ESPACE ÉCRAN ---
+            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
+            uiCamera.unproject(tmp);
+            if (zoomController.handleTouch(tmp.x, tmp.y, delta)) {
+                continue;
+            }
+
+            // --- 2) Sinon, c'est un joystick en ESPACE MONDE ---
             tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
             viewport.unproject(tmp);
             float x = tmp.x;
             float y = tmp.y;
 
-            // Zoom buttons (délégué au ZoomController)
-            if (zoomController.handleTouch(x, y, delta)) {
-                continue;
-            }
-
-            // Joysticks
             if (i == moveStick.pointer) {
                 moveStick.move(x, y);
             } else if (i == aimStick.pointer) {
@@ -278,7 +288,9 @@ public class GameScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // Application du zoom à la caméra
+        // ============================================================
+        // PHASE 1 : LE MONDE (avec zoom)
+        // ============================================================
         zoomController.applyToCamera(camera);
         viewport.apply();
 
@@ -288,7 +300,7 @@ public class GameScreen extends ScreenAdapter {
         boolean playerVisible = !gameOver
                 && (invulnerable <= 0f || ((int) (invulnerable * 10f)) % 2 == 0);
 
-        // --- 1) Sprites ---
+        // --- Sprites ---
         batch.begin();
         batch.setColor(Color.WHITE);
         if (texEnemy != null) {
@@ -306,7 +318,7 @@ public class GameScreen extends ScreenAdapter {
         }
         batch.end();
 
-        // --- 2) Formes : cercles de secours + joysticks ---
+        // --- Formes : fallbacks + joysticks ---
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
         if (texEnemy == null) {
@@ -327,16 +339,23 @@ public class GameScreen extends ScreenAdapter {
 
         shapes.end();
 
-        // --- 3) Boutons zoom (via ZoomController) ---
-        zoomController.draw(shapes, batch, font);
-
-        // Contour arène
+        // --- Contour arène ---
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(0.3f, 0.3f, 0.45f, 1f);
         shapes.rect(1, 1, W - 2, H - 2);
         shapes.end();
 
-        // --- 4) HUD ---
+        // ============================================================
+        // PHASE 2 : UI (fixe, sans zoom)
+        // ============================================================
+        uiCamera.update();
+        shapes.setProjectionMatrix(uiCamera.combined);
+        batch.setProjectionMatrix(uiCamera.combined);
+
+        // --- Boutons zoom ---
+        zoomController.draw(shapes, batch, font);
+
+        // --- HUD texte ---
         batch.begin();
         font.setColor(Color.WHITE);
         font.draw(batch, "Score : " + score, 20, H - 20);
@@ -361,6 +380,7 @@ public class GameScreen extends ScreenAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
+        uiCamera.setToOrtho(false, W, H);
     }
 
     @Override
