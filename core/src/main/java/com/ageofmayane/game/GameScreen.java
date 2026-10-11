@@ -38,6 +38,21 @@ public class GameScreen extends ScreenAdapter {
     static final float ENEMY_ROT = 0f;
     static final float ARROW_ROT = 0f;
 
+    // Boss
+    static final int BOSS_HP = 20;
+    static final float BOSS_SPEED = 60f;
+    static final float BOSS_SIZE = ENEMY_SIZE * 2f;
+    static final float BOSS_RADIUS = ENEMY_RADIUS * 2f;
+    static final float BOSS_KNOCKBACK = 140f;
+    static final int BOSS_SCORE = 5;
+
+    // Apparition des ennemis
+    static final float SPAWN_MIN_DIST = 280f;
+
+    // Mini-carte (espace UI) : sous le score, en haut a gauche
+    static final float MINIMAP_X = 20f;
+    static final float MINIMAP_Y = H - 170f;
+
     // Proprietaires d'un toucher
     static final int MAX_POINTERS = 5;
     static final int OWNER_NONE = 0;
@@ -48,7 +63,6 @@ public class GameScreen extends ScreenAdapter {
 
     private final Game game;
 
-    // Camera du MONDE (zoomee) et camera UI (fixe)
     private OrthographicCamera camera;
     private OrthographicCamera uiCamera;
     private FitViewport viewport;
@@ -64,12 +78,15 @@ public class GameScreen extends ScreenAdapter {
     private Texture texEnemy;
     private Texture texArrow;
 
+    private final DungeonManager dungeon = new DungeonManager();
+
     private final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
     private final Array<Fleche> fleches = new Array<Fleche>();
     private final Array<Ennemi> ennemis = new Array<Ennemi>();
     private final Stick moveStick = new Stick();
     private final Stick aimStick = new Stick();
     private final Vector2 tmp = new Vector2();
+    private final Color bossTint = new Color(1f, 0.55f, 0.55f, 1f);
     private final int[] owner = new int[MAX_POINTERS];
     private boolean newTouch;
 
@@ -80,10 +97,10 @@ public class GameScreen extends ScreenAdapter {
     private String scoreText = "";
     private String livesText = "";
     private float fireTimer;
-    private float spawnTimer;
     private float invulnerable;
-    private float gameOverTimer;
+    private float endTimer;
     private boolean gameOver;
+    private boolean victory;
 
     public GameScreen() { this(null); }
     public GameScreen(Game game) { this.game = game; }
@@ -93,7 +110,6 @@ public class GameScreen extends ScreenAdapter {
     // ---------------------------------------------------------------
     @Override
     public void show() {
-        // Securite : si show() est rappele, on libere d'abord l'ancien contenu
         disposeResources();
 
         camera = new OrthographicCamera();
@@ -135,7 +151,10 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
+    /** Nouvelle partie : nouveau donjon, joueur au centre de la salle de depart. */
     private void restart() {
+        dungeon.generate();
+
         playerPos.set(W / 2f, H / 2f);
         fleches.clear();
         ennemis.clear();
@@ -145,12 +164,15 @@ public class GameScreen extends ScreenAdapter {
         facing = 0f;
         setLives(5);
         setScore(0);
-        fireTimer = 0;
-        spawnTimer = 1f;
-        invulnerable = 0;
-        gameOverTimer = 0;
+        fireTimer = 0f;
+        invulnerable = 0f;
+        endTimer = 0f;
         gameOver = false;
-        // Le niveau de zoom est volontairement conserve entre les parties
+        victory = false;
+
+        // Securite : la salle de depart devrait etre deja nettoyee
+        Room cur = dungeon.getCurrent();
+        if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
     }
 
     private void setScore(int s) {
@@ -178,13 +200,13 @@ public class GameScreen extends ScreenAdapter {
         pollTouches();
         zoom.update(delta);
 
-        if (gameOver) {
-            gameOverTimer += delta;
-            if (gameOverTimer > 0.6f && newTouch) restart();
+        if (gameOver || victory) {
+            endTimer += delta;
+            if (endTimer > 0.6f && newTouch) restart();
             return;
         }
 
-        if (invulnerable > 0) invulnerable -= delta;
+        if (invulnerable > 0f) invulnerable -= delta;
 
         if (aimStick.dir.len() > DEAD_ZONE) {
             facing = aimStick.dir.angleDeg();
@@ -192,13 +214,23 @@ public class GameScreen extends ScreenAdapter {
             facing = moveStick.dir.angleDeg();
         }
 
+        // --- Deplacement + collisions avec les murs ---
         if (moveStick.dir.len() > DEAD_ZONE) {
             playerPos.x += moveStick.dir.x * PLAYER_SPEED * delta;
             playerPos.y += moveStick.dir.y * PLAYER_SPEED * delta;
-            playerPos.x = MathUtils.clamp(playerPos.x, PLAYER_RADIUS, W - PLAYER_RADIUS);
-            playerPos.y = MathUtils.clamp(playerPos.y, PLAYER_RADIUS, H - PLAYER_RADIUS);
+        }
+        dungeon.collide(playerPos, PLAYER_RADIUS);
+        playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
+        playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
+
+        // --- Passage d'une porte ---
+        int exitDir = dungeon.checkDoorExit(playerPos);
+        if (exitDir >= 0) {
+            Room next = dungeon.moveThrough(exitDir, playerPos);
+            if (next != null) enterRoom(next);
         }
 
+        // --- Tir automatique ---
         fireTimer -= delta;
         if (aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
             fireTimer = FIRE_DELAY;
@@ -209,73 +241,144 @@ public class GameScreen extends ScreenAdapter {
             fleches.add(f);
         }
 
-        spawnTimer -= delta;
-        if (spawnTimer <= 0f) {
-            spawnEnemy();
-            spawnTimer = Math.max(0.35f, 1.3f - score * 0.02f);
-        }
-
+        // --- Fleches (par petits pas pour ne pas traverser les murs) ---
         for (int i = fleches.size - 1; i >= 0; i--) {
             Fleche f = fleches.get(i);
-            f.pos.x += f.vel.x * delta;
-            f.pos.y += f.vel.y * delta;
+            int steps = MathUtils.clamp((int) Math.ceil(ARROW_SPEED * delta / 8f), 1, 8);
+            float sdt = delta / steps;
+            boolean remove = false;
+            for (int s = 0; s < steps; s++) {
+                f.pos.x += f.vel.x * sdt;
+                f.pos.y += f.vel.y * sdt;
+                if (dungeon.circleHitsWall(f.pos.x, f.pos.y, ARROW_RADIUS)) {
+                    remove = true;
+                    break;
+                }
+            }
             f.life -= delta;
-            if (f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
+            if (remove || f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
                     || f.pos.y < -20 || f.pos.y > H + 20) {
                 fleches.removeIndex(i);
             }
         }
 
-        float enemySpeed = Math.min(80f + score * 1.5f, 200f);
+        // --- Ennemis ---
+        float normalSpeed = Math.min(80f + score * 1.5f, 200f);
         for (int i = ennemis.size - 1; i >= 0; i--) {
             Ennemi e = ennemis.get(i);
+
             tmp.set(playerPos).sub(e.pos);
             if (tmp.len2() > 0.001f) {
                 e.angle = tmp.angleDeg();
-                tmp.nor().scl(enemySpeed * delta);
+                float spd = e.boss ? BOSS_SPEED : normalSpeed;
+                tmp.nor().scl(spd * delta);
                 e.pos.add(tmp);
             }
 
+            // Touche par une fleche ?
             boolean mort = false;
-            float rr = (ENEMY_RADIUS + ARROW_RADIUS);
+            float rr = e.radius + ARROW_RADIUS;
             for (int j = fleches.size - 1; j >= 0; j--) {
                 if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
                     fleches.removeIndex(j);
-                    mort = true;
-                    break;
+                    e.hp--;
+                    if (e.hp <= 0) {
+                        mort = true;
+                        break;
+                    }
                 }
             }
             if (mort) {
                 ennemis.removeIndex(i);
-                setScore(score + 1);
+                setScore(score + (e.boss ? BOSS_SCORE : 1));
+                if (e.boss) {
+                    victory = true;
+                    endTimer = 0f;
+                }
                 continue;
             }
 
-            float pr = (ENEMY_RADIUS + PLAYER_RADIUS);
+            // Contact avec le joueur
+            float pr = e.radius + PLAYER_RADIUS;
             if (e.pos.dst2(playerPos) < pr * pr) {
-                ennemis.removeIndex(i);
-                if (invulnerable <= 0f) {
-                    setLives(lives - 1);
-                    invulnerable = 1f;
-                    if (lives <= 0) {
-                        gameOver = true;
-                        gameOverTimer = 0f;
-                    }
+                if (e.boss) {
+                    if (invulnerable <= 0f) hurtPlayer();
+                    // Le boss est repousse (il ne disparait pas)
+                    tmp.set(e.pos).sub(playerPos);
+                    if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
+                    tmp.nor().scl(BOSS_KNOCKBACK);
+                    e.pos.add(tmp);
+                    e.pos.x = MathUtils.clamp(e.pos.x,
+                            Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
+                    e.pos.y = MathUtils.clamp(e.pos.y,
+                            Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
+                } else {
+                    ennemis.removeIndex(i);
+                    if (invulnerable <= 0f) hurtPlayer();
                 }
             }
         }
+
+        // --- Salle nettoyee : les portes s'ouvrent ---
+        Room cur = dungeon.getCurrent();
+        if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
+            dungeon.markCleared();
+        }
     }
 
-    private void spawnEnemy() {
-        Ennemi e = new Ennemi();
-        int side = MathUtils.random(3);
-        switch (side) {
-            case 0: e.pos.set(MathUtils.random(W), -ENEMY_RADIUS); break;
-            case 1: e.pos.set(MathUtils.random(W), H + ENEMY_RADIUS); break;
-            case 2: e.pos.set(-ENEMY_RADIUS, MathUtils.random(H)); break;
-            default: e.pos.set(W + ENEMY_RADIUS, MathUtils.random(H)); break;
+    private void hurtPlayer() {
+        setLives(lives - 1);
+        invulnerable = 1f;
+        if (lives <= 0) {
+            gameOver = true;
+            endTimer = 0f;
         }
-        ennemis.add(e);
+    }
+
+    // ---------------------------------------------------------------
+    // Salles et ennemis
+    // ---------------------------------------------------------------
+
+    /** Appele quand le joueur vient d'entrer dans 'room'. */
+    private void enterRoom(Room room) {
+        fleches.clear();
+        ennemis.clear();
+        if (!room.cleared) spawnRoomEnemies(room);
+    }
+
+    /** Fait apparaitre les ennemis de la salle ; les portes restent fermees. */
+    private void spawnRoomEnemies(Room room) {
+        if (room.boss) {
+            Ennemi b = new Ennemi();
+            b.boss = true;
+            b.hp = BOSS_HP;
+            b.maxHp = BOSS_HP;
+            b.radius = BOSS_RADIUS;
+            b.size = BOSS_SIZE;
+            b.pos.set(W / 2f, H / 2f);
+            ennemis.add(b);
+        }
+        for (int i = 0; i < room.enemyCount; i++) {
+            Ennemi e = new Ennemi();
+            findSpawnPoint(e.pos, ENEMY_RADIUS);
+            ennemis.add(e);
+        }
+        if (ennemis.size == 0) dungeon.markCleared();
+    }
+
+    /** Point libre (hors murs/obstacles) et assez loin du joueur. */
+    private void findSpawnPoint(Vector2 out, float radius) {
+        for (int i = 0; i < 40; i++) {
+            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
+            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
+            out.set(x, y);
+            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
+            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+            return;
+        }
+        // Repli : point oppose au joueur
+        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
+                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
     }
 
     // ---------------------------------------------------------------
@@ -299,7 +402,6 @@ public class GameScreen extends ScreenAdapter {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                // Nouveau toucher : 1) bouton de zoom ? 2) sinon joystick
                 if (zoom.handleTouch(x, y)) {
                     owner[i] = OWNER_ZOOM;
                 } else {
@@ -345,7 +447,7 @@ public class GameScreen extends ScreenAdapter {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // Camera du monde : zoom + suivi du joueur
+        // ===== Camera du monde (zoomee, suit le joueur) =====
         zoom.applyToCamera(camera, playerPos.x, playerPos.y, W, H);
         viewport.apply();
         shapes.setProjectionMatrix(camera.combined);
@@ -354,16 +456,25 @@ public class GameScreen extends ScreenAdapter {
         boolean playerVisible = !gameOver
                 && (invulnerable <= 0f || ((int) (invulnerable * 10f)) % 2 == 0);
 
-        // --- 1) Sprites (camera zoomee) ---
+        // --- 1) Salle : sol, murs, obstacles, portes ---
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        dungeon.drawRoom(shapes);
+        shapes.end();
+
+        // --- 2) Sprites ---
         batch.begin();
         batch.setColor(Color.WHITE);
         if (texEnemy != null) {
-            for (Ennemi e : ennemis) {
-                drawSprite(texEnemy, e.pos.x, e.pos.y, ENEMY_SIZE, e.angle + ENEMY_ROT);
+            for (int i = 0; i < ennemis.size; i++) {
+                Ennemi e = ennemis.get(i);
+                batch.setColor(e.boss ? bossTint : Color.WHITE);
+                drawSprite(texEnemy, e.pos.x, e.pos.y, e.size, e.angle + ENEMY_ROT);
             }
+            batch.setColor(Color.WHITE);
         }
         if (texArrow != null) {
-            for (Fleche f : fleches) {
+            for (int i = 0; i < fleches.size; i++) {
+                Fleche f = fleches.get(i);
                 drawSprite(texArrow, f.pos.x, f.pos.y, ARROW_SIZE, f.angle + ARROW_ROT);
             }
         }
@@ -372,30 +483,37 @@ public class GameScreen extends ScreenAdapter {
         }
         batch.end();
 
-        // --- 2) Cercles de secours (camera zoomee) ---
-        boolean needFallback = texEnemy == null || texArrow == null
-                || (texPlayer == null && playerVisible);
-        if (needFallback) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
+        // --- 3) Cercles de secours + barre de vie du boss ---
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        for (int i = 0; i < ennemis.size; i++) {
+            Ennemi e = ennemis.get(i);
             if (texEnemy == null) {
-                shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
-                for (Ennemi e : ennemis) shapes.circle(e.pos.x, e.pos.y, ENEMY_RADIUS, 20);
+                if (e.boss) shapes.setColor(0.9f, 0.3f, 0.3f, 1f);
+                else shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
+                shapes.circle(e.pos.x, e.pos.y, e.radius, 24);
             }
-            if (texArrow == null) {
-                shapes.setColor(1f, 0.9f, 0.3f, 1f);
-                for (Fleche f : fleches) shapes.circle(f.pos.x, f.pos.y, ARROW_RADIUS, 10);
+            if (e.boss) {
+                float bw = 120f;
+                float bx = e.pos.x - bw / 2f;
+                float by = e.pos.y + e.size / 2f + 8f;
+                float frac = MathUtils.clamp(e.hp / (float) e.maxHp, 0f, 1f);
+                shapes.setColor(0.05f, 0.05f, 0.05f, 0.9f);
+                shapes.rect(bx - 2f, by - 2f, bw + 4f, 12f);
+                shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
+                shapes.rect(bx, by, bw * frac, 8f);
             }
-            if (texPlayer == null && playerVisible) {
-                shapes.setColor(1f, 0.4f, 0.7f, 1f);
-                shapes.circle(playerPos.x, playerPos.y, PLAYER_RADIUS, 24);
-            }
-            shapes.end();
         }
-
-        // --- 3) Contour de l'arene (camera zoomee) ---
-        shapes.begin(ShapeRenderer.ShapeType.Line);
-        shapes.setColor(0.3f, 0.3f, 0.45f, 1f);
-        shapes.rect(1, 1, W - 2, H - 2);
+        if (texArrow == null) {
+            shapes.setColor(1f, 0.9f, 0.3f, 1f);
+            for (int i = 0; i < fleches.size; i++) {
+                Fleche f = fleches.get(i);
+                shapes.circle(f.pos.x, f.pos.y, ARROW_RADIUS, 10);
+            }
+        }
+        if (texPlayer == null && playerVisible) {
+            shapes.setColor(1f, 0.4f, 0.7f, 1f);
+            shapes.circle(playerPos.x, playerPos.y, PLAYER_RADIUS, 24);
+        }
         shapes.end();
 
         // ===== A partir d'ici : camera UI fixe =====
@@ -403,23 +521,27 @@ public class GameScreen extends ScreenAdapter {
         shapes.setProjectionMatrix(uiCamera.combined);
         batch.setProjectionMatrix(uiCamera.combined);
 
-        // Joysticks
-        if (moveStick.active() || aimStick.active()) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            drawStick(moveStick, 1f, 1f, 1f);
-            drawStick(aimStick, 1f, 0.5f, 0.5f);
-            shapes.end();
-        }
+        // --- 4) Mini-carte + joysticks ---
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
+        drawStick(moveStick, 1f, 1f, 1f);
+        drawStick(aimStick, 1f, 0.5f, 0.5f);
+        shapes.end();
 
-        // --- 4) Boutons de zoom (camera UI) ---
+        // --- 5) Boutons de zoom ---
         zoom.draw(shapes, batch, font);
 
-        // --- 5) HUD texte (camera UI) ---
+        // --- 6) HUD texte ---
         batch.begin();
         font.setColor(Color.WHITE);
         font.draw(batch, scoreText, 20, H - 20);
         font.draw(batch, livesText, W - 160, H - 20);
-        if (gameOver) {
+        if (victory) {
+            font.setColor(1f, 0.85f, 0.2f, 1f);
+            font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
+            font.setColor(Color.WHITE);
+            font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
+        } else if (gameOver) {
             font.setColor(1f, 0.4f, 0.4f, 1f);
             font.draw(batch, "GAME OVER", W / 2f - 100, H / 2f + 30);
             font.setColor(Color.WHITE);
@@ -433,96 +555,4 @@ public class GameScreen extends ScreenAdapter {
         shapes.setColor(r, g, b, 0.15f);
         shapes.circle(s.origin.x, s.origin.y, STICK_RADIUS, 32);
         shapes.setColor(r, g, b, 0.45f);
-        shapes.circle(s.current.x, s.current.y, 45f, 24);
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        if (viewport == null || uiViewport == null) return;
-        int w = Math.max(1, width);
-        int h = Math.max(1, height);
-        viewport.update(w, h, true);
-        uiViewport.update(w, h, true);
-    }
-
-    // ---------------------------------------------------------------
-    // Liberation des ressources
-    // ---------------------------------------------------------------
-    private void disposeResources() {
-        if (shapes != null) shapes.dispose();
-        if (batch != null) batch.dispose();
-        if (font != null) font.dispose();
-        if (texPlayer != null) texPlayer.dispose();
-        if (texEnemy != null) texEnemy.dispose();
-        if (texArrow != null) texArrow.dispose();
-        shapes = null;
-        batch = null;
-        font = null;
-        texPlayer = null;
-        texEnemy = null;
-        texArrow = null;
-        viewport = null;
-        uiViewport = null;
-        camera = null;
-        uiCamera = null;
-        zoom = null;
-    }
-
-    @Override
-    public void dispose() {
-        disposeResources();
-    }
-
-    @Override
-    public void hide() {
-        disposeResources();
-    }
-
-    // ---------------------------------------------------------------
-    // Classes internes
-    // ---------------------------------------------------------------
-    static class Fleche {
-        final Vector2 pos = new Vector2();
-        final Vector2 vel = new Vector2();
-        float angle = 0f;
-        float life = 1.5f;
-    }
-
-    static class Ennemi {
-        final Vector2 pos = new Vector2();
-        float angle = 0f;
-    }
-
-    static class Stick {
-        int pointer = -1;
-        final Vector2 origin = new Vector2();
-        final Vector2 current = new Vector2();
-        final Vector2 dir = new Vector2();
-
-        boolean active() { return pointer != -1; }
-
-        void begin(int p, float x, float y) {
-            pointer = p;
-            origin.set(x, y);
-            current.set(x, y);
-            dir.setZero();
-        }
-
-        void move(float x, float y) {
-            dir.set(x - origin.x, y - origin.y);
-            float len = dir.len();
-            if (len > STICK_RADIUS) {
-                dir.scl(1f / len);
-                current.set(origin).add(dir.x * STICK_RADIUS, dir.y * STICK_RADIUS);
-            } else {
-                current.set(x, y);
-                dir.scl(1f / STICK_RADIUS);
-            }
-        }
-
-        void end() {
-            pointer = -1;
-            dir.setZero();
-        }
-    }
-}
+        shapes.ci
