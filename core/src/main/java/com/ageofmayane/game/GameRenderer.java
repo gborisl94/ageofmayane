@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -24,6 +25,12 @@ class GameRenderer {
 
     static final float FLOOR_TILE = 80f;
     static final float WALL_TILE = 40f;
+
+    // Barre d'XP
+    static final float XP_BAR_X = 20f;
+    static final float XP_BAR_Y = H - 90f;
+    static final float XP_BAR_W = 260f;
+    static final float XP_BAR_H = 18f;
 
     OrthographicCamera camera;
     OrthographicCamera uiCamera;
@@ -47,6 +54,7 @@ class GameRenderer {
     private final Color bossTint = new Color(1f, 0.55f, 0.55f, 1f);
     private final Rectangle tmpRect = new Rectangle();
     private final HashMap<String, Texture> dropCache = new HashMap<String, Texture>();
+    private final GlyphLayout layout = new GlyphLayout();
 
     void create() {
         camera = new OrthographicCamera();
@@ -123,32 +131,15 @@ class GameRenderer {
             if (t != null) t.dispose();
         }
         dropCache.clear();
-        shapes = null;
-        batch = null;
-        font = null;
-        texPlayer = null;
-        texEnemy = null;
-        texArrow = null;
-        texBoss = null;
-        texSol = null;
-        texMur = null;
-        texPorte = null;
-        texChestClosed = null;
-        texChestOpen = null;
-        viewport = null;
-        uiViewport = null;
-        camera = null;
-        uiCamera = null;
+        shapes = null; batch = null; font = null;
+        texPlayer = null; texEnemy = null; texArrow = null; texBoss = null;
+        texSol = null; texMur = null; texPorte = null;
+        texChestClosed = null; texChestOpen = null;
+        viewport = null; uiViewport = null; camera = null; uiCamera = null;
     }private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
     float w = h * t.getWidth() / (float) t.getHeight();
-    batch.draw(t,
-            cx - w / 2f, cy - h / 2f,
-            w / 2f, h / 2f,
-            w, h,
-            1f, 1f,
-            rotation,
-            0, 0, t.getWidth(), t.getHeight(),
-            false, false);
+    batch.draw(t, cx - w / 2f, cy - h / 2f, w / 2f, h / 2f, w, h,
+            1f, 1f, rotation, 0, 0, t.getWidth(), t.getHeight(), false, false);
 }
 
 private void drawTiled(Texture t, float x, float y, float w, float h, float tile) {
@@ -174,20 +165,14 @@ private void drawDoorTexture(GameScreen g, int dir) {
     if (r == null) return;
     if (g.dungeon.doorsOpen()) batch.setColor(0.6f, 1f, 0.6f, 1f);
     else batch.setColor(1f, 0.55f, 0.55f, 1f);
-
     float cx = r.x + r.width / 2f;
     float cy = r.y + r.height / 2f;
     boolean vertical = r.height > r.width;
     float len = Math.max(r.width, r.height);
     float thick = Math.min(r.width, r.height);
-    batch.draw(texPorte,
-            cx - len / 2f, cy - thick / 2f,
-            len / 2f, thick / 2f,
-            len, thick,
-            1f, 1f,
-            vertical ? 90f : 0f,
-            0, 0, texPorte.getWidth(), texPorte.getHeight(),
-            false, false);
+    batch.draw(texPorte, cx - len / 2f, cy - thick / 2f, len / 2f, thick / 2f,
+            len, thick, 1f, 1f, vertical ? 90f : 0f,
+            0, 0, texPorte.getWidth(), texPorte.getHeight(), false, false);
     batch.setColor(Color.WHITE);
 }
 
@@ -199,12 +184,10 @@ private void drawStick(Stick s, float r, float g, float b) {
     shapes.circle(s.current.x, s.current.y, 45f, 24);
 }
 
-/** Dessine un coffre avec sa texture. */
 private void drawChest(Chest c) {
     Texture t = c.opened ? texChestOpen : texChestClosed;
     float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
 
-    // Aura pulsante si ferme
     if (!c.opened) {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(1f, 0.85f, 0.2f, 0.15f + 0.25f * pulse);
@@ -219,7 +202,6 @@ private void drawChest(Chest c) {
         batch.draw(t, c.pos.x - size / 2f, c.pos.y - size / 2f, size, size);
         batch.end();
     } else {
-        // Fallback rectangle
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.55f, 0.35f, 0.1f, 1f);
         shapes.rect(c.pos.x - 25f, c.pos.y - 25f, 50f, 50f);
@@ -232,6 +214,77 @@ private void drawChest(Chest c) {
         }
         shapes.end();
     }
+}
+
+private void drawOpenButton(GameScreen g) {
+    if (!g.canInteractWithChest()) return;
+
+    float bx = GameScreen.OPEN_BTN_X;
+    float by = GameScreen.OPEN_BTN_Y;
+    float bw = GameScreen.OPEN_BTN_W;
+    float bh = GameScreen.OPEN_BTN_H;
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.1f, 0.1f, 0.15f, 0.85f);
+    shapes.rect(bx - 3f, by - 3f, bw + 6f, bh + 6f);
+    shapes.setColor(0.85f, 0.65f, 0.15f, 0.95f);
+    shapes.rect(bx, by, bw, bh);
+    shapes.end();
+
+    batch.begin();
+    font.setColor(1f, 1f, 1f, 1f);
+    String txt = "OUVRIR LE COFFRE";
+    layout.setText(font, txt);
+    float tx = bx + (bw - layout.width) / 2f;
+    float ty = by + (bh + layout.height) / 2f;
+    font.draw(batch, txt, tx, ty);
+    batch.end();
+}
+
+/** Barre d'XP en haut a gauche, sous le score. */
+private void drawXpBar(GameScreen g) {
+    if (g.xpSystem == null) return;
+
+    float bx = XP_BAR_X;
+    float by = XP_BAR_Y;
+    float bw = XP_BAR_W;
+    float bh = XP_BAR_H;
+    float ratio = g.xpSystem.getProgress();
+
+    // Fond noir
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.9f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
+
+    // Couleur selon le ratio
+    if (ratio > 0.66f) shapes.setColor(0.2f, 0.9f, 0.3f, 1f);
+    else if (ratio > 0.33f) shapes.setColor(1f, 0.85f, 0.2f, 1f);
+    else shapes.setColor(0.9f, 0.4f, 0.2f, 1f);
+
+    // Remplissage
+    shapes.rect(bx, by, bw * ratio, bh);
+
+    // Bordure
+    shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by, 2f, bh);
+    shapes.rect(bx + bw, by, 2f, bh);
+    shapes.end();
+
+    // Texte "Niv X" a gauche + "xp/req" au centre
+    batch.begin();
+    font.setColor(1f, 0.9f, 0.3f, 1f);
+    font.getData().setScale(1.6f);
+    font.draw(batch, "Niv " + g.xpSystem.level, bx, by + bh + 28f);
+
+    font.getData().setScale(1.2f);
+    font.setColor(1f, 1f, 1f, 1f);
+    String txt = g.xpSystem.xp + " / " + g.xpSystem.xpRequired;
+    layout.setText(font, txt);
+    font.draw(batch, txt, bx + (bw - layout.width) / 2f, by + bh - 2f);
+    font.getData().setScale(2f);
+    batch.end();
 }
 
 void draw(GameScreen g) {
@@ -286,12 +339,8 @@ void draw(GameScreen g) {
         shapes.end();
     }
 
-    // === Coffre dans la salle de depart ===
     if (g.chest != null) {
-        Room cur = g.dungeon.getCurrent();
-        if (cur != null) {
-            drawChest(g.chest);
-        }
+        drawChest(g.chest);
     }
 
     batch.begin();
@@ -351,22 +400,22 @@ void draw(GameScreen g) {
         }
         shapes.end();
 
-        // ===== Arcs poses au sol =====
+        // Arcs poses au sol
         for (int i = 0; i < g.weaponDrops.size; i++) {
             WeaponDrop d = g.weaponDrops.get(i);
             float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
 
             shapes.begin(ShapeRenderer.ShapeType.Filled);
-            shapes.setColor(d.weapon.rarity.colorWithAlpha(0.2f + 0.3f * pulse));
-            shapes.circle(d.pos.x, d.pos.y, 26f + 6f * pulse, 24);
+            shapes.setColor(d.weapon.rarity.colorWithAlpha(0.15f + 0.2f * pulse));
+            shapes.circle(d.pos.x, d.pos.y, 18f + 4f * pulse, 20);
             shapes.end();
 
             Texture t = loadDropTexture(d.weapon.spriteName);
             if (t != null) {
                 batch.begin();
                 batch.setColor(Color.WHITE);
-                float w = 48f;
-                float h = 24f;
+                float w = 32f;
+                float h = 16f;
                 batch.draw(t, d.pos.x - w / 2f, d.pos.y - h / 2f, w, h);
                 batch.end();
             }
@@ -383,6 +432,11 @@ void draw(GameScreen g) {
         shapes.end();
 
         g.zoom.draw(shapes, batch, font);
+
+        drawOpenButton(g);
+
+        // Barre d'XP
+        drawXpBar(g);
 
         batch.begin();
         font.setColor(Color.WHITE);
@@ -401,20 +455,16 @@ void draw(GameScreen g) {
         }
         batch.end();
 
-        // ===== Flash rouge =====
         if (g.hitFlash > 0f) {
             float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
             uiViewport.apply();
             shapes.setProjectionMatrix(uiCamera.combined);
-
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(1f, 0f, 0f, alpha);
             shapes.rect(0f, 0f, W, H);
             shapes.end();
-
             shapes.setColor(1f, 1f, 1f, 1f);
         }
     }
