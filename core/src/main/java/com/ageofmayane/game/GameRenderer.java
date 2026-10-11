@@ -26,11 +26,10 @@ class GameRenderer {
     static final float FLOOR_TILE = 80f;
     static final float WALL_TILE = 40f;
 
-    // Barre d'XP
     static final float XP_BAR_X = 20f;
-    static final float XP_BAR_Y = H - 90f;
+    static final float XP_BAR_Y = H - 100f;
     static final float XP_BAR_W = 260f;
-    static final float XP_BAR_H = 18f;
+    static final float XP_BAR_H = 20f;
 
     OrthographicCamera camera;
     OrthographicCamera uiCamera;
@@ -225,23 +224,30 @@ private void drawOpenButton(GameScreen g) {
     float bh = GameScreen.OPEN_BTN_H;
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
-    shapes.setColor(0.1f, 0.1f, 0.15f, 0.85f);
+    shapes.setColor(0.1f, 0.1f, 0.15f, 0.9f);
     shapes.rect(bx - 3f, by - 3f, bw + 6f, bh + 6f);
     shapes.setColor(0.85f, 0.65f, 0.15f, 0.95f);
     shapes.rect(bx, by, bw, bh);
     shapes.end();
 
     batch.begin();
+    font.getData().setScale(1.5f);
     font.setColor(1f, 1f, 1f, 1f);
-    String txt = "OUVRIR LE COFFRE";
+    String txt = "OUVRIR";
     layout.setText(font, txt);
     float tx = bx + (bw - layout.width) / 2f;
-    float ty = by + (bh + layout.height) / 2f;
+    float ty = by + bh * 0.7f;
     font.draw(batch, txt, tx, ty);
+
+    String txt2 = "LE COFFRE";
+    layout.setText(font, txt2);
+    float tx2 = bx + (bw - layout.width) / 2f;
+    float ty2 = by + bh * 0.35f;
+    font.draw(batch, txt2, tx2, ty2);
+    font.getData().setScale(2f);
     batch.end();
 }
 
-/** Barre d'XP en haut a gauche, sous le score. */
 private void drawXpBar(GameScreen g) {
     if (g.xpSystem == null) return;
 
@@ -251,20 +257,16 @@ private void drawXpBar(GameScreen g) {
     float bh = XP_BAR_H;
     float ratio = g.xpSystem.getProgress();
 
-    // Fond noir
     shapes.begin(ShapeRenderer.ShapeType.Filled);
-    shapes.setColor(0.05f, 0.05f, 0.1f, 0.9f);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
 
-    // Couleur selon le ratio
     if (ratio > 0.66f) shapes.setColor(0.2f, 0.9f, 0.3f, 1f);
     else if (ratio > 0.33f) shapes.setColor(1f, 0.85f, 0.2f, 1f);
     else shapes.setColor(0.9f, 0.4f, 0.2f, 1f);
 
-    // Remplissage
     shapes.rect(bx, by, bw * ratio, bh);
 
-    // Bordure
     shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
     shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
@@ -272,17 +274,16 @@ private void drawXpBar(GameScreen g) {
     shapes.rect(bx + bw, by, 2f, bh);
     shapes.end();
 
-    // Texte "Niv X" a gauche + "xp/req" au centre
     batch.begin();
+    font.getData().setScale(1.5f);
     font.setColor(1f, 0.9f, 0.3f, 1f);
-    font.getData().setScale(1.6f);
-    font.draw(batch, "Niv " + g.xpSystem.level, bx, by + bh + 28f);
+    font.draw(batch, "Niv " + g.xpSystem.level, bx, by + bh + 26f);
 
     font.getData().setScale(1.2f);
     font.setColor(1f, 1f, 1f, 1f);
     String txt = g.xpSystem.xp + " / " + g.xpSystem.xpRequired;
     layout.setText(font, txt);
-    font.draw(batch, txt, bx + (bw - layout.width) / 2f, by + bh - 2f);
+    font.draw(batch, txt, bx + bw - layout.width, by + bh + 22f);
     font.getData().setScale(2f);
     batch.end();
 }
@@ -351,6 +352,13 @@ void draw(GameScreen g) {
         if (t == null) continue;
         boolean tint = e.boss && texBoss == null;
         batch.setColor(tint ? bossTint : Color.WHITE);
+
+        // Si le boss fuit, on applique un fondu
+        if (e.fleeing) {
+            float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
+            batch.setColor(1f, 1f, 1f, alpha);
+        }
+
         drawSprite(t, e.pos.x, e.pos.y, e.size, e.angle + GameScreen.ENEMY_ROT);
     }
     batch.setColor(Color.WHITE);
@@ -376,7 +384,7 @@ void draw(GameScreen g) {
                 else shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
                 shapes.circle(e.pos.x, e.pos.y, e.radius, 24);
             }
-            if (e.boss) {
+            if (e.boss && !e.fleeing) {
                 float bw = 120f;
                 float bx = e.pos.x - bw / 2f;
                 float by = e.pos.y + e.size / 2f + 8f;
@@ -398,6 +406,10 @@ void draw(GameScreen g) {
             shapes.setColor(1f, 0.4f, 0.7f, 1f);
             shapes.circle(g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
+
+        // ===== PARTICULES (explosions, etincelles) =====
+        g.particles.draw(shapes);
+
         shapes.end();
 
         // Arcs poses au sol
@@ -434,14 +446,37 @@ void draw(GameScreen g) {
         g.zoom.draw(shapes, batch, font);
 
         drawOpenButton(g);
-
-        // Barre d'XP
         drawXpBar(g);
 
         batch.begin();
         font.setColor(Color.WHITE);
         font.draw(batch, g.scoreText, 20, H - 20);
         font.draw(batch, g.livesText, W - 160, H - 20);
+
+        // Message "Le champion s'enfuit !"
+        if (g.bossFleeMessageTimer > 0f) {
+            float alpha = Math.min(1f, g.bossFleeMessageTimer);
+            font.getData().setScale(2.2f);
+            String fleeMsg = "LE CHAMPION S'ENFUIT !";
+            layout.setText(font, fleeMsg);
+            float msgX = W / 2f - layout.width / 2f;
+            float msgY = H / 2f + 80f;
+
+            font.setColor(0f, 0f, 0f, alpha * 0.8f);
+            font.draw(batch, fleeMsg, msgX + 3f, msgY - 3f);
+            font.setColor(1f, 0.3f, 0.3f, alpha);
+            font.draw(batch, fleeMsg, msgX, msgY);
+
+            font.getData().setScale(1.4f);
+            font.setColor(1f, 1f, 1f, alpha);
+            String subMsg = "Reviens le defier plus tard...";
+            layout.setText(font, subMsg);
+            font.draw(batch, subMsg, W / 2f - layout.width / 2f, msgY - 40f);
+
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
         if (g.victory) {
             font.setColor(1f, 0.85f, 0.2f, 1f);
             font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
