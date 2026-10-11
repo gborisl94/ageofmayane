@@ -385,3 +385,116 @@ public class GameScreen extends ScreenAdapter {
         disposeResources();
     }
 }
+    // ---------------------------------------------------------------
+    // Salles et ennemis
+    // ---------------------------------------------------------------
+    private void enterRoom(Room room) {
+        fleches.clear();
+        ennemis.clear();
+        damage.clear();
+        if (!room.cleared) spawnRoomEnemies(room);
+    }
+
+    private void spawnRoomEnemies(Room room) {
+        if (room.boss) {
+            Ennemi b = new Ennemi();
+            b.boss = true;
+            b.hp = BOSS_HP;
+            b.maxHp = BOSS_HP;
+            b.radius = BOSS_RADIUS;
+            b.size = BOSS_SIZE;
+            b.pos.set(W / 2f, H / 2f);
+            ennemis.add(b);
+        }
+        for (int i = 0; i < room.enemyCount; i++) {
+            Ennemi e = new Ennemi();
+            e.hp = ENEMY_HP;
+            e.maxHp = ENEMY_HP;
+            findSpawnPoint(e.pos, ENEMY_RADIUS);
+            ennemis.add(e);
+        }
+        if (ennemis.size == 0) dungeon.markCleared();
+    }
+
+    private void findSpawnPoint(Vector2 out, float radius) {
+        for (int i = 0; i < 40; i++) {
+            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
+            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
+            out.set(x, y);
+            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
+            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+            return;
+        }
+        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
+                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
+    }
+
+    // ---------------------------------------------------------------
+    // Entrees tactiles (espace UI, independant du zoom)
+    // ---------------------------------------------------------------
+    private void pollTouches() {
+        zoom.resetFrame();
+        newTouch = false;
+
+        for (int i = 0; i < MAX_POINTERS; i++) {
+            if (!Gdx.input.isTouched(i)) {
+                if (moveStick.pointer == i) moveStick.end();
+                if (aimStick.pointer == i) aimStick.end();
+                owner[i] = OWNER_NONE;
+                continue;
+            }
+
+            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
+            renderer.uiViewport.unproject(tmp);
+            float x = tmp.x;
+            float y = tmp.y;
+
+            if (owner[i] == OWNER_NONE) {
+                if (zoom.handleTouch(x, y)) {
+                    owner[i] = OWNER_ZOOM;
+                } else {
+                    newTouch = true;
+                    if (x < W / 2f && !moveStick.active()) {
+                        owner[i] = OWNER_MOVE;
+                        moveStick.begin(i, x, y);
+                    } else if (x >= W / 2f && !aimStick.active()) {
+                        owner[i] = OWNER_AIM;
+                        aimStick.begin(i, x, y);
+                    } else {
+                        owner[i] = OWNER_IGNORED;
+                    }
+                }
+            } else if (owner[i] == OWNER_ZOOM) {
+                zoom.handleTouch(x, y);
+            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
+                moveStick.move(x, y);
+            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
+                aimStick.move(x, y);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Ecran / ressources
+    // ---------------------------------------------------------------
+    @Override
+    public void resize(int width, int height) {
+        if (renderer != null) renderer.resize(width, height);
+    }
+
+    private void disposeResources() {
+        if (renderer != null) renderer.dispose();
+        renderer = null;
+        zoom = null;
+    }
+
+    @Override
+    public void dispose() {
+        disposeResources();
+    }
+
+    @Override
+    public void hide() {
+        disposeResources();
+    }
+}
