@@ -41,6 +41,8 @@ class GameRenderer {
     Texture texSol;
     Texture texMur;
     Texture texPorte;
+    Texture texChestClosed;
+    Texture texChestOpen;
 
     private final Color bossTint = new Color(1f, 0.55f, 0.55f, 1f);
     private final Rectangle tmpRect = new Rectangle();
@@ -73,6 +75,8 @@ class GameRenderer {
         texSol = loadTexture("sol.png");
         texMur = loadTexture("mur.png");
         texPorte = loadTexture("porte.png");
+        texChestClosed = loadTexture("chest_closed.png");
+        texChestOpen = loadTexture("chest_open.png");
     }
 
     private Texture loadTexture(String name) {
@@ -113,6 +117,8 @@ class GameRenderer {
         if (texSol != null) texSol.dispose();
         if (texMur != null) texMur.dispose();
         if (texPorte != null) texPorte.dispose();
+        if (texChestClosed != null) texChestClosed.dispose();
+        if (texChestOpen != null) texChestOpen.dispose();
         for (Texture t : dropCache.values()) {
             if (t != null) t.dispose();
         }
@@ -127,6 +133,8 @@ class GameRenderer {
         texSol = null;
         texMur = null;
         texPorte = null;
+        texChestClosed = null;
+        texChestOpen = null;
         viewport = null;
         uiViewport = null;
         camera = null;
@@ -191,6 +199,41 @@ private void drawStick(Stick s, float r, float g, float b) {
     shapes.circle(s.current.x, s.current.y, 45f, 24);
 }
 
+/** Dessine un coffre avec sa texture. */
+private void drawChest(Chest c) {
+    Texture t = c.opened ? texChestOpen : texChestClosed;
+    float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
+
+    // Aura pulsante si ferme
+    if (!c.opened) {
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(1f, 0.85f, 0.2f, 0.15f + 0.25f * pulse);
+        shapes.circle(c.pos.x, c.pos.y, 45f + 10f * pulse, 32);
+        shapes.end();
+    }
+
+    if (t != null) {
+        batch.begin();
+        batch.setColor(Color.WHITE);
+        float size = 64f;
+        batch.draw(t, c.pos.x - size / 2f, c.pos.y - size / 2f, size, size);
+        batch.end();
+    } else {
+        // Fallback rectangle
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.55f, 0.35f, 0.1f, 1f);
+        shapes.rect(c.pos.x - 25f, c.pos.y - 25f, 50f, 50f);
+        shapes.setColor(0.3f, 0.3f, 0.35f, 1f);
+        shapes.rect(c.pos.x - 25f, c.pos.y + 17f, 50f, 4f);
+        shapes.rect(c.pos.x - 25f, c.pos.y - 21f, 50f, 4f);
+        if (!c.opened) {
+            shapes.setColor(1f, 0.85f, 0.2f, 1f);
+            shapes.circle(c.pos.x, c.pos.y, 6f, 16);
+        }
+        shapes.end();
+    }
+}
+
 void draw(GameScreen g) {
     Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -241,6 +284,14 @@ void draw(GameScreen g) {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         g.dungeon.drawDoorsColor(shapes);
         shapes.end();
+    }
+
+    // === Coffre dans la salle de depart ===
+    if (g.chest != null) {
+        Room cur = g.dungeon.getCurrent();
+        if (cur != null) {
+            drawChest(g.chest);
+        }
     }
 
     batch.begin();
@@ -300,7 +351,7 @@ void draw(GameScreen g) {
         }
         shapes.end();
 
-        // ===== Arcs poses au sol (aura + sprite) =====
+        // ===== Arcs poses au sol =====
         for (int i = 0; i < g.weaponDrops.size; i++) {
             WeaponDrop d = g.weaponDrops.get(i);
             float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
@@ -350,7 +401,7 @@ void draw(GameScreen g) {
         }
         batch.end();
 
-        // ===== Flash rouge quand le joueur subit un degat =====
+        // ===== Flash rouge =====
         if (g.hitFlash > 0f) {
             float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
