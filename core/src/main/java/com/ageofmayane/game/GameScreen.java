@@ -47,7 +47,6 @@ public class GameScreen extends ScreenAdapter {
     static final int OWNER_ZOOM = 3;
     static final int OWNER_IGNORED = 4;
 
-    // Duree du flash rouge quand on prend un degat
     static final float HIT_FLASH_DURATION = 0.35f;
 
     private final Game game;
@@ -58,9 +57,11 @@ public class GameScreen extends ScreenAdapter {
     final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
     final Array<Fleche> fleches = new Array<Fleche>();
     final Array<Ennemi> ennemis = new Array<Ennemi>();
+    final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
     final DamageNumbers damage = new DamageNumbers();
     final Stick moveStick = new Stick();
     final Stick aimStick = new Stick();
+    Weapon equippedWeapon;
     float facing = 0f;
     float invulnerable;
     float hitFlash = 0f;
@@ -96,6 +97,7 @@ public class GameScreen extends ScreenAdapter {
         playerPos.set(W / 2f, H / 2f);
         fleches.clear();
         ennemis.clear();
+        weaponDrops.clear();
         damage.clear();
         moveStick.end();
         aimStick.end();
@@ -109,6 +111,7 @@ public class GameScreen extends ScreenAdapter {
         endTimer = 0f;
         gameOver = false;
         victory = false;
+        equippedWeapon = WeaponDatabase.woodBow();
 
         Room cur = dungeon.getCurrent();
         if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
@@ -176,6 +179,7 @@ public class GameScreen extends ScreenAdapter {
 
     updateArrows(delta);
     updateEnemies(delta);
+    updateWeaponDrops(delta);
 
     Room cur = dungeon.getCurrent();
     if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
@@ -234,6 +238,7 @@ private void updateEnemies(float delta) {
         if (mort) {
             ennemis.removeIndex(i);
             setScore(score + (e.boss ? BOSS_SCORE : 1));
+            spawnWeaponDrop(e.pos.x, e.pos.y);
             if (e.boss) {
                 victory = true;
                 endTimer = 0f;
@@ -258,6 +263,27 @@ private void updateEnemies(float delta) {
                 if (invulnerable <= 0f) hurtPlayer();
             }
         }
+    }
+}
+
+private void updateWeaponDrops(float delta) {
+    for (int i = weaponDrops.size - 1; i >= 0; i--) {
+        if (!weaponDrops.get(i).update(delta)) {
+            weaponDrops.removeIndex(i);
+        }
+    }
+    for (int i = weaponDrops.size - 1; i >= 0; i--) {
+        WeaponDrop d = weaponDrops.get(i);
+        if (d.pos.dst2(playerPos) < 40f * 40f) {
+            equippedWeapon = d.weapon.copy();
+            weaponDrops.removeIndex(i);
+        }
+    }
+}
+
+void spawnWeaponDrop(float x, float y) {
+    if (Math.random() < 0.15f) {
+        weaponDrops.add(new WeaponDrop(x, y, WeaponDatabase.randomDrop()));
     }
 }
 
