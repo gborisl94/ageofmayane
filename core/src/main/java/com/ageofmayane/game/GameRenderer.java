@@ -51,6 +51,9 @@ class GameRenderer {
     Texture texChestOpen;
 
     private final Color bossTint = new Color(1f, 0.55f, 0.55f, 1f);
+    private final Color bossTintPhase2 = new Color(1f, 0.4f, 0.2f, 1f);
+    private final Color bossTintPhase3 = new Color(1f, 0.2f, 0.6f, 1f);
+    private final Color enemyProjectileColor = new Color(1f, 0.4f, 0.1f, 1f);
     private final Rectangle tmpRect = new Rectangle();
     private final HashMap<String, Texture> dropCache = new HashMap<String, Texture>();
     private final GlyphLayout layout = new GlyphLayout();
@@ -288,6 +291,25 @@ private void drawXpBar(GameScreen g) {
     batch.end();
 }
 
+private void drawDizzyStars(GameScreen g) {
+    if (!g.isStunned()) return;
+
+    float cx = g.playerPos.x;
+    float cy = g.playerPos.y + 50f;
+    float radius = 32f;
+
+    for (int i = 0; i < 4; i++) {
+        float angle = g.dizzyTime * 3f + i * (MathUtils.PI2 / 4f);
+        float sx = cx + MathUtils.cos(angle) * radius;
+        float sy = cy + MathUtils.sin(angle) * radius * 0.5f;
+
+        shapes.setColor(1f, 0.9f, 0.2f, 0.9f);
+        shapes.circle(sx, sy, 6f, 12);
+        shapes.setColor(1f, 0.95f, 0.4f, 0.8f);
+        shapes.circle(sx, sy, 3f, 8);
+    }
+}
+
 void draw(GameScreen g) {
     Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -295,6 +317,11 @@ void draw(GameScreen g) {
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
     g.zoom.applyToCamera(camera, g.playerPos.x, g.playerPos.y, W, H);
+
+    camera.position.x += g.shakeOffsetX;
+    camera.position.y += g.shakeOffsetY;
+    camera.update();
+
     viewport.apply();
     shapes.setProjectionMatrix(camera.combined);
     batch.setProjectionMatrix(camera.combined);
@@ -350,25 +377,53 @@ void draw(GameScreen g) {
         Ennemi e = g.ennemis.get(i);
         Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
         if (t == null) continue;
-        boolean tint = e.boss && texBoss == null;
-        batch.setColor(tint ? bossTint : Color.WHITE);
 
-        // Si le boss fuit, on applique un fondu
+        // Couleur selon la phase du boss
+        Color tint = Color.WHITE;
+        if (e.boss) {
+            if (e.phase == 1) tint = bossTint;
+            else if (e.phase == 2) tint = bossTintPhase2;
+            else tint = bossTintPhase3;
+        }
+        batch.setColor(tint);
+
         if (e.fleeing) {
             float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
             batch.setColor(1f, 1f, 1f, alpha);
         }
 
-        drawSprite(t, e.pos.x, e.pos.y, e.size, e.angle + GameScreen.ENEMY_ROT);
+        // Flash blanc au changement de phase
+        float scale = 1f;
+        if (e.boss && e.phaseChangeFlash > 0f) {
+            scale = 1f + 0.3f * (e.phaseChangeFlash);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
+                e.angle + GameScreen.ENEMY_ROT);
     }
     batch.setColor(Color.WHITE);
-    if (texArrow != null) {
-        for (int i = 0; i < g.fleches.size; i++) {
-            Fleche f = g.fleches.get(i);
+
+    // Projectiles (fleches du joueur OU du boss)
+    for (int i = 0; i < g.fleches.size; i++) {
+        Fleche f = g.fleches.get(i);
+        if (f.fromEnemy) {
+            // Projectile ennemi : petit cercle orange
+            batch.end();
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(enemyProjectileColor);
+            shapes.circle(f.pos.x, f.pos.y, 9f, 16);
+            shapes.setColor(1f, 0.8f, 0.3f, 0.7f);
+            shapes.circle(f.pos.x, f.pos.y, 5f, 12);
+            shapes.end();
+            batch.begin();
+            batch.setColor(Color.WHITE);
+        } else if (texArrow != null) {
             drawSprite(texArrow, f.pos.x, f.pos.y, GameScreen.ARROW_SIZE,
                     f.angle + GameScreen.ARROW_ROT);
         }
     }
+
     if (texPlayer != null && playerVisible) {
         drawSprite(texPlayer, g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_SIZE,
                 g.facing + GameScreen.PLAYER_ROT);
@@ -391,7 +446,10 @@ void draw(GameScreen g) {
                 float frac = MathUtils.clamp(e.hp / (float) e.maxHp, 0f, 1f);
                 shapes.setColor(0.05f, 0.05f, 0.05f, 0.9f);
                 shapes.rect(bx - 2f, by - 2f, bw + 4f, 12f);
-                shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
+                // Couleur selon la phase
+                if (e.phase == 1) shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
+                else if (e.phase == 2) shapes.setColor(1f, 0.6f, 0.1f, 1f);
+                else shapes.setColor(1f, 0.2f, 0.9f, 1f);
                 shapes.rect(bx, by, bw * frac, 8f);
             }
         }
@@ -399,7 +457,9 @@ void draw(GameScreen g) {
             shapes.setColor(1f, 0.9f, 0.3f, 1f);
             for (int i = 0; i < g.fleches.size; i++) {
                 Fleche f = g.fleches.get(i);
-                shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
+                if (!f.fromEnemy) {
+                    shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
+                }
             }
         }
         if (texPlayer == null && playerVisible) {
@@ -407,9 +467,8 @@ void draw(GameScreen g) {
             shapes.circle(g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
 
-        // ===== PARTICULES (explosions, etincelles) =====
         g.particles.draw(shapes);
-
+        drawDizzyStars(g);
         shapes.end();
 
         // Arcs poses au sol
@@ -477,6 +536,39 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
+        // Message "PHASE X !"
+        if (g.bossPhaseMessageTimer > 0f) {
+            float alpha = Math.min(1f, g.bossPhaseMessageTimer);
+            font.getData().setScale(3.2f);
+            String phaseMsg = "PHASE " + g.bossPhaseMessage + " !";
+            layout.setText(font, phaseMsg);
+            float msgX = W / 2f - layout.width / 2f;
+            float msgY = H / 2f + 150f;
+
+            Color phaseColor;
+            if (g.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
+            else phaseColor = new Color(1f, 0.2f, 0.9f, alpha);
+
+            font.setColor(0f, 0f, 0f, alpha * 0.8f);
+            font.draw(batch, phaseMsg, msgX + 4f, msgY - 4f);
+            font.setColor(phaseColor);
+            font.draw(batch, phaseMsg, msgX, msgY);
+
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        // Message "ETOURDI !"
+        if (g.isStunned()) {
+            font.getData().setScale(1.8f);
+            font.setColor(1f, 0.9f, 0.3f, 0.9f);
+            String stunMsg = "ETOURDI !";
+            layout.setText(font, stunMsg);
+            font.draw(batch, stunMsg, W / 2f - layout.width / 2f, H / 2f - 100f);
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
         if (g.victory) {
             font.setColor(1f, 0.85f, 0.2f, 1f);
             font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
@@ -490,6 +582,7 @@ void draw(GameScreen g) {
         }
         batch.end();
 
+        // FLASH ROUGE
         if (g.hitFlash > 0f) {
             float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -498,6 +591,20 @@ void draw(GameScreen g) {
             shapes.setProjectionMatrix(uiCamera.combined);
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(1f, 0f, 0f, alpha);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+            shapes.setColor(1f, 1f, 1f, 1f);
+        }
+
+        // VIGNETTE JAUNE pendant le stun
+        if (g.isStunned()) {
+            float a = Math.min(0.35f, g.stunTimer / GameScreen.STUN_DURATION * 0.35f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0.9f, 0.2f, a * 0.3f);
             shapes.rect(0f, 0f, W, H);
             shapes.end();
             shapes.setColor(1f, 1f, 1f, 1f);
