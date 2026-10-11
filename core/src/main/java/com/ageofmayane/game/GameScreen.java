@@ -30,6 +30,7 @@ public class GameScreen extends ScreenAdapter {
     static final float ENEMY_ROT = 0f;
     static final float ARROW_ROT = 0f;
 
+    static final int ENEMY_HP = 2;
     static final int BOSS_HP = 20;
     static final float BOSS_SPEED = 60f;
     static final float BOSS_SIZE = ENEMY_SIZE * 2f;
@@ -55,6 +56,7 @@ public class GameScreen extends ScreenAdapter {
     final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
     final Array<Fleche> fleches = new Array<Fleche>();
     final Array<Ennemi> ennemis = new Array<Ennemi>();
+    final DamageNumbers damage = new DamageNumbers();
     final Stick moveStick = new Stick();
     final Stick aimStick = new Stick();
     float facing = 0f;
@@ -76,9 +78,6 @@ public class GameScreen extends ScreenAdapter {
     public GameScreen() { this(null); }
     public GameScreen(Game game) { this.game = game; }
 
-    // ---------------------------------------------------------------
-    // Cycle de vie
-    // ---------------------------------------------------------------
     @Override
     public void show() {
         disposeResources();
@@ -94,6 +93,7 @@ public class GameScreen extends ScreenAdapter {
         playerPos.set(W / 2f, H / 2f);
         fleches.clear();
         ennemis.clear();
+        damage.clear();
         moveStick.end();
         aimStick.end();
         for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
@@ -120,9 +120,6 @@ public class GameScreen extends ScreenAdapter {
         livesText = "Vies : " + l;
     }
 
-    // ---------------------------------------------------------------
-    // Boucle principale
-    // ---------------------------------------------------------------
     @Override
     public void render(float delta) {
         if (renderer == null || zoom == null) return;
@@ -130,10 +127,10 @@ public class GameScreen extends ScreenAdapter {
         update(delta);
         renderer.draw(this);
     }
-
     private void update(float delta) {
         pollTouches();
         zoom.update(delta);
+        damage.update(delta);
 
         if (gameOver || victory) {
             endTimer += delta;
@@ -228,6 +225,7 @@ public class GameScreen extends ScreenAdapter {
                 if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
                     fleches.removeIndex(j);
                     e.hp--;
+                    damage.add(e.pos.x, e.pos.y + e.size / 2f, "-1", false);
                     if (e.hp <= 0) {
                         mort = true;
                         break;
@@ -268,18 +266,19 @@ public class GameScreen extends ScreenAdapter {
     private void hurtPlayer() {
         setLives(lives - 1);
         invulnerable = 1f;
+        damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
         if (lives <= 0) {
             gameOver = true;
             endTimer = 0f;
         }
     }
-
     // ---------------------------------------------------------------
     // Salles et ennemis
     // ---------------------------------------------------------------
     private void enterRoom(Room room) {
         fleches.clear();
         ennemis.clear();
+        damage.clear();
         if (!room.cleared) spawnRoomEnemies(room);
     }
 
@@ -296,6 +295,8 @@ public class GameScreen extends ScreenAdapter {
         }
         for (int i = 0; i < room.enemyCount; i++) {
             Ennemi e = new Ennemi();
+            e.hp = ENEMY_HP;
+            e.maxHp = ENEMY_HP;
             findSpawnPoint(e.pos, ENEMY_RADIUS);
             ennemis.add(e);
         }
