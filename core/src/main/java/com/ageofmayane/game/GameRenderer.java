@@ -143,8 +143,7 @@ class GameRenderer {
         texSol = null; texMur = null; texPorte = null;
         texChestClosed = null; texChestOpen = null;
         viewport = null; uiViewport = null; camera = null; uiCamera = null;
-    }
-private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
+    }private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
     float w = h * t.getWidth() / (float) t.getHeight();
     batch.draw(t, cx - w / 2f, cy - h / 2f, w / 2f, h / 2f, w, h,
             1f, 1f, rotation, 0, 0, t.getWidth(), t.getHeight(), false, false);
@@ -266,7 +265,6 @@ private void drawStunButton(GameScreen gs) {
     boolean ready = gs.isStunReady();
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
-
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
 
@@ -288,7 +286,6 @@ private void drawStunButton(GameScreen gs) {
     float sz = bs * 0.25f;
     shapes.rectLine(cx - sz * 0.5f, cy + sz, cx + sz * 0.3f, cy, 6f);
     shapes.rectLine(cx + sz * 0.3f, cy, cx - sz * 0.2f, cy - sz, 6f);
-
     shapes.end();
 
     batch.begin();
@@ -312,13 +309,11 @@ private void drawStunButton(GameScreen gs) {
         font.setColor(0.2f, 0.6f, 0.2f, 1f);
         font.draw(batch, rdy, bx + (bs - layout.width) / 2f, by + bs - 8f);
     }
-
     font.getData().setScale(2f);
     font.setColor(Color.WHITE);
     batch.end();
 }
 
-/** Bouton du pouvoir AUTO-AIM : 3 etats (PRET / ACTIF / RECHARGE). */
 private void drawAutoAimButton(GameScreen gs) {
     float bx = GameScreen.AIM_BTN_X;
     float by = GameScreen.AIM_BTN_Y;
@@ -328,7 +323,6 @@ private void drawAutoAimButton(GameScreen gs) {
     boolean active = gs.autoAimActive;
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
-
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
 
@@ -374,27 +368,18 @@ private void drawAutoAimButton(GameScreen gs) {
         shapes.setColor(1f, 0.2f, 0.2f, 0.75f);
         shapes.rectLine(cx - 26f, cy - 26f, cx + 26f, cy + 26f, 5f);
     }
-
     shapes.end();
 
     batch.begin();
     font.getData().setScale(1.3f);
     String txt;
     Color txtColor;
-    if (active) {
-        txt = "ACTIF";
-        txtColor = new Color(0.2f, 0.1f, 0f, 1f);
-    } else if (ready) {
-        txt = "PRET";
-        txtColor = new Color(1f, 1f, 1f, 1f);
-    } else {
-        txt = "RECHARGE";
-        txtColor = new Color(1f, 0.7f, 0.7f, 1f);
-    }
+    if (active) { txt = "ACTIF"; txtColor = new Color(0.2f, 0.1f, 0f, 1f); }
+    else if (ready) { txt = "PRET"; txtColor = new Color(1f, 1f, 1f, 1f); }
+    else { txt = "RECHARGE"; txtColor = new Color(1f, 0.7f, 0.7f, 1f); }
     layout.setText(font, txt);
     float tx = bx + (bs - layout.width) / 2f;
     float ty = by + 22f;
-
     font.setColor(0f, 0f, 0f, 0.8f);
     font.draw(batch, txt, tx + 1f, ty + 1f);
     font.setColor(txtColor);
@@ -408,15 +393,142 @@ private void drawAutoAimButton(GameScreen gs) {
     layout.setText(font, sub);
     font.setColor(1f, 1f, 1f, 0.95f);
     font.draw(batch, sub, bx + (bs - layout.width) / 2f, by + bs - 10f);
-
     font.getData().setScale(2f);
     font.setColor(Color.WHITE);
     batch.end();
 }
 
+/** Trait horizontal en pointilles. */
+private void drawDashedH(float x1, float x2, float y, float thick, float dash, Color c) {
+    shapes.setColor(c);
+    float len = x2 - x1;
+    int count = (int) Math.max(1, len / dash);
+    float step = len / count;
+    for (int i = 0; i < count; i++) {
+        shapes.rect(x1 + i * step, y - thick / 2f, step * 0.6f, thick);
+    }
+}
+
+/** Trait vertical en pointilles. */
+private void drawDashedV(float x, float y1, float y2, float thick, float dash, Color c) {
+    shapes.setColor(c);
+    float len = Math.abs(y2 - y1);
+    float dir = (y2 > y1) ? 1f : -1f;
+    int count = (int) Math.max(1, len / dash);
+    float step = len / count;
+    for (int i = 0; i < count; i++) {
+        shapes.rect(x - thick / 2f, y1 + i * step * dir, thick, step * 0.6f);
+    }
+}
+
+/** Visual du ciblage : style Atomic Exile (crochets + pointilles). */
+private void drawAutoAimVisual(GameScreen gs) {
+    if (gs.autoTarget == null) return;
+    if (gs.attention <= 0f) return;
+    if (gs.aimStick.active()) return;
+    if (!gs.autoAimActive) return;
+
+    Ennemi target = gs.autoTarget;
+
+    float cx = target.pos.x + gs.aimTrembleX;
+    float cy = target.pos.y + gs.aimTrembleY;
+
+    Color reticleColor;
+    if (gs.chargeLevel == 3) reticleColor = new Color(1f, 0.9f, 0.2f, 1f);
+    else if (gs.chargeLevel == 2) reticleColor = new Color(1f, 0.6f, 0.1f, 1f);
+    else reticleColor = new Color(1f, 0.25f, 0.25f, 0.95f);
+
+    float r = target.radius * 1.4f + 10f;
+    float len = 14f;
+    float thick = 4f;
+    float dash = 6f;
+
+    // Coin HAUT-GAUCHE
+    drawDashedH(cx - r, cx - r + len, cy + r, thick, dash, reticleColor);
+    drawDashedV(cx - r, cy + r, cy + r - len, thick, dash, reticleColor);
+
+    // Coin HAUT-DROITE
+    drawDashedH(cx + r - len, cx + r, cy + r, thick, dash, reticleColor);
+    drawDashedV(cx + r, cy + r, cy + r - len, thick, dash, reticleColor);
+
+    // Coin BAS-GAUCHE
+    drawDashedH(cx - r, cx - r + len, cy - r, thick, dash, reticleColor);
+    drawDashedV(cx - r, cy - r, cy - r + len, thick, dash, reticleColor);
+
+    // Coin BAS-DROITE
+    drawDashedH(cx + r - len, cx + r, cy - r, thick, dash, reticleColor);
+    drawDashedV(cx + r, cy - r, cy - r + len, thick, dash, reticleColor);
+
+    // Ticks milieu
+    float tickLen = 6f;
+    drawDashedV(cx, cy + r + 2f, cy + r - tickLen, thick, dash, reticleColor);
+    drawDashedV(cx, cy - r - 2f, cy - r + tickLen, thick, dash, reticleColor);
+    drawDashedH(cx + r + 2f, cx + r - tickLen, cy, thick, dash, reticleColor);
+    drawDashedH(cx - r - 2f, cx - r + tickLen, cy, thick, dash, reticleColor);
+
+    // Point central
+    shapes.setColor(reticleColor);
+    shapes.rect(cx - 2f, cy - 2f, 4f, 4f);
+
+    // Barre de stabilite
+    if (gs.aimStability < 1f) {
+        float barW = 60f;
+        float barH = 6f;
+        float barX = cx - barW / 2f;
+        float barY = cy - r - 18f;
+
+        shapes.setColor(0f, 0f, 0f, 0.75f);
+        shapes.rect(barX - 1f, barY - 1f, barW + 2f, barH + 2f);
+
+        Color barColor;
+        if (gs.aimStability > 0.66f) barColor = new Color(1f, 0.9f, 0.2f, 1f);
+        else if (gs.aimStability > 0.33f) barColor = new Color(1f, 0.6f, 0.1f, 1f);
+        else barColor = new Color(1f, 0.3f, 0.3f, 1f);
+
+        shapes.setColor(barColor);
+        shapes.rect(barX, barY, barW * gs.aimStability, barH);
+
+        shapes.setColor(0f, 0f, 0f, 0.6f);
+        shapes.rect(barX + barW * 0.33f, barY, 1.5f, barH);
+        shapes.rect(barX + barW * 0.66f, barY, 1.5f, barH);
+    }
+}
+
+/** Texte "Target acquired." au-dessus de la cible. */
+private void drawTargetAcquiredText(GameScreen gs) {
+    if (gs.targetAcquiredTimer <= 0f) return;
+    if (gs.autoTarget == null) return;
+    if (!gs.autoAimActive) return;
+
+    float alpha = Math.min(1f, gs.targetAcquiredTimer * 2f);
+    if (gs.targetAcquiredTimer < 0.5f) {
+        alpha = gs.targetAcquiredTimer / 0.5f;
+    }
+
+    Ennemi target = gs.autoTarget;
+    float cx = target.pos.x;
+    float cy = target.pos.y + target.radius + 42f;
+
+    String txt = "Target acquired.";
+    font.getData().setScale(1.4f);
+    layout.setText(font, txt);
+    float tx = cx - layout.width / 2f;
+
+    font.setColor(0f, 0f, 0f, alpha * 0.9f);
+    font.draw(batch, txt, tx + 1.5f, cy + 1.5f);
+    font.draw(batch, txt, tx - 1.5f, cy + 1.5f);
+    font.draw(batch, txt, tx + 1.5f, cy - 1.5f);
+    font.draw(batch, txt, tx - 1.5f, cy - 1.5f);
+
+    font.setColor(1f, 0.85f, 0.2f, alpha);
+    font.draw(batch, txt, tx, cy);
+
+    font.getData().setScale(2f);
+    font.setColor(Color.WHITE);
+}
+
 private void drawXpBar(GameScreen gs) {
     if (gs.xpSystem == null) return;
-
     float bx = XP_BAR_X;
     float by = XP_BAR_Y;
     float bw = XP_BAR_W;
@@ -426,13 +538,10 @@ private void drawXpBar(GameScreen gs) {
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
-
     if (ratio > 0.66f) shapes.setColor(0.2f, 0.9f, 0.3f, 1f);
     else if (ratio > 0.33f) shapes.setColor(1f, 0.85f, 0.2f, 1f);
     else shapes.setColor(0.9f, 0.4f, 0.2f, 1f);
-
     shapes.rect(bx, by, bw * ratio, bh);
-
     shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
     shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
@@ -444,7 +553,6 @@ private void drawXpBar(GameScreen gs) {
     font.getData().setScale(1.5f);
     font.setColor(1f, 0.9f, 0.3f, 1f);
     font.draw(batch, "Niv " + gs.xpSystem.level, bx, by + bh + 26f);
-
     font.getData().setScale(1.2f);
     font.setColor(1f, 1f, 1f, 1f);
     String txt = gs.xpSystem.xp + " / " + gs.xpSystem.xpRequired;
@@ -464,15 +572,12 @@ private void drawAttentionGauge(GameScreen gs) {
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
-
     Color col;
     if (ratio > 0.5f) col = new Color(0.3f, 0.8f, 1f, 1f);
     else if (ratio > 0.2f) col = new Color(1f, 0.8f, 0.2f, 1f);
     else col = new Color(1f, 0.3f, 0.3f, 1f);
-
     shapes.setColor(col);
     shapes.rect(bx, by, bw * ratio, bh);
-
     shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
     shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
@@ -489,119 +594,6 @@ private void drawAttentionGauge(GameScreen gs) {
     font.draw(batch, val, bx + bw - layout.width - 4f, by + bh - 3f);
     font.getData().setScale(2f);
     batch.end();
-}
-
-private void drawAutoAimVisual(GameScreen gs) {
-    if (gs.autoTarget == null) return;
-    if (gs.attention <= 0f) return;
-    if (gs.aimStick.active()) return;
-    if (!gs.autoAimActive) return;
-
-    Ennemi target = gs.autoTarget;
-
-    float cx = target.pos.x + gs.aimTrembleX;
-    float cy = target.pos.y + gs.aimTrembleY;
-
-    Color reticleColor;
-    float scale = 1f;
-    if (gs.chargeLevel == 3) {
-        reticleColor = new Color(1f, 0.9f, 0.2f, 1f);
-        scale = 1.4f;
-    } else if (gs.chargeLevel == 2) {
-        reticleColor = new Color(1f, 0.6f, 0.1f, 1f);
-        scale = 1.2f;
-    } else {
-        reticleColor = new Color(1f, 0.15f, 0.15f, 0.9f);
-        scale = 1f;
-    }
-
-    float px = 4f * scale;
-
-    float outerR = 28f * scale;
-    int segments = 24;
-    for (int i = 0; i < segments; i++) {
-        float a = i * (360f / segments);
-        float x = cx + MathUtils.cosDeg(a) * outerR;
-        float y = cy + MathUtils.sinDeg(a) * outerR;
-        shapes.setColor(reticleColor);
-        shapes.rect(x - px / 2f, y - px / 2f, px, px);
-    }
-
-    float innerR = 16f * scale;
-    for (int i = 0; i < segments; i++) {
-        float a = i * (360f / segments);
-        float x = cx + MathUtils.cosDeg(a) * innerR;
-        float y = cy + MathUtils.sinDeg(a) * innerR;
-        shapes.setColor(reticleColor);
-        shapes.rect(x - px / 2f, y - px / 2f, px * 0.75f, px * 0.75f);
-    }
-
-    shapes.setColor(reticleColor);
-    for (float y = cy + innerR + 2f; y < cy + outerR + 8f; y += px) {
-        shapes.rect(cx - px * 0.6f, y - px / 2f, px * 1.2f, px * 0.7f);
-    }
-    for (float y = cy - outerR - 8f; y < cy - innerR - 2f; y += px) {
-        shapes.rect(cx - px * 0.6f, y - px / 2f, px * 1.2f, px * 0.7f);
-    }
-    for (float x = cx + innerR + 2f; x < cx + outerR + 8f; x += px) {
-        shapes.rect(x - px / 2f, cy - px * 0.6f, px * 0.7f, px * 1.2f);
-    }
-    for (float x = cx - outerR - 8f; x < cx - innerR - 2f; x += px) {
-        shapes.rect(x - px / 2f, cy - px * 0.6f, px * 0.7f, px * 1.2f);
-    }
-
-    shapes.setColor(reticleColor);
-    for (int dy = -6; dy <= 6; dy++) {
-        int width = 6 - Math.abs(dy);
-        shapes.rect(cx - width * px * 0.5f, cy + outerR + dy * px * 0.6f,
-                    width * px, px * 0.6f);
-        shapes.rect(cx - width * px * 0.5f, cy - outerR + dy * px * 0.6f,
-                    width * px, px * 0.6f);
-    }
-    for (int dx = -6; dx <= 6; dx++) {
-        int height = 6 - Math.abs(dx);
-        shapes.rect(cx + outerR + dx * px * 0.6f, cy - height * px * 0.5f,
-                    px * 0.6f, height * px);
-        shapes.rect(cx - outerR + dx * px * 0.6f, cy - height * px * 0.5f,
-                    px * 0.6f, height * px);
-    }
-
-    shapes.setColor(1f, 0.15f, 0.15f, 1f);
-    shapes.rect(cx - px / 2f, cy - px / 2f, px, px);
-
-    float angle = MathUtils.atan2(target.pos.y - gs.playerPos.y,
-                                  target.pos.x - gs.playerPos.x);
-    float startDist = GameScreen.PLAYER_RADIUS + 8f;
-    float endDist = 28f;
-    float startX = gs.playerPos.x + MathUtils.cos(angle) * startDist;
-    float startY = gs.playerPos.y + MathUtils.sin(angle) * startDist;
-    float endX = gs.playerPos.x + MathUtils.cos(angle) * endDist;
-    float endY = gs.playerPos.y + MathUtils.sin(angle) * endDist;
-
-    shapes.setColor(reticleColor.r, reticleColor.g, reticleColor.b, 0.5f);
-    for (float t = 0f; t < 1f; t += 0.15f) {
-        float x = startX + (endX - startX) * t;
-        float y = startY + (endY - startY) * t;
-        shapes.rect(x - 1.5f, y - 1.5f, 3f, 3f);
-    }
-
-    if (gs.aimStability < 1f) {
-        float barW = 48f;
-        float barH = 5f;
-        float barX = cx - barW / 2f;
-        float barY = cy + outerR + 24f;
-
-        shapes.setColor(0f, 0f, 0f, 0.7f);
-        shapes.rect(barX - 1f, barY - 1f, barW + 2f, barH + 2f);
-
-        Color barColor;
-        if (gs.aimStability > 0.66f) barColor = new Color(1f, 0.9f, 0.2f, 1f);
-        else if (gs.aimStability > 0.33f) barColor = new Color(1f, 0.6f, 0.1f, 1f);
-        else barColor = new Color(1f, 0.3f, 0.3f, 1f);
-
-        shapes.setColor(barColor);
-        shapes.rect(barX, barY, barW * gs.aimStability, barH);
-    }
 }
 
 private void drawEnemyStunStars(Ennemi e) {
@@ -623,16 +615,13 @@ private void drawEnemyStunStars(Ennemi e) {
 
 private void drawDizzyStars(GameScreen gs) {
     if (!gs.isStunned()) return;
-
     float cx = gs.playerPos.x;
     float cy = gs.playerPos.y + 50f;
     float radius = 32f;
-
     for (int i = 0; i < 4; i++) {
         float angle = gs.dizzyTime * 3f + i * (MathUtils.PI2 / 4f);
         float sx = cx + MathUtils.cos(angle) * radius;
         float sy = cy + MathUtils.sin(angle) * radius * 0.5f;
-
         shapes.setColor(1f, 0.9f, 0.2f, 0.9f);
         shapes.circle(sx, sy, 6f, 12);
         shapes.setColor(1f, 0.95f, 0.4f, 0.8f);
@@ -646,7 +635,6 @@ private void drawDizzyStars(GameScreen gs) {
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         gs.zoom.applyToCamera(camera, gs.playerPos.x, gs.playerPos.y, W, H);
-
         camera.position.x += gs.shakeOffsetX;
         camera.position.y += gs.shakeOffsetY;
         camera.update();
@@ -790,6 +778,9 @@ private void drawDizzyStars(GameScreen gs) {
             }
         }
 
+        // "Target acquired." texte au dessus de la cible
+        drawTargetAcquiredText(gs);
+
         gs.damage.draw(batch, font);
         batch.end();
 
@@ -835,15 +826,12 @@ private void drawDizzyStars(GameScreen gs) {
 
         gs.particles.draw(shapes);
         drawDizzyStars(gs);
-
         drawAutoAimVisual(gs);
-
         shapes.end();
 
         for (int i = 0; i < gs.weaponDrops.size; i++) {
             WeaponDrop d = gs.weaponDrops.get(i);
             float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
-
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(d.weapon.rarity.colorWithAlpha(0.15f + 0.2f * pulse));
             shapes.circle(d.pos.x, d.pos.y, 18f + 4f * pulse, 20);
@@ -890,18 +878,15 @@ private void drawDizzyStars(GameScreen gs) {
             layout.setText(font, fleeMsg);
             float msgX = W / 2f - layout.width / 2f;
             float msgY = H / 2f + 80f;
-
             font.setColor(0f, 0f, 0f, alpha * 0.8f);
             font.draw(batch, fleeMsg, msgX + 3f, msgY - 3f);
             font.setColor(1f, 0.3f, 0.3f, alpha);
             font.draw(batch, fleeMsg, msgX, msgY);
-
             font.getData().setScale(1.4f);
             font.setColor(1f, 1f, 1f, alpha);
             String subMsg = "Reviens le defier plus tard...";
             layout.setText(font, subMsg);
             font.draw(batch, subMsg, W / 2f - layout.width / 2f, msgY - 40f);
-
             font.getData().setScale(2f);
             font.setColor(Color.WHITE);
         }
@@ -913,16 +898,13 @@ private void drawDizzyStars(GameScreen gs) {
             layout.setText(font, phaseMsg);
             float msgX = W / 2f - layout.width / 2f;
             float msgY = H / 2f + 150f;
-
             Color phaseColor;
             if (gs.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
             else phaseColor = new Color(1f, 0.2f, 0.9f, alpha);
-
             font.setColor(0f, 0f, 0f, alpha * 0.8f);
             font.draw(batch, phaseMsg, msgX + 4f, msgY - 4f);
             font.setColor(phaseColor);
             font.draw(batch, phaseMsg, msgX, msgY);
-
             font.getData().setScale(2f);
             font.setColor(Color.WHITE);
         }
