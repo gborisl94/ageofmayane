@@ -316,8 +316,9 @@ private void nextFloor() {
     autoAimActive = false;
     autoAimTimer = 0f;
     autoAimCooldown = 0f;
-    chest = new Chest(W / 2f, H / 2f);
-
+    Vector2 chestPos = findRandomFloorPos(40f, 200f);
+chest = new Chest(chestPos.x, chestPos.y);
+    
     elevator.reset();
     if (elevatorButton != null) elevatorButton.hide();
     floorTransitionPending = false;
@@ -608,7 +609,75 @@ private void update(float delta) {
         xpSystem.addXp(XP_PER_ROOM);
     }
 }
+private Vector2 findRandomFloorPos(float radius, float minDistFromPlayer) {
+    Vector2 out = new Vector2();
+    for (int i = 0; i < 60; i++) {
+        float x = MathUtils.random(Room.WALL_T + 60f, W - Room.WALL_T - 60f);
+        float y = MathUtils.random(Room.WALL_T + 60f, H - Room.WALL_T - 60f);
+        if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+        if (out.dst2(playerPos) < minDistFromPlayer * minDistFromPlayer) continue;
+        out.set(x, y);
+        return out;
+    }
+    out.set(W / 2f, H / 2f);
+    return out;
+        }
+private void drawBossArrow() {
+        Vector2 target = null;
+        boolean isBoss = false;
 
+        for (int i = 0; i < ennemis.size; i++) {
+            Ennemi e = ennemis.get(i);
+            if (e.boss && e.hp > 0 && !e.fleeing) {
+                target = e.pos;
+                isBoss = true;
+                break;
+            }
+        }
+
+        if (target == null) {
+            Room cur = dungeon.getCurrent();
+            if (cur != null) {
+                float bestD = Float.MAX_VALUE;
+                for (int dir = 0; dir < 4; dir++) {
+                    if (!cur.hasDoor(dir)) continue;
+                    com.badlogic.gdx.math.Rectangle r = cur.getDoorRect(dir);
+                    if (r == null) continue;
+                    float cx = r.x + r.width / 2f;
+                    float cy = r.y + r.height / 2f;
+                    float d = Vector2.dst2(playerPos.x, playerPos.y, cx, cy);
+                    if (d < bestD) { bestD = d; target = new Vector2(cx, cy); }
+                }
+            }
+        }
+
+        if (target == null) return;
+
+        float cx = W / 2f;
+        float cy = 110f;
+        float size = 42f;
+        float angle = MathUtils.atan2(target.y - playerPos.y, target.x - playerPos.x);
+
+        float tipX = cx + MathUtils.cos(angle) * size;
+        float tipY = cy + MathUtils.sin(angle) * size;
+        float lx = cx + MathUtils.cos(angle + 2.4f) * size * 0.75f;
+        float ly = cy + MathUtils.sin(angle + 2.4f) * size * 0.75f;
+        float rx = cx + MathUtils.cos(angle - 2.4f) * size * 0.75f;
+        float ry = cy + MathUtils.sin(angle - 2.4f) * size * 0.75f;
+
+        uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
+        uiShapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        uiShapes.setColor(0f, 0f, 0f, 0.55f);
+        uiShapes.circle(cx, cy, size + 6f, 24);
+
+        if (isBoss) uiShapes.setColor(1f, 0.15f, 0.15f, 1f);
+        else uiShapes.setColor(1f, 0.9f, 0.2f, 1f);
+
+        uiShapes.triangle(tipX, tipY, lx, ly, rx, ry);
+        uiShapes.end();
+    }
+    
 private void updateElevatorButton(float delta) {
     if (elevator == null || elevatorButton == null) return;
     elevatorButton.update(delta);
