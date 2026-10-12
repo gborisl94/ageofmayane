@@ -164,7 +164,8 @@ public class GameScreen extends ScreenAdapter {
     private ShapeRenderer uiShapes;
     private SpriteBatch uiBatch;
     private BitmapFont uiFont;
-    private boolean floorTransitionPending = false;
+    private boolean floorTransitionPending = false;float glitchCooldown = 0f;
+float glitchEffectTimer = 0f;
     private float transitionTimer = 0f;
 
     public GameScreen() { this(null); }
