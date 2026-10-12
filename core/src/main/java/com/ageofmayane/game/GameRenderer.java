@@ -162,10 +162,10 @@ private void drawTiled(Texture t, float x, float y, float w, float h, float tile
     }
 }
 
-private void drawDoorTexture(GameScreen g, int dir) {
-    Rectangle r = g.dungeon.doorRectOrNull(dir, tmpRect);
+private void drawDoorTexture(GameScreen gs, int dir) {
+    Rectangle r = gs.dungeon.doorRectOrNull(dir, tmpRect);
     if (r == null) return;
-    if (g.dungeon.doorsOpen()) batch.setColor(0.6f, 1f, 0.6f, 1f);
+    if (gs.dungeon.doorsOpen()) batch.setColor(0.6f, 1f, 0.6f, 1f);
     else batch.setColor(1f, 0.55f, 0.55f, 1f);
     float cx = r.x + r.width / 2f;
     float cy = r.y + r.height / 2f;
@@ -218,8 +218,8 @@ private void drawChest(Chest c) {
     }
 }
 
-private void drawOpenButton(GameScreen g) {
-    if (!g.canInteractWithChest()) return;
+private void drawOpenButton(GameScreen gs) {
+    if (!gs.canInteractWithChest()) return;
 
     float bx = GameScreen.OPEN_BTN_X;
     float by = GameScreen.OPEN_BTN_Y;
@@ -251,24 +251,21 @@ private void drawOpenButton(GameScreen g) {
     batch.end();
 }
 
-private void drawStunButton(GameScreen g) {
+private void drawStunButton(GameScreen gs) {
     float bx = GameScreen.STUN_BTN_X;
     float by = GameScreen.STUN_BTN_Y;
     float bs = GameScreen.STUN_BTN_SIZE;
 
-    float ratio = g.getStunCooldownRatio();
-    boolean ready = g.isStunReady();
+    float ratio = gs.getStunCooldownRatio();
+    boolean ready = gs.isStunReady();
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
 
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
 
-    if (ready) {
-        shapes.setColor(0.9f, 0.75f, 0.2f, 0.95f);
-    } else {
-        shapes.setColor(0.35f, 0.35f, 0.4f, 0.9f);
-    }
+    if (ready) shapes.setColor(0.9f, 0.75f, 0.2f, 0.95f);
+    else shapes.setColor(0.35f, 0.35f, 0.4f, 0.9f);
     shapes.rect(bx, by, bs, bs);
 
     if (!ready) {
@@ -299,7 +296,7 @@ private void drawStunButton(GameScreen g) {
     font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + bs * 0.22f);
 
     if (!ready) {
-        String cd = String.format("%.1f", g.stunCooldown);
+        String cd = String.format("%.1f", gs.stunCooldown);
         layout.setText(font, cd);
         font.setColor(1f, 0.4f, 0.4f, 1f);
         font.draw(batch, cd, bx + (bs - layout.width) / 2f, by + bs - 8f);
@@ -315,14 +312,14 @@ private void drawStunButton(GameScreen g) {
     batch.end();
 }
 
-private void drawXpBar(GameScreen g) {
-    if (g.xpSystem == null) return;
+private void drawXpBar(GameScreen gs) {
+    if (gs.xpSystem == null) return;
 
     float bx = XP_BAR_X;
     float by = XP_BAR_Y;
     float bw = XP_BAR_W;
     float bh = XP_BAR_H;
-    float ratio = g.xpSystem.getProgress();
+    float ratio = gs.xpSystem.getProgress();
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
@@ -344,11 +341,11 @@ private void drawXpBar(GameScreen g) {
     batch.begin();
     font.getData().setScale(1.5f);
     font.setColor(1f, 0.9f, 0.3f, 1f);
-    font.draw(batch, "Niv " + g.xpSystem.level, bx, by + bh + 26f);
+    font.draw(batch, "Niv " + gs.xpSystem.level, bx, by + bh + 26f);
 
     font.getData().setScale(1.2f);
     font.setColor(1f, 1f, 1f, 1f);
-    String txt = g.xpSystem.xp + " / " + g.xpSystem.xpRequired;
+    String txt = gs.xpSystem.xp + " / " + gs.xpSystem.xpRequired;
     layout.setText(font, txt);
     font.draw(batch, txt, bx + bw - layout.width, by + bh + 22f);
     font.getData().setScale(2f);
@@ -372,15 +369,15 @@ private void drawEnemyStunStars(Ennemi e) {
     }
 }
 
-private void drawDizzyStars(GameScreen g) {
-    if (!g.isStunned()) return;
+private void drawDizzyStars(GameScreen gs) {
+    if (!gs.isStunned()) return;
 
-    float cx = g.playerPos.x;
-    float cy = g.playerPos.y + 50f;
+    float cx = gs.playerPos.x;
+    float cy = gs.playerPos.y + 50f;
     float radius = 32f;
 
     for (int i = 0; i < 4; i++) {
-        float angle = g.dizzyTime * 3f + i * (MathUtils.PI2 / 4f);
+        float angle = gs.dizzyTime * 3f + i * (MathUtils.PI2 / 4f);
         float sx = cx + MathUtils.cos(angle) * radius;
         float sy = cy + MathUtils.sin(angle) * radius * 0.5f;
 
@@ -391,24 +388,24 @@ private void drawDizzyStars(GameScreen g) {
     }
 }
 
-void draw(GameScreen g) {
+void draw(GameScreen gs) {
     Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     Gdx.gl.glEnable(GL20.GL_BLEND);
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-    g.zoom.applyToCamera(camera, g.playerPos.x, g.playerPos.y, W, H);
+    gs.zoom.applyToCamera(camera, gs.playerPos.x, gs.playerPos.y, W, H);
 
-    camera.position.x += g.shakeOffsetX;
-    camera.position.y += g.shakeOffsetY;
+    camera.position.x += gs.shakeOffsetX;
+    camera.position.y += gs.shakeOffsetY;
     camera.update();
 
     viewport.apply();
     shapes.setProjectionMatrix(camera.combined);
     batch.setProjectionMatrix(camera.combined);
 
-    boolean playerVisible = !g.gameOver
-            && (g.invulnerable <= 0f || ((int) (g.invulnerable * 10f)) % 2 == 0);
+    boolean playerVisible = !gs.gameOver
+            && (gs.invulnerable <= 0f || ((int) (gs.invulnerable * 10f)) % 2 == 0);
 
     if (texSol != null) {
         batch.begin();
@@ -419,8 +416,8 @@ void draw(GameScreen g) {
 
     if (texSol == null || texMur == null) {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        if (texSol == null) g.dungeon.drawFloorColor(shapes);
-        if (texMur == null) g.dungeon.drawWallsColor(shapes);
+        if (texSol == null) gs.dungeon.drawFloorColor(shapes);
+        if (texMur == null) gs.dungeon.drawWallsColor(shapes);
         shapes.end();
     }
 
@@ -428,7 +425,7 @@ void draw(GameScreen g) {
         batch.begin();
         batch.setColor(Color.WHITE);
         if (texMur != null) {
-            Array<Rectangle> solids = g.dungeon.getSolids();
+            Array<Rectangle> solids = gs.dungeon.getSolids();
             for (int i = 0; i < solids.size; i++) {
                 Rectangle s = solids.get(i);
                 float tile = Math.min(WALL_TILE, Math.min(s.width, s.height));
@@ -436,7 +433,7 @@ void draw(GameScreen g) {
             }
         }
         if (texPorte != null) {
-            for (int d = 0; d < 4; d++) drawDoorTexture(g, d);
+            for (int d = 0; d < 4; d++) drawDoorTexture(gs, d);
         }
         batch.setColor(Color.WHITE);
         batch.end();
@@ -444,25 +441,24 @@ void draw(GameScreen g) {
 
     if (texPorte == null) {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        g.dungeon.drawDoorsColor(shapes);
+        gs.dungeon.drawDoorsColor(shapes);
         shapes.end();
     }
 
-    if (g.chest != null) {
-        drawChest(g.chest);
+    if (gs.chest != null) {
+        drawChest(gs.chest);
     }
 
     // ==================== ENNEMIS ====================
     batch.begin();
     batch.setColor(Color.WHITE);
-    for (int i = 0; i < g.ennemis.size; i++) {
-        Ennemi e = g.ennemis.get(i);
+    for (int i = 0; i < gs.ennemis.size; i++) {
+        Ennemi e = gs.ennemis.get(i);
         Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
         if (t == null) continue;
 
         float scale = 1f;
 
-        // Couleur de base selon la phase du boss
         if (e.boss) {
             if (e.phase == 1) batch.setColor(bossTint);
             else if (e.phase == 2) batch.setColor(bossTintPhase2);
@@ -471,53 +467,44 @@ void draw(GameScreen g) {
             batch.setColor(Color.WHITE);
         }
 
-        // Fleeing : fondu
         if (e.fleeing) {
             float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
             batch.setColor(1f, 1f, 1f, alpha);
         }
 
-        // Flash au changement de phase du boss
         if (e.boss && e.phaseChangeFlash > 0f) {
             scale = 1f + 0.3f * (e.phaseChangeFlash);
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
-        // Stun : clignotement transparent
         if (e.stunned > 0f) {
             float alpha = 0.6f + 0.4f * (float) Math.sin(e.stunned * 20f);
             batch.setColor(1f, 1f, 1f, alpha);
         }
 
-        // ==================== HIT PULSE ====================
-        // L'ennemi grossit + clignote quand il subit un degat
+        // HIT PULSE : grossit + clignote
         if (e.hitPulse > 0f) {
-            float t = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;   // 1 → 0
+            float pulsePct = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;
 
-            // GROSSISSEMENT : +50% au moment de l'impact, puis revient a 1
-            scale *= 1f + 0.5f * t;
+            // Grossissement de 50% max
+            scale *= 1f + 0.5f * pulsePct;
 
-            // CLIGNOTEMENT : alternance rapide blanc / rouge fonce
-            // On utilise sin avec une frequence elevee pour clignoter ~20 fois/sec
+            // Clignotement rapide
             float blink = (float) Math.sin(e.hitPulse * 60f);
             if (blink > 0f) {
-                // Phase blanche
                 batch.setColor(1f, 1f, 1f, 1f);
             } else {
-                // Phase rouge fonce
                 batch.setColor(1f, 0.2f, 0.2f, 1f);
             }
         }
 
-        // ==================== ATTACK PULSE ====================
+        // ATTACK PULSE
         if (e.attackPulse > 0f) {
-            float t = e.attackPulse / GameScreen.ENEMY_ATTACK_PULSE_DURATION;
-            scale *= 1f + 0.35f * t;
-            // Teinte rouge qui s'estompe
-            float r = 1f;
-            float g = 0.5f + 0.5f * (1f - t);
-            float b = 0.5f + 0.5f * (1f - t);
-            batch.setColor(r, g, b, 1f);
+            float atkPct = e.attackPulse / GameScreen.ENEMY_ATTACK_PULSE_DURATION;
+            scale *= 1f + 0.35f * atkPct;
+            float greenVal = 0.5f + 0.5f * (1f - atkPct);
+            float blueVal = 0.5f + 0.5f * (1f - atkPct);
+            batch.setColor(1f, greenVal, blueVal, 1f);
         }
 
         drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
@@ -526,8 +513,8 @@ void draw(GameScreen g) {
     batch.setColor(Color.WHITE);
 
     // Projectiles
-    for (int i = 0; i < g.fleches.size; i++) {
-        Fleche f = g.fleches.get(i);
+    for (int i = 0; i < gs.fleches.size; i++) {
+        Fleche f = gs.fleches.get(i);
         if (f.fromEnemy) {
             batch.end();
             shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -544,31 +531,30 @@ void draw(GameScreen g) {
         }
     }
 
-    // ==================== JOUEUR ====================
+    // JOUEUR
     if (texPlayer != null && playerVisible) {
         float playerScale = 1f;
-        float recoilOffset = 0f;
-        if (g.playerRecoil > 0f) {
-            float t = g.playerRecoil / GameScreen.PLAYER_RECOIL_DURATION;
-            playerScale = 1f + 0.25f * t;
-            recoilOffset = -12f * t;
+        if (gs.playerRecoil > 0f) {
+            float pct = gs.playerRecoil / GameScreen.PLAYER_RECOIL_DURATION;
+            playerScale = 1f + 0.25f * pct;
+            float recoilOffset = -12f * pct;
+            float dx = -MathUtils.cosDeg(gs.facing) * recoilOffset;
+            float dy = -MathUtils.sinDeg(gs.facing) * recoilOffset;
+            drawSprite(texPlayer,
+                    gs.playerPos.x + dx,
+                    gs.playerPos.y + dy,
+                    GameScreen.PLAYER_SIZE * playerScale,
+                    gs.facing + GameScreen.PLAYER_ROT);
+        } else {
+            drawSprite(texPlayer, gs.playerPos.x, gs.playerPos.y,
+                    GameScreen.PLAYER_SIZE, gs.facing + GameScreen.PLAYER_ROT);
         }
-        float dx = 0f, dy = 0f;
-        if (g.playerRecoil > 0f) {
-            dx = -MathUtils.cosDeg(g.facing) * recoilOffset;
-            dy = -MathUtils.sinDeg(g.facing) * recoilOffset;
-        }
-        drawSprite(texPlayer,
-                g.playerPos.x + dx,
-                g.playerPos.y + dy,
-                GameScreen.PLAYER_SIZE * playerScale,
-                g.facing + GameScreen.PLAYER_ROT);
     }
 
-    g.damage.draw(batch, font);
+    gs.damage.draw(batch, font);
     batch.end();        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int i = 0; i < g.ennemis.size; i++) {
-            Ennemi e = g.ennemis.get(i);
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            Ennemi e = gs.ennemis.get(i);
             boolean hasTex = e.boss ? (texBoss != null || texEnemy != null) : texEnemy != null;
             if (!hasTex) {
                 if (e.boss) shapes.setColor(0.9f, 0.3f, 0.3f, 1f);
@@ -590,8 +576,8 @@ void draw(GameScreen g) {
         }
         if (texArrow == null) {
             shapes.setColor(1f, 0.9f, 0.3f, 1f);
-            for (int i = 0; i < g.fleches.size; i++) {
-                Fleche f = g.fleches.get(i);
+            for (int i = 0; i < gs.fleches.size; i++) {
+                Fleche f = gs.fleches.get(i);
                 if (!f.fromEnemy) {
                     shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
                 }
@@ -599,21 +585,19 @@ void draw(GameScreen g) {
         }
         if (texPlayer == null && playerVisible) {
             shapes.setColor(1f, 0.4f, 0.7f, 1f);
-            shapes.circle(g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
+            shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
 
-        // Etoiles au-dessus des ennemis etourdis
-        for (int i = 0; i < g.ennemis.size; i++) {
-            drawEnemyStunStars(g.ennemis.get(i));
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            drawEnemyStunStars(gs.ennemis.get(i));
         }
 
-        g.particles.draw(shapes);
-        drawDizzyStars(g);
+        gs.particles.draw(shapes);
+        drawDizzyStars(gs);
         shapes.end();
 
-        // Arcs poses au sol
-        for (int i = 0; i < g.weaponDrops.size; i++) {
-            WeaponDrop d = g.weaponDrops.get(i);
+        for (int i = 0; i < gs.weaponDrops.size; i++) {
+            WeaponDrop d = gs.weaponDrops.get(i);
             float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
 
             shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -637,24 +621,24 @@ void draw(GameScreen g) {
         batch.setProjectionMatrix(uiCamera.combined);
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        g.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
-        drawStick(g.moveStick, 1f, 1f, 1f);
-        drawStick(g.aimStick, 1f, 0.5f, 0.5f);
+        gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
+        drawStick(gs.moveStick, 1f, 1f, 1f);
+        drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
         shapes.end();
 
-        g.zoom.draw(shapes, batch, font);
+        gs.zoom.draw(shapes, batch, font);
 
-        drawOpenButton(g);
-        drawStunButton(g);
-        drawXpBar(g);
+        drawOpenButton(gs);
+        drawStunButton(gs);
+        drawXpBar(gs);
 
         batch.begin();
         font.setColor(Color.WHITE);
-        font.draw(batch, g.scoreText, 20, H - 20);
-        font.draw(batch, g.livesText, W - 160, H - 20);
+        font.draw(batch, gs.scoreText, 20, H - 20);
+        font.draw(batch, gs.livesText, W - 160, H - 20);
 
-        if (g.bossFleeMessageTimer > 0f) {
-            float alpha = Math.min(1f, g.bossFleeMessageTimer);
+        if (gs.bossFleeMessageTimer > 0f) {
+            float alpha = Math.min(1f, gs.bossFleeMessageTimer);
             font.getData().setScale(2.2f);
             String fleeMsg = "LE CHAMPION S'ENFUIT !";
             layout.setText(font, fleeMsg);
@@ -676,16 +660,16 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
-        if (g.bossPhaseMessageTimer > 0f) {
-            float alpha = Math.min(1f, g.bossPhaseMessageTimer);
+        if (gs.bossPhaseMessageTimer > 0f) {
+            float alpha = Math.min(1f, gs.bossPhaseMessageTimer);
             font.getData().setScale(3.2f);
-            String phaseMsg = "PHASE " + g.bossPhaseMessage + " !";
+            String phaseMsg = "PHASE " + gs.bossPhaseMessage + " !";
             layout.setText(font, phaseMsg);
             float msgX = W / 2f - layout.width / 2f;
             float msgY = H / 2f + 150f;
 
             Color phaseColor;
-            if (g.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
+            if (gs.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
             else phaseColor = new Color(1f, 0.2f, 0.9f, alpha);
 
             font.setColor(0f, 0f, 0f, alpha * 0.8f);
@@ -697,7 +681,7 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
-        if (g.isStunned()) {
+        if (gs.isStunned()) {
             font.getData().setScale(1.8f);
             font.setColor(1f, 0.9f, 0.3f, 0.9f);
             String stunMsg = "ETOURDI !";
@@ -707,12 +691,12 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
-        if (g.victory) {
+        if (gs.victory) {
             font.setColor(1f, 0.85f, 0.2f, 1f);
             font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
             font.setColor(Color.WHITE);
             font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
-        } else if (g.gameOver) {
+        } else if (gs.gameOver) {
             font.setColor(1f, 0.4f, 0.4f, 1f);
             font.draw(batch, "GAME OVER", W / 2f - 100, H / 2f + 30);
             font.setColor(Color.WHITE);
@@ -720,8 +704,8 @@ void draw(GameScreen g) {
         }
         batch.end();
 
-        if (g.hitFlash > 0f) {
-            float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
+        if (gs.hitFlash > 0f) {
+            float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             uiViewport.apply();
@@ -733,8 +717,8 @@ void draw(GameScreen g) {
             shapes.setColor(1f, 1f, 1f, 1f);
         }
 
-        if (g.isStunned()) {
-            float a = Math.min(0.35f, g.stunTimer / GameScreen.STUN_DURATION * 0.35f);
+        if (gs.isStunned()) {
+            float a = Math.min(0.35f, gs.stunTimer / GameScreen.STUN_DURATION * 0.35f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             uiViewport.apply();
