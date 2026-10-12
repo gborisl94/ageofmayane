@@ -314,6 +314,20 @@ public class ParticleSystem {
             shapes.circle(p.x, p.y, size, 8);
         }
     }
-
+public void spawnHalo(float x, float y, float radius, Color color) {
+    for (int i = 0; i < 3; i++) {
+        float angle = MathUtils.random(0f, 360f);
+        float r = radius * MathUtils.random(0.8f, 1.1f);
+        float px = x + MathUtils.cosDeg(angle) * r;
+        float py = y + MathUtils.sinDeg(angle) * r;
+        addParticle(px, py,
+                MathUtils.random(-10f, 10f),
+                MathUtils.random(20f, 50f),
+                MathUtils.random(0.6f, 1.0f),
+                MathUtils.random(3f, 6f),
+                0f,
+                color, 0);
+    }
+                            }
     public int getCount() { return particles.size; }
               }
