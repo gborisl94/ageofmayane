@@ -228,13 +228,15 @@ public class GameScreen extends ScreenAdapter {
         lastAutoTarget = null;
         currentFloor = 1;
         floorBannerTimer = 0f;
-        chest = new Chest(W / 2f, H / 2f);
+        Vector2 chestPos = findRandomFloorPos(40f, 200f);
+chest = new Chest(chestPos.x, chestPos.y);
 
         vengeance.clear();
         floorTransitionPending = false;
         transitionTimer = 0f;
         if (elevatorButton != null) elevatorButton.hide();
-        elevator = new Elevator(W / 2f - 40f, H / 2f - 60f, 80f, 120f);
+        Vector2 elevPos = findRandomFloorPos(60f, 250f);
+elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
 
         Room cur = dungeon.getCurrent();
         if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
@@ -955,7 +957,20 @@ private void updateEnemies(float delta) {
         out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
                 MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
     }
-
+private Vector2 findRandomFloorPos(float radius, float minDistFromPlayer) {
+        Vector2 out = new Vector2();
+        for (int i = 0; i < 60; i++) {
+            float x = MathUtils.random(Room.WALL_T + 60f, W - Room.WALL_T - 60f);
+            float y = MathUtils.random(Room.WALL_T + 60f, H - Room.WALL_T - 60f);
+            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+            if (out.dst2(playerPos) < minDistFromPlayer * minDistFromPlayer) continue;
+            out.set(x, y);
+            return out;
+        }
+        out.set(W / 2f, H / 2f);
+        return out;
+            }
+    
     private void hurtPlayer() {
         setLives(lives - 1);
         invulnerable = 1f;
