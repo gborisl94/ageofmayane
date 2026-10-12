@@ -19,18 +19,14 @@ class GameRenderer {
 
     static final float W = GameScreen.W;
     static final float H = GameScreen.H;
-
     static final float MINIMAP_X = 20f;
     static final float MINIMAP_Y = H - 170f;
-
     static final float FLOOR_TILE = 80f;
     static final float WALL_TILE = 40f;
-
     static final float XP_BAR_X = 20f;
     static final float XP_BAR_Y = H - 100f;
     static final float XP_BAR_W = 260f;
     static final float XP_BAR_H = 20f;
-
     static final float ATT_BAR_X = 20f;
     static final float ATT_BAR_Y = XP_BAR_Y - 32f;
     static final float ATT_BAR_W = 260f;
@@ -143,7 +139,8 @@ class GameRenderer {
         texSol = null; texMur = null; texPorte = null;
         texChestClosed = null; texChestOpen = null;
         viewport = null; uiViewport = null; camera = null; uiCamera = null;
-    }private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
+    }
+private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
     float w = h * t.getWidth() / (float) t.getHeight();
     batch.draw(t, cx - w / 2f, cy - h / 2f, w / 2f, h / 2f, w, h,
             1f, 1f, rotation, 0, 0, t.getWidth(), t.getHeight(), false, false);
@@ -260,14 +257,12 @@ private void drawStunButton(GameScreen gs) {
     float bx = GameScreen.STUN_BTN_X;
     float by = GameScreen.STUN_BTN_Y;
     float bs = GameScreen.STUN_BTN_SIZE;
-
     float ratio = gs.getStunCooldownRatio();
     boolean ready = gs.isStunReady();
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
-
     if (ready) shapes.setColor(0.9f, 0.75f, 0.2f, 0.95f);
     else shapes.setColor(0.35f, 0.35f, 0.4f, 0.9f);
     shapes.rect(bx, by, bs, bs);
@@ -293,8 +288,7 @@ private void drawStunButton(GameScreen gs) {
     String txt = "STUN";
     font.setColor(0.1f, 0.1f, 0.1f, 1f);
     layout.setText(font, txt);
-    font.draw(batch, txt, bx + (bs - layout.width) / 2f + 1f,
-            by + bs * 0.22f + 1f);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f + 1f, by + bs * 0.22f + 1f);
     font.setColor(1f, 1f, 1f, 1f);
     font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + bs * 0.22f);
 
@@ -318,14 +312,12 @@ private void drawAutoAimButton(GameScreen gs) {
     float bx = GameScreen.AIM_BTN_X;
     float by = GameScreen.AIM_BTN_Y;
     float bs = GameScreen.AIM_BTN_SIZE;
-
     boolean ready = gs.isAutoAimReady();
     boolean active = gs.autoAimActive;
 
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
-
     if (active) shapes.setColor(1f, 0.85f, 0.2f, 0.98f);
     else if (ready) shapes.setColor(0.2f, 0.75f, 0.35f, 0.95f);
     else shapes.setColor(0.3f, 0.3f, 0.35f, 0.9f);
@@ -344,7 +336,6 @@ private void drawAutoAimButton(GameScreen gs) {
 
     float cx = bx + bs / 2f;
     float cy = by + bs / 2f + 5f;
-
     if (active) shapes.setColor(1f, 1f, 1f, 0.95f);
     else if (ready) shapes.setColor(1f, 1f, 1f, 0.9f);
     else shapes.setColor(0.7f, 0.7f, 0.7f, 0.7f);
@@ -357,7 +348,6 @@ private void drawAutoAimButton(GameScreen gs) {
         float px1 = cx + MathUtils.cosDeg(a) * r1;
         float py1 = cy + MathUtils.sinDeg(a) * r1;
         shapes.rect(px1 - 1.5f, py1 - 1.5f, 3f, 3f);
-
         float px2 = cx + MathUtils.cosDeg(a) * r2;
         float py2 = cy + MathUtils.sinDeg(a) * r2;
         shapes.rect(px2 - 1f, py2 - 1f, 2f, 2f);
@@ -397,8 +387,6 @@ private void drawAutoAimButton(GameScreen gs) {
     font.setColor(Color.WHITE);
     batch.end();
 }
-
-/** Trait horizontal en pointilles. */
 private void drawDashedH(float x1, float x2, float y, float thick, float dash, Color c) {
     shapes.setColor(c);
     float len = x2 - x1;
@@ -409,7 +397,6 @@ private void drawDashedH(float x1, float x2, float y, float thick, float dash, C
     }
 }
 
-/** Trait vertical en pointilles. */
 private void drawDashedV(float x, float y1, float y2, float thick, float dash, Color c) {
     shapes.setColor(c);
     float len = Math.abs(y2 - y1);
@@ -421,7 +408,6 @@ private void drawDashedV(float x, float y1, float y2, float thick, float dash, C
     }
 }
 
-/** Visual du ciblage : style Atomic Exile (crochets + pointilles). */
 private void drawAutoAimVisual(GameScreen gs) {
     if (gs.autoTarget == null) return;
     if (gs.attention <= 0f) return;
@@ -429,7 +415,6 @@ private void drawAutoAimVisual(GameScreen gs) {
     if (!gs.autoAimActive) return;
 
     Ennemi target = gs.autoTarget;
-
     float cx = target.pos.x + gs.aimTrembleX;
     float cy = target.pos.y + gs.aimTrembleY;
 
@@ -443,34 +428,24 @@ private void drawAutoAimVisual(GameScreen gs) {
     float thick = 4f;
     float dash = 6f;
 
-    // Coin HAUT-GAUCHE
     drawDashedH(cx - r, cx - r + len, cy + r, thick, dash, reticleColor);
     drawDashedV(cx - r, cy + r, cy + r - len, thick, dash, reticleColor);
-
-    // Coin HAUT-DROITE
     drawDashedH(cx + r - len, cx + r, cy + r, thick, dash, reticleColor);
     drawDashedV(cx + r, cy + r, cy + r - len, thick, dash, reticleColor);
-
-    // Coin BAS-GAUCHE
     drawDashedH(cx - r, cx - r + len, cy - r, thick, dash, reticleColor);
     drawDashedV(cx - r, cy - r, cy - r + len, thick, dash, reticleColor);
-
-    // Coin BAS-DROITE
     drawDashedH(cx + r - len, cx + r, cy - r, thick, dash, reticleColor);
     drawDashedV(cx + r, cy - r, cy - r + len, thick, dash, reticleColor);
 
-    // Ticks milieu
     float tickLen = 6f;
     drawDashedV(cx, cy + r + 2f, cy + r - tickLen, thick, dash, reticleColor);
     drawDashedV(cx, cy - r - 2f, cy - r + tickLen, thick, dash, reticleColor);
     drawDashedH(cx + r + 2f, cx + r - tickLen, cy, thick, dash, reticleColor);
     drawDashedH(cx - r - 2f, cx - r + tickLen, cy, thick, dash, reticleColor);
 
-    // Point central
     shapes.setColor(reticleColor);
     shapes.rect(cx - 2f, cy - 2f, 4f, 4f);
 
-    // Barre de stabilite
     if (gs.aimStability < 1f) {
         float barW = 60f;
         float barH = 6f;
@@ -494,16 +469,13 @@ private void drawAutoAimVisual(GameScreen gs) {
     }
 }
 
-/** Texte "Target acquired." au-dessus de la cible. */
 private void drawTargetAcquiredText(GameScreen gs) {
     if (gs.targetAcquiredTimer <= 0f) return;
     if (gs.autoTarget == null) return;
     if (!gs.autoAimActive) return;
 
     float alpha = Math.min(1f, gs.targetAcquiredTimer * 2f);
-    if (gs.targetAcquiredTimer < 0.5f) {
-        alpha = gs.targetAcquiredTimer / 0.5f;
-    }
+    if (gs.targetAcquiredTimer < 0.5f) alpha = gs.targetAcquiredTimer / 0.5f;
 
     Ennemi target = gs.autoTarget;
     float cx = target.pos.x;
@@ -684,9 +656,7 @@ private void drawDizzyStars(GameScreen gs) {
             shapes.end();
         }
 
-        if (gs.chest != null) {
-            drawChest(gs.chest);
-        }
+        if (gs.chest != null) drawChest(gs.chest);
 
         batch.begin();
         batch.setColor(Color.WHITE);
@@ -694,32 +664,25 @@ private void drawDizzyStars(GameScreen gs) {
             Ennemi e = gs.ennemis.get(i);
             Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
             if (t == null) continue;
-
             float scale = 1f;
-
             if (e.boss) {
                 if (e.phase == 1) batch.setColor(bossTint);
                 else if (e.phase == 2) batch.setColor(bossTintPhase2);
                 else batch.setColor(bossTintPhase3);
-            } else {
-                batch.setColor(Color.WHITE);
-            }
+            } else batch.setColor(Color.WHITE);
 
             if (e.fleeing) {
                 float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
                 batch.setColor(1f, 1f, 1f, alpha);
             }
-
             if (e.boss && e.phaseChangeFlash > 0f) {
                 scale = 1f + 0.3f * (e.phaseChangeFlash);
                 batch.setColor(1f, 1f, 1f, 1f);
             }
-
             if (e.stunned > 0f) {
                 float alpha = 0.6f + 0.4f * (float) Math.sin(e.stunned * 20f);
                 batch.setColor(1f, 1f, 1f, alpha);
             }
-
             if (e.hitPulse > 0f) {
                 float pulsePct = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;
                 scale *= 1f + 0.5f * pulsePct;
@@ -727,7 +690,6 @@ private void drawDizzyStars(GameScreen gs) {
                 if (blink > 0f) batch.setColor(1f, 1f, 1f, 1f);
                 else batch.setColor(1f, 0.2f, 0.2f, 1f);
             }
-
             if (e.attackPulse > 0f) {
                 float atkPct = e.attackPulse / GameScreen.ENEMY_ATTACK_PULSE_DURATION;
                 scale *= 1f + 0.35f * atkPct;
@@ -735,7 +697,6 @@ private void drawDizzyStars(GameScreen gs) {
                 float blueVal = 0.5f + 0.5f * (1f - atkPct);
                 batch.setColor(1f, greenVal, blueVal, 1f);
             }
-
             drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
                     e.angle + GameScreen.ENEMY_ROT);
         }
@@ -767,9 +728,7 @@ private void drawDizzyStars(GameScreen gs) {
                 float recoilOffset = -12f * pct;
                 float dx = -MathUtils.cosDeg(gs.facing) * recoilOffset;
                 float dy = -MathUtils.sinDeg(gs.facing) * recoilOffset;
-                drawSprite(texPlayer,
-                        gs.playerPos.x + dx,
-                        gs.playerPos.y + dy,
+                drawSprite(texPlayer, gs.playerPos.x + dx, gs.playerPos.y + dy,
                         GameScreen.PLAYER_SIZE * playerScale,
                         gs.facing + GameScreen.PLAYER_ROT);
             } else {
@@ -778,9 +737,7 @@ private void drawDizzyStars(GameScreen gs) {
             }
         }
 
-        // "Target acquired." texte au dessus de la cible
         drawTargetAcquiredText(gs);
-
         gs.damage.draw(batch, font);
         batch.end();
 
@@ -810,9 +767,7 @@ private void drawDizzyStars(GameScreen gs) {
             shapes.setColor(1f, 0.9f, 0.3f, 1f);
             for (int i = 0; i < gs.fleches.size; i++) {
                 Fleche f = gs.fleches.get(i);
-                if (!f.fromEnemy) {
-                    shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
-                }
+                if (!f.fromEnemy) shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
             }
         }
         if (texPlayer == null && playerVisible) {
@@ -820,9 +775,7 @@ private void drawDizzyStars(GameScreen gs) {
             shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
 
-        for (int i = 0; i < gs.ennemis.size; i++) {
-            drawEnemyStunStars(gs.ennemis.get(i));
-        }
+        for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
 
         gs.particles.draw(shapes);
         drawDizzyStars(gs);
@@ -859,7 +812,6 @@ private void drawDizzyStars(GameScreen gs) {
         shapes.end();
 
         gs.zoom.draw(shapes, batch, font);
-
         drawOpenButton(gs);
         drawStunButton(gs);
         drawAutoAimButton(gs);
@@ -870,6 +822,13 @@ private void drawDizzyStars(GameScreen gs) {
         font.setColor(Color.WHITE);
         font.draw(batch, gs.scoreText, 20, H - 20);
         font.draw(batch, gs.livesText, W - 160, H - 20);
+
+        font.getData().setScale(1.5f);
+        font.setColor(1f, 0.75f, 0.3f, 1f);
+        font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
+                W / 2f - 80f, H - 20);
+        font.getData().setScale(2f);
+        font.setColor(Color.WHITE);
 
         if (gs.bossFleeMessageTimer > 0f) {
             float alpha = Math.min(1f, gs.bossFleeMessageTimer);
@@ -905,6 +864,35 @@ private void drawDizzyStars(GameScreen gs) {
             font.draw(batch, phaseMsg, msgX + 4f, msgY - 4f);
             font.setColor(phaseColor);
             font.draw(batch, phaseMsg, msgX, msgY);
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        if (gs.floorBannerTimer > 0f) {
+            float alpha = Math.min(1f, gs.floorBannerTimer);
+            if (gs.floorBannerTimer < 1f) alpha = gs.floorBannerTimer;
+
+            font.getData().setScale(4f);
+            String banner = "ETAGE " + gs.currentFloor;
+            layout.setText(font, banner);
+            float bx = W / 2f - layout.width / 2f;
+            float by = H / 2f + 50f;
+
+            font.setColor(0f, 0f, 0f, alpha);
+            font.draw(batch, banner, bx + 4f, by + 4f);
+            font.draw(batch, banner, bx - 4f, by + 4f);
+            font.draw(batch, banner, bx + 4f, by - 4f);
+            font.draw(batch, banner, bx - 4f, by - 4f);
+
+            font.setColor(1f, 0.75f, 0.2f, alpha);
+            font.draw(batch, banner, bx, by);
+
+            font.getData().setScale(1.8f);
+            String sub = "Prepare-toi au combat...";
+            layout.setText(font, sub);
+            font.setColor(1f, 1f, 1f, alpha);
+            font.draw(batch, sub, W / 2f - layout.width / 2f, by - 50f);
+
             font.getData().setScale(2f);
             font.setColor(Color.WHITE);
         }
