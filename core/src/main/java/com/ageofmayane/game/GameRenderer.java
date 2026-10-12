@@ -957,6 +957,8 @@ private void drawDizzyStars(GameScreen gs) {
         }
         batch.end();
 
+        drawGlitchEffect(gs);
+        
         if (gs.hitFlash > 0f) {
             float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
