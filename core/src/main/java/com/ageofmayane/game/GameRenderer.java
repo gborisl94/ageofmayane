@@ -820,9 +820,7 @@ private void drawDizzyStars(GameScreen gs) {
 
         for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
 
-        gs.particles.draw(shapes);
-        drawDizzyStars(gs); drawGlitchEffect(gs); drawAutoAimVisual(gs);
-        shapes.end();
+
 
         for (int i = 0; i < gs.weaponDrops.size; i++) {
             WeaponDrop d = gs.weaponDrops.get(i);
