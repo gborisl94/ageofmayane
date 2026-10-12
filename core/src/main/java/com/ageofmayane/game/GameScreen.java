@@ -66,6 +66,13 @@ public class GameScreen extends ScreenAdapter {
     static final float STUN_BTN_X = W - STUN_BTN_SIZE - 30f;
     static final float STUN_BTN_Y = H - 460f;
 
+    // === POUVOIR AUTO-AIM ===
+    static final float AIM_BTN_SIZE = 110f;
+    static final float AIM_BTN_X = W - AIM_BTN_SIZE - 30f;
+    static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
+    static final float AUTO_AIM_DURATION = 8f;
+    static final float AUTO_AIM_COOLDOWN = 12f;
+
     static final int MAX_POINTERS = 5;
     static final int OWNER_NONE = 0;
     static final int OWNER_MOVE = 1;
@@ -79,10 +86,25 @@ public class GameScreen extends ScreenAdapter {
     static final float STUN_DURATION = 1.5f;
     static final float STUN_SPEED_FACTOR = 0.5f;
 
-    // === ANIMATIONS DE PULSATION ===
     static final float PLAYER_RECOIL_DURATION = 0.15f;
     static final float ENEMY_HIT_PULSE_DURATION = 0.25f;
     static final float ENEMY_ATTACK_PULSE_DURATION = 0.3f;
+
+    static final float ATTENTION_MAX = 100f;
+    static final float ATTENTION_DRAIN = 30f;
+    static final float ATTENTION_REGEN = 15f;
+    static final float AUTO_AIM_RANGE = 600f;
+    static final float AUTO_AIM_RANGE_SQ = 600f * 600f;
+
+    static final float AIM_STABILITY_TIME = 2.0f;
+    static final float AIM_TREMBLE_MAX = 22f;
+
+    static final int CHARGE_LEVEL_1 = 1;
+    static final int CHARGE_LEVEL_2 = 2;
+    static final int CHARGE_LEVEL_3 = 3;
+    static final int CHARGE_DMG_LVL1 = 1;
+    static final int CHARGE_DMG_LVL2 = 2;
+    static final int CHARGE_DMG_LVL3 = 3;
 
     private final Game game;
     private GameRenderer renderer;
@@ -118,6 +140,21 @@ public class GameScreen extends ScreenAdapter {
     boolean victory;
     String scoreText = "";
     String livesText = "";
+
+    float attention = ATTENTION_MAX;
+    Ennemi autoTarget = null;
+
+    float aimStability = 0f;
+    float aimTrembleSeed = 0f;
+    float aimTrembleX = 0f;
+    float aimTrembleY = 0f;
+
+    int chargeLevel = 1;
+
+    // Pouvoir auto-aim
+    boolean autoAimActive = false;      // true quand le pouvoir est en cours
+    float autoAimTimer = 0f;             // secondes restantes d'activation
+    float autoAimCooldown = 0f;          // secondes restantes de recharge
 
     private final Vector2 tmp = new Vector2();
     private final int[] owner = new int[MAX_POINTERS];
@@ -174,6 +211,16 @@ public class GameScreen extends ScreenAdapter {
         gameOver = false;
         victory = false;
         equippedWeapon = WeaponDatabase.woodBow();
+        attention = ATTENTION_MAX;
+        autoTarget = null;
+        aimStability = 0f;
+        aimTrembleSeed = 0f;
+        aimTrembleX = 0f;
+        aimTrembleY = 0f;
+        chargeLevel = CHARGE_LEVEL_1;
+        autoAimActive = false;
+        autoAimTimer = 0f;
+        autoAimCooldown = 0f;
 
         chest = new Chest(W / 2f, H / 2f);
 
@@ -248,6 +295,90 @@ public class GameScreen extends ScreenAdapter {
         triggerShake();
     }
 
+    /** Active le pouvoir auto-aim (si pret). */
+    private void activateAutoAimPower() {
+        if (autoAimCooldown > 0f) return;
+        if (autoAimActive) return;
+        autoAimActive = true;
+        autoAimTimer = AUTO_AIM_DURATION;
+        // Reset stabilite pour recharger le viseur
+        aimStability = 0f;
+        particles.spawnLightning(playerPos.x, playerPos.y, 0f, 6);
+    }
+
+    /** Desactive volontairement le pouvoir (cout reduit cooldown). */
+    private void deactivateAutoAimPower() {
+        if (!autoAimActive) return;
+        autoAimActive = false;
+        // Cooldown reduit si on coupe manuellement (retour anticipe)
+        autoAimCooldown = AUTO_AIM_COOLDOWN * 0.5f;
+        autoAimTimer = 0f;
+    }
+
+    boolean isAutoAimReady() {
+        return !autoAimActive && autoAimCooldown <= 0f;
+    }
+
+    float getAutoAimDurationRatio() {
+        if (AUTO_AIM_DURATION <= 0f) return 0f;
+        return Math.max(0f, Math.min(1f, autoAimTimer / AUTO_AIM_DURATION));
+    }
+
+    float getAutoAimCooldownRatio() {
+        if (AUTO_AIM_COOLDOWN <= 0f) return 0f;
+        return Math.max(0f, Math.min(1f, autoAimCooldown / AUTO_AIM_COOLDOWN));
+    }
+
+    private Ennemi findNearestEnemy() {
+        Ennemi nearest = null;
+        float bestDist = AUTO_AIM_RANGE_SQ;
+        for (int i = 0; i < ennemis.size; i++) {
+            Ennemi e = ennemis.get(i);
+            if (e.hp <= 0) continue;
+            float d = e.pos.dst2(playerPos);
+            if (d < bestDist) {
+                bestDist = d;
+                nearest = e;
+            }
+        }
+        return nearest;
+    }
+
+    private void fireAt(float angleDeg, int dmg) {
+        Fleche f = new Fleche();
+        f.pos.set(playerPos);
+        f.vel.set(MathUtils.cosDeg(angleDeg) * ARROW_SPEED,
+                  MathUtils.sinDeg(angleDeg) * ARROW_SPEED);
+        f.angle = angleDeg;
+        f.fromEnemy = false;
+        f.damage = dmg;
+        fleches.add(f);
+
+        if (equippedWeapon != null) {
+            String s = equippedWeapon.spriteName;
+            if (s != null) {
+                if (s.equals("bow_fire.png")) {
+                    particles.spawnFire(playerPos.x, playerPos.y, 3);
+                } else if (s.equals("bow_ice.png")) {
+                    particles.spawnWaterJet(playerPos.x, playerPos.y, angleDeg, 3);
+                } else if (s.equals("bow_void.png")) {
+                    particles.spawnPoisonJet(playerPos.x, playerPos.y, angleDeg, 3);
+                } else if (s.equals("bow_legendary.png")) {
+                    particles.spawnFire(playerPos.x, playerPos.y, 2);
+                    particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
+                } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
+                    particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
+                }
+            }
+        }
+    }
+
+    private int getChargeDamage() {
+        if (chargeLevel == CHARGE_LEVEL_3) return CHARGE_DMG_LVL3;
+        if (chargeLevel == CHARGE_LEVEL_2) return CHARGE_DMG_LVL2;
+        return CHARGE_DMG_LVL1;
+    }
+
     @Override
     public void render(float delta) {
         if (renderer == null || zoom == null) return;
@@ -276,6 +407,20 @@ public class GameScreen extends ScreenAdapter {
     }
 
     if (stunCooldown > 0f) stunCooldown -= delta;
+
+    // ==================== GESTION DU POUVOIR AUTO-AIM ====================
+    if (autoAimActive) {
+        autoAimTimer -= delta;
+        if (autoAimTimer <= 0f) {
+            // Fin naturelle du pouvoir
+            autoAimActive = false;
+            autoAimTimer = 0f;
+            autoAimCooldown = AUTO_AIM_COOLDOWN;
+        }
+    } else if (autoAimCooldown > 0f) {
+        autoAimCooldown -= delta;
+        if (autoAimCooldown < 0f) autoAimCooldown = 0f;
+    }
 
     if (gameOver || victory) {
         endTimer += delta;
@@ -312,34 +457,72 @@ public class GameScreen extends ScreenAdapter {
         if (next != null) enterRoom(next);
     }
 
+    // ==================== TIR + AUTO-AIM ====================
     fireTimer -= delta;
-    if (!stunned && aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
-        fireTimer = FIRE_DELAY;
-        Fleche f = new Fleche();
-        f.pos.set(playerPos);
-        f.vel.set(aimStick.dir).nor().scl(ARROW_SPEED);
-        f.angle = f.vel.angleDeg();
-        f.fromEnemy = false;
-        fleches.add(f);
-        playerRecoil = PLAYER_RECOIL_DURATION;
+    autoTarget = findNearestEnemy();
 
-        if (equippedWeapon != null) {
-            String s = equippedWeapon.spriteName;
-            if (s != null) {
-                if (s.equals("bow_fire.png")) {
-                    particles.spawnFire(playerPos.x, playerPos.y, 3);
-                } else if (s.equals("bow_ice.png")) {
-                    particles.spawnWaterJet(playerPos.x, playerPos.y, f.angle, 3);
-                } else if (s.equals("bow_void.png")) {
-                    particles.spawnPoisonJet(playerPos.x, playerPos.y, f.angle, 3);
-                } else if (s.equals("bow_legendary.png")) {
-                    particles.spawnFire(playerPos.x, playerPos.y, 2);
-                    particles.spawnLightning(playerPos.x, playerPos.y, f.angle, 2);
-                } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
-                    particles.spawnLightning(playerPos.x, playerPos.y, f.angle, 2);
-                }
+    boolean useManual = aimStick.dir.len() > DEAD_ZONE;
+    boolean autoAimUsable = autoAimActive
+            && !useManual
+            && attention > 0f
+            && autoTarget != null
+            && !stunned;
+
+    if (!stunned && fireTimer <= 0f) {
+        if (useManual) {
+            float fireAngle = aimStick.dir.angleDeg();
+            fireAt(fireAngle, CHARGE_DMG_LVL1);
+            fireTimer = FIRE_DELAY;
+            playerRecoil = PLAYER_RECOIL_DURATION;
+        } else if (autoAimUsable) {
+            tmp.set(autoTarget.pos).sub(playerPos);
+            if (tmp.len2() > 0.001f) {
+                float fireAngle = tmp.angleDeg();
+                facing = fireAngle;
+                fireAt(fireAngle, getChargeDamage());
+                fireTimer = FIRE_DELAY;
+                playerRecoil = PLAYER_RECOIL_DURATION;
             }
         }
+    }
+
+    // Drain / Recharge de l'attention (uniquement quand le pouvoir est actif)
+    if (autoAimUsable && fireTimer > 0f) {
+        attention -= ATTENTION_DRAIN * delta;
+        if (attention < 0f) attention = 0f;
+    } else if (autoAimActive && !useManual && moveStick.dir.len() < DEAD_ZONE) {
+        attention += ATTENTION_REGEN * delta;
+        if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
+    }
+
+    // ==================== STABILISATION DU VISUER ====================
+    boolean moving = moveStick.dir.len() > DEAD_ZONE;
+
+    if (moving || !autoAimActive) {
+        aimStability = 0f;
+    } else if (autoTarget != null && !stunned) {
+        aimStability += delta / AIM_STABILITY_TIME;
+        if (aimStability > 1f) aimStability = 1f;
+    } else {
+        aimStability -= delta * 0.5f;
+        if (aimStability < 0f) aimStability = 0f;
+    }
+
+    if (aimStability >= 0.66f) chargeLevel = CHARGE_LEVEL_3;
+    else if (aimStability >= 0.33f) chargeLevel = CHARGE_LEVEL_2;
+    else chargeLevel = CHARGE_LEVEL_1;
+
+    // Tremblement du viseur
+    aimTrembleSeed += delta * 25f;
+    float trembleAmt = (1f - aimStability) * AIM_TREMBLE_MAX;
+    if (trembleAmt > 0.5f && autoAimActive) {
+        aimTrembleX = MathUtils.sin(aimTrembleSeed * 1.3f) * trembleAmt
+                    + MathUtils.sin(aimTrembleSeed * 2.7f) * trembleAmt * 0.5f;
+        aimTrembleY = MathUtils.cos(aimTrembleSeed * 1.7f) * trembleAmt
+                    + MathUtils.cos(aimTrembleSeed * 3.1f) * trembleAmt * 0.5f;
+    } else {
+        aimTrembleX = 0f;
+        aimTrembleY = 0f;
     }
 
     updateArrows(delta);
@@ -513,10 +696,11 @@ private void updateEnemies(float delta) {
         for (int j = fleches.size - 1; j >= 0; j--) {
             if (fleches.get(j).fromEnemy) continue;
             if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
+                int arrowDmg = fleches.get(j).damage;
                 fleches.removeIndex(j);
-                e.hp--;
+                e.hp -= arrowDmg;
                 e.hitPulse = ENEMY_HIT_PULSE_DURATION;
-                damage.add(e.pos.x, e.pos.y + e.size / 2f, "-1", false);
+                damage.add(e.pos.x, e.pos.y + e.size / 2f, "-" + arrowDmg, false);
 
                 if (equippedWeapon != null && equippedWeapon.spriteName != null) {
                     String s = equippedWeapon.spriteName;
@@ -599,6 +783,7 @@ private void spawnBossProjectile(float x, float y, float angleDeg) {
     p.angle = angleDeg;
     p.fromEnemy = true;
     p.life = 3f;
+    p.damage = 1;
     fleches.add(p);
     particles.spawnFire(x, y, 2);
 }
@@ -698,20 +883,41 @@ private void hurtPlayer() {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
+                // Bouton AUTO-AIM (pouvoir actif)
+                if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
+                        && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
+                    if (autoAimActive) {
+                        // Tap pendant que le pouvoir est actif → desactivation anticipee
+                        deactivateAutoAimPower();
+                    } else if (isAutoAimReady()) {
+                        // Tap quand pret → activation
+                        activateAutoAimPower();
+                    }
+                    // Sinon (cooldown) → rien ne se passe
+                    newTouch = true;
+                    owner[i] = OWNER_IGNORED;
+                }
+                // Bouton STUN
+                else if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
                         && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
                     if (isStunReady()) activateStunAbility();
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
-                } else if (canInteractWithChest()
+                }
+                // Bouton OUVRIR
+                else if (canInteractWithChest()
                         && x >= OPEN_BTN_X && x <= OPEN_BTN_X + OPEN_BTN_W
                         && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
                     openChest();
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
-                } else if (zoom.handleTouch(x, y)) {
+                }
+                // Boutons zoom
+                else if (zoom.handleTouch(x, y)) {
                     owner[i] = OWNER_ZOOM;
-                } else {
+                }
+                // Joysticks
+                else {
                     newTouch = true;
                     if (x < W / 2f && !moveStick.active()) {
                         owner[i] = OWNER_MOVE;
