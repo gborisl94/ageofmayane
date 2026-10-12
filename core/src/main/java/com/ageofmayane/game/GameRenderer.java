@@ -954,10 +954,11 @@ private void drawDizzyStars(GameScreen gs) {
             font.draw(batch, "GAME OVER", W / 2f - 100, H / 2f + 30);
             font.setColor(Color.WHITE);
             font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
-        }
-        batch.end();
+batch.end();
 
-        drawGlitchEffect(gs);
+    drawGlitchEffect(gs);
+
+if (gs.hitFlash > 0f) {
         
         if (gs.hitFlash > 0f) {
             float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
