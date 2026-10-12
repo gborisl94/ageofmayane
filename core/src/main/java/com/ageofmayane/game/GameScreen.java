@@ -33,11 +33,19 @@ public class GameScreen extends ScreenAdapter {
 
     static final int ENEMY_HP = 2;
     static final int BOSS_HP = 20;
-    static final float BOSS_SPEED = 60f;
     static final float BOSS_SIZE = ENEMY_SIZE * 2f;
     static final float BOSS_RADIUS = ENEMY_RADIUS * 2f;
     static final float BOSS_KNOCKBACK = 140f;
     static final int BOSS_SCORE = 5;
+
+    static final float BOSS_SPEED_PHASE_1 = 60f;
+    static final float BOSS_SPEED_PHASE_2 = 100f;
+    static final float BOSS_SPEED_PHASE_3 = 160f;
+
+    static final float BOSS_ATTACK_COOLDOWN_PHASE_2 = 1.5f;
+    static final float BOSS_ATTACK_COOLDOWN_PHASE_3 = 1.2f;
+    static final float BOSS_SPAWN_COOLDOWN = 6f;
+    static final float BOSS_PROJECTILE_SPEED = 300f;
 
     static final int XP_PER_ENEMY = 5;
     static final int XP_PER_BOSS = 100;
@@ -51,6 +59,15 @@ public class GameScreen extends ScreenAdapter {
     static final float OPEN_BTN_X = W - OPEN_BTN_W - 30f;
     static final float OPEN_BTN_Y = H - 320f;
 
+    // Bouton STUN
+    static final float STUN_ABILITY_RADIUS = 280f;
+    static final float STUN_ABILITY_DURATION = 3.0f;
+    static final float STUN_ABILITY_COOLDOWN = 8.0f;
+
+    static final float STUN_BTN_SIZE = 110f;
+    static final float STUN_BTN_X = W - STUN_BTN_SIZE - 30f;
+    static final float STUN_BTN_Y = H - 460f;
+
     static final int MAX_POINTERS = 5;
     static final int OWNER_NONE = 0;
     static final int OWNER_MOVE = 1;
@@ -59,6 +76,10 @@ public class GameScreen extends ScreenAdapter {
     static final int OWNER_IGNORED = 4;
 
     static final float HIT_FLASH_DURATION = 0.35f;
+    static final float SHAKE_DURATION = 0.7f;
+    static final float SHAKE_INTENSITY = 25f;
+    static final float STUN_DURATION = 1.5f;
+    static final float STUN_SPEED_FACTOR = 0.5f;
 
     private final Game game;
     private GameRenderer renderer;
@@ -80,6 +101,14 @@ public class GameScreen extends ScreenAdapter {
     float invulnerable;
     float hitFlash = 0f;
     float bossFleeMessageTimer = 0f;
+    float bossPhaseMessageTimer = 0f;
+    int bossPhaseMessage = 0;
+    float shakeTime = 0f;
+    float shakeOffsetX = 0f;
+    float shakeOffsetY = 0f;
+    float stunTimer = 0f;
+    float stunCooldown = 0f;
+    float dizzyTime = 0f;
     boolean bossFledThisRun = false;
     boolean gameOver;
     boolean victory;
@@ -127,6 +156,14 @@ public class GameScreen extends ScreenAdapter {
         invulnerable = 0f;
         hitFlash = 0f;
         bossFleeMessageTimer = 0f;
+        bossPhaseMessageTimer = 0f;
+        bossPhaseMessage = 0;
+        shakeTime = 0f;
+        shakeOffsetX = 0f;
+        shakeOffsetY = 0f;
+        stunTimer = 0f;
+        stunCooldown = 0f;
+        dizzyTime = 0f;
         bossFledThisRun = false;
         endTimer = 0f;
         gameOver = false;
@@ -149,6 +186,27 @@ public class GameScreen extends ScreenAdapter {
         livesText = "Vies : " + l;
     }
 
+    private void triggerShake() {
+        shakeTime = SHAKE_DURATION;
+    }
+
+    private void triggerStun() {
+        stunTimer = STUN_DURATION;
+    }
+
+    boolean isStunned() {
+        return stunTimer > 0f;
+    }
+
+    boolean isStunReady() {
+        return stunCooldown <= 0f;
+    }
+
+    float getStunCooldownRatio() {
+        if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
+        return Math.max(0f, Math.min(1f, stunCooldown / STUN_ABILITY_COOLDOWN));
+    }
+
     boolean canInteractWithChest() {
         if (chest == null || chest.opened) return false;
         return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
@@ -159,6 +217,32 @@ public class GameScreen extends ScreenAdapter {
         chest.open();
         Weapon loot = WeaponDatabase.randomChestLoot();
         weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
+    }
+
+    /** Active la capacite STUN : etourdit tous les ennemis dans un rayon. */
+    private void activateStunAbility() {
+        if (stunCooldown > 0f) return;
+        stunCooldown = STUN_ABILITY_COOLDOWN;
+
+        for (int i = 0; i < ennemis.size; i++) {
+            Ennemi e = ennemis.get(i);
+            if (e.pos.dst2(playerPos) < STUN_ABILITY_RADIUS * STUN_ABILITY_RADIUS) {
+                e.stunned = STUN_ABILITY_DURATION;
+                e.stunBase = STUN_ABILITY_DURATION;
+                particles.spawnLightning(e.pos.x, e.pos.y, 0f, 3);
+                particles.spawnSmoke(e.pos.x, e.pos.y, 2);
+            }
+        }
+
+        // Anneau visible d'eclairs autour du joueur
+        for (int i = 0; i < 24; i++) {
+            float ang = i * (360f / 24f);
+            float x = playerPos.x + MathUtils.cosDeg(ang) * STUN_ABILITY_RADIUS;
+            float y = playerPos.y + MathUtils.sinDeg(ang) * STUN_ABILITY_RADIUS;
+            particles.spawnLightning(x, y, ang, 1);
+        }
+
+        triggerShake();
     }
 
     @Override
@@ -173,6 +257,23 @@ public class GameScreen extends ScreenAdapter {
     damage.update(delta);
     particles.update(delta);
 
+    if (shakeTime > 0f) {
+        shakeTime -= delta;
+        float intensity = SHAKE_INTENSITY * (shakeTime / SHAKE_DURATION);
+        shakeOffsetX = MathUtils.random(-intensity, intensity);
+        shakeOffsetY = MathUtils.random(-intensity, intensity);
+    } else {
+        shakeOffsetX = 0f;
+        shakeOffsetY = 0f;
+    }
+
+    if (stunTimer > 0f) {
+        stunTimer -= delta;
+        dizzyTime += delta;
+    }
+
+    if (stunCooldown > 0f) stunCooldown -= delta;
+
     if (gameOver || victory) {
         endTimer += delta;
         if (endTimer > 0.6f && newTouch) restart();
@@ -182,6 +283,9 @@ public class GameScreen extends ScreenAdapter {
     if (invulnerable > 0f) invulnerable -= delta;
     if (hitFlash > 0f) hitFlash -= delta;
     if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
+    if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
+
+    boolean stunned = isStunned();
 
     if (aimStick.dir.len() > DEAD_ZONE) {
         facing = aimStick.dir.angleDeg();
@@ -190,8 +294,9 @@ public class GameScreen extends ScreenAdapter {
     }
 
     if (moveStick.dir.len() > DEAD_ZONE) {
-        playerPos.x += moveStick.dir.x * PLAYER_SPEED * delta;
-        playerPos.y += moveStick.dir.y * PLAYER_SPEED * delta;
+        float speedFactor = stunned ? STUN_SPEED_FACTOR : 1f;
+        playerPos.x += moveStick.dir.x * PLAYER_SPEED * speedFactor * delta;
+        playerPos.y += moveStick.dir.y * PLAYER_SPEED * speedFactor * delta;
     }
     dungeon.collide(playerPos, PLAYER_RADIUS);
     playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
@@ -204,15 +309,15 @@ public class GameScreen extends ScreenAdapter {
     }
 
     fireTimer -= delta;
-    if (aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
+    if (!stunned && aimStick.dir.len() > DEAD_ZONE && fireTimer <= 0f) {
         fireTimer = FIRE_DELAY;
         Fleche f = new Fleche();
         f.pos.set(playerPos);
         f.vel.set(aimStick.dir).nor().scl(ARROW_SPEED);
         f.angle = f.vel.angleDeg();
+        f.fromEnemy = false;
         fleches.add(f);
 
-        // Effet selon l'arc equipe
         if (equippedWeapon != null) {
             String s = equippedWeapon.spriteName;
             if (s != null) {
@@ -264,6 +369,15 @@ private void updateArrows(float delta) {
             }
         }
         f.life -= delta;
+
+        if (f.fromEnemy && !remove) {
+            float rr = PLAYER_RADIUS + ARROW_RADIUS;
+            if (f.pos.dst2(playerPos) < rr * rr) {
+                remove = true;
+                if (invulnerable <= 0f) hurtPlayer();
+            }
+        }
+
         if (remove || f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
                 || f.pos.y < -20 || f.pos.y > H + 20) {
             fleches.removeIndex(i);
@@ -276,8 +390,17 @@ private void updateEnemies(float delta) {
     for (int i = ennemis.size - 1; i >= 0; i--) {
         Ennemi e = ennemis.get(i);
 
-        // === CHAMPION QUI FUIT ===
-        if (e.boss && e.fleeing) {
+        // Etourdissement
+        boolean frozen = e.stunned > 0f;
+        if (frozen) {
+            e.stunned -= delta;
+            if (Math.random() < 0.15f) {
+                particles.spawnLightning(e.pos.x, e.pos.y, 0f, 1);
+            }
+        }
+
+        // Fuite du champion
+        if (!frozen && e.boss && e.fleeing) {
             e.fleeTimer += delta;
             e.pos.x -= 400f * delta;
             e.pos.y += 250f * delta;
@@ -295,27 +418,107 @@ private void updateEnemies(float delta) {
             continue;
         }
 
-        // === VERIFIER SI LE CHAMPION VEUT FUIR ===
-        if (e.boss && !e.fleeing && e.hp > 0 && e.hp <= BOSS_HP * 0.2f) {
+        // Champion decide de fuir ?
+        if (!frozen && e.boss && !e.fleeing && e.hp > 0 && e.hp <= BOSS_HP * 0.2f) {
             if (Math.random() < 0.5f * delta) {
                 e.fleeing = true;
                 e.fleeTimer = 0f;
                 bossFleeMessageTimer = 3.5f;
+                triggerShake();
+                triggerStun();
                 particles.spawnSmoke(e.pos.x, e.pos.y, 8);
             }
         }
 
-        tmp.set(playerPos).sub(e.pos);
-        if (tmp.len2() > 0.001f) {
-            e.angle = tmp.angleDeg();
-            float spd = e.boss ? BOSS_SPEED : normalSpeed;
-            tmp.nor().scl(spd * delta);
-            e.pos.add(tmp);
+        // Phases du boss
+        if (!frozen && e.boss && !e.fleeing) {
+            float ratio = e.hp / (float) e.maxHp;
+            int newPhase = 1;
+            if (ratio > 0.66f) newPhase = 1;
+            else if (ratio > 0.33f) newPhase = 2;
+            else newPhase = 3;
+
+            if (newPhase > e.phase) {
+                e.phase = newPhase;
+                e.phaseChangeFlash = 1.0f;
+                bossPhaseMessage = newPhase;
+                bossPhaseMessageTimer = 2.5f;
+                triggerShake();
+                particles.spawnSmoke(e.pos.x, e.pos.y, 15);
+                particles.spawnBossExplosion(e.pos.x, e.pos.y,
+                        new Color(1f, 0.5f, 0.1f, 1f));
+            }
+
+            if (e.phaseChangeFlash > 0f) {
+                e.phaseChangeFlash -= delta;
+            }
+
+            if (e.phase >= 2) {
+                e.attackCooldown -= delta;
+                if (e.attackCooldown <= 0f) {
+                    float cd = (e.phase == 2)
+                            ? BOSS_ATTACK_COOLDOWN_PHASE_2
+                            : BOSS_ATTACK_COOLDOWN_PHASE_3;
+                    e.attackCooldown = cd;
+
+                    Vector2 dir = playerPos.cpy().sub(e.pos).nor();
+                    float baseAngle = dir.angleDeg();
+
+                    if (e.phase == 2) {
+                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
+                    } else {
+                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle - 20f);
+                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
+                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle + 20f);
+                    }
+                }
+            }
+
+            if (e.phase >= 3) {
+                e.spawnCooldown -= delta;
+                if (e.spawnCooldown <= 0f) {
+                    e.spawnCooldown = BOSS_SPAWN_COOLDOWN;
+                    for (int k = 0; k < 2; k++) {
+                        Ennemi sbire = new Ennemi();
+                        sbire.hp = ENEMY_HP;
+                        sbire.maxHp = ENEMY_HP;
+                        float ang = MathUtils.random(0f, 360f);
+                        float dist = MathUtils.random(80f, 150f);
+                        sbire.pos.set(
+                                MathUtils.clamp(e.pos.x + MathUtils.cosDeg(ang) * dist,
+                                        40f, W - 40f),
+                                MathUtils.clamp(e.pos.y + MathUtils.sinDeg(ang) * dist,
+                                        40f, H - 40f));
+                        ennemis.add(sbire);
+                        particles.spawnPoison(sbire.pos.x, sbire.pos.y, 3);
+                    }
+                }
+            }
         }
 
+        // Mouvement (bloque si etourdi)
+        if (!frozen) {
+            tmp.set(playerPos).sub(e.pos);
+            if (tmp.len2() > 0.001f) {
+                e.angle = tmp.angleDeg();
+                float spd;
+                if (e.boss) {
+                    if (e.phase == 1) spd = BOSS_SPEED_PHASE_1;
+                    else if (e.phase == 2) spd = BOSS_SPEED_PHASE_2;
+                    else spd = BOSS_SPEED_PHASE_3;
+                } else {
+                    spd = normalSpeed;
+                }
+                tmp.nor().scl(spd * delta);
+                e.pos.add(tmp);
+            }
+        }
+
+        // Fleches du joueur touchent l'ennemi ?
         boolean mort = false;
         float rr = e.radius + ARROW_RADIUS;
         for (int j = fleches.size - 1; j >= 0; j--) {
+            if (fleches.get(j).fromEnemy) continue;
             if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
                 fleches.removeIndex(j);
                 e.hp--;
@@ -362,6 +565,7 @@ private void updateEnemies(float delta) {
                 particles.spawnBossExplosion(e.pos.x, e.pos.y, pcolor);
                 particles.spawnBlood(e.pos.x, e.pos.y, 30);
                 particles.spawnSmoke(e.pos.x, e.pos.y, 20);
+                triggerShake();
             } else {
                 particles.spawnEnemyExplosion(e.pos.x, e.pos.y, pcolor);
                 particles.spawnBlood(e.pos.x, e.pos.y, 12);
@@ -377,8 +581,9 @@ private void updateEnemies(float delta) {
             continue;
         }
 
+        // Contact avec le joueur (bloque si etourdi)
         float pr = e.radius + PLAYER_RADIUS;
-        if (e.pos.dst2(playerPos) < pr * pr) {
+        if (!frozen && e.pos.dst2(playerPos) < pr * pr) {
             if (e.boss) {
                 if (invulnerable <= 0f) hurtPlayer();
                 tmp.set(e.pos).sub(playerPos);
@@ -395,6 +600,18 @@ private void updateEnemies(float delta) {
             }
         }
     }
+}
+
+private void spawnBossProjectile(float x, float y, float angleDeg) {
+    Fleche p = new Fleche();
+    p.pos.set(x, y);
+    p.vel.set(MathUtils.cosDeg(angleDeg) * BOSS_PROJECTILE_SPEED,
+            MathUtils.sinDeg(angleDeg) * BOSS_PROJECTILE_SPEED);
+    p.angle = angleDeg;
+    p.fromEnemy = true;
+    p.life = 3f;
+    fleches.add(p);
+    particles.spawnFire(x, y, 2);
 }
 
 private void updateWeaponDrops(float delta) {
@@ -421,6 +638,8 @@ private void hurtPlayer() {
     setLives(lives - 1);
     invulnerable = 1f;
     hitFlash = HIT_FLASH_DURATION;
+    triggerShake();
+    triggerStun();
     damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
     particles.spawnHitSpark(playerPos.x, playerPos.y,
             new Color(1f, 0.3f, 0.3f, 1f));
@@ -443,6 +662,9 @@ private void hurtPlayer() {
             b.maxHp = BOSS_HP;
             b.radius = BOSS_RADIUS;
             b.size = BOSS_SIZE;
+            b.phase = 1;
+            b.attackCooldown = BOSS_ATTACK_COOLDOWN_PHASE_2;
+            b.spawnCooldown = BOSS_SPAWN_COOLDOWN;
             b.pos.set(W / 2f, H / 2f);
             ennemis.add(b);
         }
@@ -487,15 +709,27 @@ private void hurtPlayer() {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                if (canInteractWithChest()
+                // Bouton STUN
+                if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
+                        && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
+                    if (isStunReady()) activateStunAbility();
+                    newTouch = true;
+                    owner[i] = OWNER_IGNORED;
+                }
+                // Bouton OUVRIR
+                else if (canInteractWithChest()
                         && x >= OPEN_BTN_X && x <= OPEN_BTN_X + OPEN_BTN_W
                         && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
                     openChest();
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
-                } else if (zoom.handleTouch(x, y)) {
+                }
+                // Boutons zoom
+                else if (zoom.handleTouch(x, y)) {
                     owner[i] = OWNER_ZOOM;
-                } else {
+                }
+                // Joysticks
+                else {
                     newTouch = true;
                     if (x < W / 2f && !moveStick.active()) {
                         owner[i] = OWNER_MOVE;
