@@ -358,7 +358,21 @@ private void activateStunAbility() {
     }
     triggerShake();
 }
-
+private void activateGlitchDash() {
+    if (glitchCooldown > 0f) return;
+    glitchCooldown = GLITCH_COOLDOWN;
+    float rad = facing * MathUtils.degRad;
+    float dx = MathUtils.cos(rad) * GLITCH_DISTANCE;
+    float dy = MathUtils.sin(rad) * GLITCH_DISTANCE;
+    particles.spawnLightning(playerPos.x, playerPos.y, facing, 10);
+    playerPos.x = MathUtils.clamp(playerPos.x + dx, PLAYER_RADIUS, W - PLAYER_RADIUS);
+    playerPos.y = MathUtils.clamp(playerPos.y + dy, PLAYER_RADIUS, H - PLAYER_RADIUS);
+    dungeon.collide(playerPos, PLAYER_RADIUS);
+    invulnerable = GLITCH_INVULN;
+    triggerShake();
+    glitchEffectTimer = 0.4f;
+    particles.spawnLightning(playerPos.x, playerPos.y, facing + 180f, 10);
+}
 private void activateAutoAimPower() {
     if (autoAimCooldown > 0f) return;
     if (autoAimActive) return;
