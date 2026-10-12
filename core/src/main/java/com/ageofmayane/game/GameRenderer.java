@@ -193,11 +193,12 @@ private void drawChest(Chest c) {
     float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
 
     if (!c.opened) {
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(1f, 0.85f, 0.2f, 0.15f + 0.25f * pulse);
-        shapes.circle(c.pos.x, c.pos.y, 45f + 10f * pulse, 32);
-        shapes.end();
+    Color haloGold = new Color(1f, 0.85f, 0.2f, 1f);
+    c.haloTimer += Gdx.graphics.getDeltaTime();
+    if (c.haloTimer >= 0.1f) {
+        c.haloTimer = 0f;
     }
+}
 
     if (t != null) {
         batch.begin();
