@@ -51,6 +51,9 @@ class GameRenderer {
     Texture texChestOpen;
 
     private final Color bossTint = new Color(1f, 0.55f, 0.55f, 1f);
+    private final Color bossTintPhase2 = new Color(1f, 0.4f, 0.2f, 1f);
+    private final Color bossTintPhase3 = new Color(1f, 0.2f, 0.6f, 1f);
+    private final Color enemyProjectileColor = new Color(1f, 0.4f, 0.1f, 1f);
     private final Rectangle tmpRect = new Rectangle();
     private final HashMap<String, Texture> dropCache = new HashMap<String, Texture>();
     private final GlyphLayout layout = new GlyphLayout();
@@ -248,6 +251,72 @@ private void drawOpenButton(GameScreen g) {
     batch.end();
 }
 
+/** Bouton STUN avec indicateur de cooldown. */
+private void drawStunButton(GameScreen g) {
+    float bx = GameScreen.STUN_BTN_X;
+    float by = GameScreen.STUN_BTN_Y;
+    float bs = GameScreen.STUN_BTN_SIZE;
+
+    float ratio = g.getStunCooldownRatio();
+    boolean ready = g.isStunReady();
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
+
+    if (ready) {
+        shapes.setColor(0.9f, 0.75f, 0.2f, 0.95f);
+    } else {
+        shapes.setColor(0.35f, 0.35f, 0.4f, 0.9f);
+    }
+    shapes.rect(bx, by, bs, bs);
+
+    if (!ready) {
+        shapes.setColor(0.1f, 0.1f, 0.15f, 0.75f);
+        float barH = bs * ratio;
+        shapes.rect(bx, by + bs - barH, bs, barH);
+    }
+
+    // Eclair stylise
+    if (ready) shapes.setColor(1f, 1f, 0.4f, 1f);
+    else shapes.setColor(0.6f, 0.6f, 0.6f, 1f);
+
+    float cx = bx + bs / 2f;
+    float cy = by + bs / 2f + 5f;
+    float sz = bs * 0.25f;
+    shapes.rectLine(cx - sz * 0.5f, cy + sz, cx + sz * 0.3f, cy, 6f);
+    shapes.rectLine(cx + sz * 0.3f, cy, cx - sz * 0.2f, cy - sz, 6f);
+
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.3f);
+    String txt = "STUN";
+    font.setColor(0.1f, 0.1f, 0.1f, 1f);
+    layout.setText(font, txt);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f + 1f,
+            by + bs * 0.22f + 1f);
+    font.setColor(1f, 1f, 1f, 1f);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + bs * 0.22f);
+
+    if (!ready) {
+        String cd = String.format("%.1f", g.stunCooldown);
+        layout.setText(font, cd);
+        font.setColor(1f, 0.4f, 0.4f, 1f);
+        font.draw(batch, cd, bx + (bs - layout.width) / 2f, by + bs - 8f);
+    } else {
+        String rdy = "PRET";
+        layout.setText(font, rdy);
+        font.setColor(0.2f, 0.6f, 0.2f, 1f);
+        font.draw(batch, rdy, bx + (bs - layout.width) / 2f, by + bs - 8f);
+    }
+
+    font.getData().setScale(2f);
+    font.setColor(Color.WHITE);
+    batch.end();
+}
+
 private void drawXpBar(GameScreen g) {
     if (g.xpSystem == null) return;
 
@@ -288,6 +357,43 @@ private void drawXpBar(GameScreen g) {
     batch.end();
 }
 
+/** Etoiles au-dessus d'un ennemi etourdi. */
+private void drawEnemyStunStars(Ennemi e) {
+    if (e.stunned <= 0f) return;
+    float cx = e.pos.x;
+    float cy = e.pos.y + e.size / 2f + 18f;
+    float radius = 18f;
+    float baseAngle = e.stunned * 6f;
+    for (int i = 0; i < 3; i++) {
+        float a = baseAngle + i * (MathUtils.PI2 / 3f);
+        float sx = cx + MathUtils.cos(a) * radius;
+        float sy = cy + MathUtils.sin(a) * radius * 0.5f;
+        shapes.setColor(1f, 0.9f, 0.2f, 0.9f);
+        shapes.circle(sx, sy, 5f, 10);
+        shapes.setColor(1f, 0.95f, 0.5f, 0.7f);
+        shapes.circle(sx, sy, 2.5f, 8);
+    }
+}
+
+private void drawDizzyStars(GameScreen g) {
+    if (!g.isStunned()) return;
+
+    float cx = g.playerPos.x;
+    float cy = g.playerPos.y + 50f;
+    float radius = 32f;
+
+    for (int i = 0; i < 4; i++) {
+        float angle = g.dizzyTime * 3f + i * (MathUtils.PI2 / 4f);
+        float sx = cx + MathUtils.cos(angle) * radius;
+        float sy = cy + MathUtils.sin(angle) * radius * 0.5f;
+
+        shapes.setColor(1f, 0.9f, 0.2f, 0.9f);
+        shapes.circle(sx, sy, 6f, 12);
+        shapes.setColor(1f, 0.95f, 0.4f, 0.8f);
+        shapes.circle(sx, sy, 3f, 8);
+    }
+}
+
 void draw(GameScreen g) {
     Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -295,6 +401,11 @@ void draw(GameScreen g) {
     Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
     g.zoom.applyToCamera(camera, g.playerPos.x, g.playerPos.y, W, H);
+
+    camera.position.x += g.shakeOffsetX;
+    camera.position.y += g.shakeOffsetY;
+    camera.update();
+
     viewport.apply();
     shapes.setProjectionMatrix(camera.combined);
     batch.setProjectionMatrix(camera.combined);
@@ -350,25 +461,55 @@ void draw(GameScreen g) {
         Ennemi e = g.ennemis.get(i);
         Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
         if (t == null) continue;
-        boolean tint = e.boss && texBoss == null;
-        batch.setColor(tint ? bossTint : Color.WHITE);
 
-        // Si le boss fuit, on applique un fondu
+        Color tint = Color.WHITE;
+        if (e.boss) {
+            if (e.phase == 1) tint = bossTint;
+            else if (e.phase == 2) tint = bossTintPhase2;
+            else tint = bossTintPhase3;
+        }
+        batch.setColor(tint);
+
         if (e.fleeing) {
             float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
             batch.setColor(1f, 1f, 1f, alpha);
         }
 
-        drawSprite(t, e.pos.x, e.pos.y, e.size, e.angle + GameScreen.ENEMY_ROT);
+        float scale = 1f;
+        if (e.boss && e.phaseChangeFlash > 0f) {
+            scale = 1f + 0.3f * (e.phaseChangeFlash);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        // Effet visuel quand etourdi : legerement flou/transparent
+        if (e.stunned > 0f) {
+            float alpha = 0.6f + 0.4f * (float) Math.sin(e.stunned * 20f);
+            batch.setColor(1f, 1f, 1f, alpha);
+        }
+
+        drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
+                e.angle + GameScreen.ENEMY_ROT);
     }
     batch.setColor(Color.WHITE);
-    if (texArrow != null) {
-        for (int i = 0; i < g.fleches.size; i++) {
-            Fleche f = g.fleches.get(i);
+
+    for (int i = 0; i < g.fleches.size; i++) {
+        Fleche f = g.fleches.get(i);
+        if (f.fromEnemy) {
+            batch.end();
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(enemyProjectileColor);
+            shapes.circle(f.pos.x, f.pos.y, 9f, 16);
+            shapes.setColor(1f, 0.8f, 0.3f, 0.7f);
+            shapes.circle(f.pos.x, f.pos.y, 5f, 12);
+            shapes.end();
+            batch.begin();
+            batch.setColor(Color.WHITE);
+        } else if (texArrow != null) {
             drawSprite(texArrow, f.pos.x, f.pos.y, GameScreen.ARROW_SIZE,
                     f.angle + GameScreen.ARROW_ROT);
         }
     }
+
     if (texPlayer != null && playerVisible) {
         drawSprite(texPlayer, g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_SIZE,
                 g.facing + GameScreen.PLAYER_ROT);
@@ -391,7 +532,9 @@ void draw(GameScreen g) {
                 float frac = MathUtils.clamp(e.hp / (float) e.maxHp, 0f, 1f);
                 shapes.setColor(0.05f, 0.05f, 0.05f, 0.9f);
                 shapes.rect(bx - 2f, by - 2f, bw + 4f, 12f);
-                shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
+                if (e.phase == 1) shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
+                else if (e.phase == 2) shapes.setColor(1f, 0.6f, 0.1f, 1f);
+                else shapes.setColor(1f, 0.2f, 0.9f, 1f);
                 shapes.rect(bx, by, bw * frac, 8f);
             }
         }
@@ -399,7 +542,9 @@ void draw(GameScreen g) {
             shapes.setColor(1f, 0.9f, 0.3f, 1f);
             for (int i = 0; i < g.fleches.size; i++) {
                 Fleche f = g.fleches.get(i);
-                shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
+                if (!f.fromEnemy) {
+                    shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
+                }
             }
         }
         if (texPlayer == null && playerVisible) {
@@ -407,9 +552,13 @@ void draw(GameScreen g) {
             shapes.circle(g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
 
-        // ===== PARTICULES (explosions, etincelles) =====
-        g.particles.draw(shapes);
+        // Etoiles au-dessus des ennemis etourdis
+        for (int i = 0; i < g.ennemis.size; i++) {
+            drawEnemyStunStars(g.ennemis.get(i));
+        }
 
+        g.particles.draw(shapes);
+        drawDizzyStars(g);
         shapes.end();
 
         // Arcs poses au sol
@@ -446,6 +595,7 @@ void draw(GameScreen g) {
         g.zoom.draw(shapes, batch, font);
 
         drawOpenButton(g);
+        drawStunButton(g);
         drawXpBar(g);
 
         batch.begin();
@@ -477,6 +627,39 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
+        // Message "PHASE X !"
+        if (g.bossPhaseMessageTimer > 0f) {
+            float alpha = Math.min(1f, g.bossPhaseMessageTimer);
+            font.getData().setScale(3.2f);
+            String phaseMsg = "PHASE " + g.bossPhaseMessage + " !";
+            layout.setText(font, phaseMsg);
+            float msgX = W / 2f - layout.width / 2f;
+            float msgY = H / 2f + 150f;
+
+            Color phaseColor;
+            if (g.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
+            else phaseColor = new Color(1f, 0.2f, 0.9f, alpha);
+
+            font.setColor(0f, 0f, 0f, alpha * 0.8f);
+            font.draw(batch, phaseMsg, msgX + 4f, msgY - 4f);
+            font.setColor(phaseColor);
+            font.draw(batch, phaseMsg, msgX, msgY);
+
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        // Message "ETOURDI !"
+        if (g.isStunned()) {
+            font.getData().setScale(1.8f);
+            font.setColor(1f, 0.9f, 0.3f, 0.9f);
+            String stunMsg = "ETOURDI !";
+            layout.setText(font, stunMsg);
+            font.draw(batch, stunMsg, W / 2f - layout.width / 2f, H / 2f - 100f);
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
         if (g.victory) {
             font.setColor(1f, 0.85f, 0.2f, 1f);
             font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
@@ -490,6 +673,7 @@ void draw(GameScreen g) {
         }
         batch.end();
 
+        // FLASH ROUGE
         if (g.hitFlash > 0f) {
             float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -498,6 +682,20 @@ void draw(GameScreen g) {
             shapes.setProjectionMatrix(uiCamera.combined);
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(1f, 0f, 0f, alpha);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+            shapes.setColor(1f, 1f, 1f, 1f);
+        }
+
+        // VIGNETTE JAUNE pendant le stun du joueur
+        if (g.isStunned()) {
+            float a = Math.min(0.35f, g.stunTimer / GameScreen.STUN_DURATION * 0.35f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0.9f, 0.2f, a * 0.3f);
             shapes.rect(0f, 0f, W, H);
             shapes.end();
             shapes.setColor(1f, 1f, 1f, 1f);
