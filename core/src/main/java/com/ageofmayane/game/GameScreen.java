@@ -594,9 +594,7 @@ private void update(float delta) {
     updateWeaponDrops(delta);
     updateChest(delta);
 
-    boolean unlocked = bossFledThisRun
-            || (ennemis.size == 0 && dungeon.getCurrent() != null && dungeon.getCurrent().boss)
-            || lives <= 0;
+    boolean unlocked = bossFledThisRun || lives <= 0;
     if (elevator != null) {
         elevator.update(delta, unlocked);
         updateElevatorButton(delta);
