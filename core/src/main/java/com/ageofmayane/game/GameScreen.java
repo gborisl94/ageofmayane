@@ -643,7 +643,8 @@ private void drawBossArrow() {
                 float bestD = Float.MAX_VALUE;
                 for (int dir = 0; dir < 4; dir++) {
                     if (!cur.hasDoor(dir)) continue;
-                    com.badlogic.gdx.math.Rectangle r = cur.getDoorRect(dir);
+                    com.badlogic.gdx.math.Rectangle r = new com.badlogic.gdx.math.Rectangle();
+cur.getDoorRect(dir, r);
                     if (r == null) continue;
                     float cx = r.x + r.width / 2f;
                     float cy = r.y + r.height / 2f;
