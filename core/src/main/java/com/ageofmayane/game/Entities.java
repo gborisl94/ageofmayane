@@ -2,7 +2,6 @@ package com.ageofmayane.game;
 
 import com.badlogic.gdx.math.Vector2;
 
-/** Une fleche tiree par le joueur ou par le boss. */
 class Fleche {
     final Vector2 pos = new Vector2();
     final Vector2 vel = new Vector2();
@@ -11,7 +10,6 @@ class Fleche {
     boolean fromEnemy = false;
 }
 
-/** Un ennemi (ou le boss). */
 class Ennemi {
     final Vector2 pos = new Vector2();
     float angle = 0f;
@@ -29,7 +27,9 @@ class Ennemi {
     float spawnCooldown = 0f;
     float phaseChangeFlash = 0f;
 
-    // Etourdissement (capacite STUN du joueur)
     float stunned = 0f;
     float stunBase = 0f;
+
+    float hitPulse = 0f;
+    float attackPulse = 0f;
 }
