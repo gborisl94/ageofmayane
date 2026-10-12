@@ -12,99 +12,80 @@ public class GameScreen extends ScreenAdapter {
 
     static final float W = 1280f;
     static final float H = 720f;
-
     static final float STICK_RADIUS = 110f;
     static final float DEAD_ZONE = 0.2f;
-
     static final float PLAYER_RADIUS = 20f;
     static final float PLAYER_SPEED = 280f;
     static final float ENEMY_RADIUS = 18f;
     static final float ARROW_RADIUS = 5f;
     static final float ARROW_SPEED = 650f;
     static final float FIRE_DELAY = 0.18f;
-
     static final float PLAYER_SIZE = 64f;
     static final float ENEMY_SIZE = 56f;
     static final float ARROW_SIZE = 20f;
-
     static final float PLAYER_ROT = 0f;
     static final float ENEMY_ROT = 0f;
     static final float ARROW_ROT = 0f;
-
     static final int ENEMY_HP = 2;
     static final int BOSS_HP = 20;
     static final float BOSS_SIZE = ENEMY_SIZE * 2f;
     static final float BOSS_RADIUS = ENEMY_RADIUS * 2f;
     static final float BOSS_KNOCKBACK = 140f;
     static final int BOSS_SCORE = 5;
-
     static final float BOSS_SPEED_PHASE_1 = 60f;
     static final float BOSS_SPEED_PHASE_2 = 100f;
     static final float BOSS_SPEED_PHASE_3 = 160f;
-
     static final float BOSS_ATTACK_COOLDOWN_PHASE_2 = 1.5f;
     static final float BOSS_ATTACK_COOLDOWN_PHASE_3 = 1.2f;
     static final float BOSS_SPAWN_COOLDOWN = 6f;
     static final float BOSS_PROJECTILE_SPEED = 300f;
-
     static final int XP_PER_ENEMY = 5;
     static final int XP_PER_BOSS = 100;
     static final int XP_PER_ROOM = 20;
-
     static final float SPAWN_MIN_DIST = 280f;
     static final float CHEST_INTERACT_DIST = 120f;
-
     static final float OPEN_BTN_W = 260f;
     static final float OPEN_BTN_H = 80f;
     static final float OPEN_BTN_X = W - OPEN_BTN_W - 30f;
     static final float OPEN_BTN_Y = H - 320f;
-
     static final float STUN_ABILITY_RADIUS = 280f;
     static final float STUN_ABILITY_DURATION = 3.0f;
     static final float STUN_ABILITY_COOLDOWN = 8.0f;
     static final float STUN_BTN_SIZE = 110f;
     static final float STUN_BTN_X = W - STUN_BTN_SIZE - 30f;
     static final float STUN_BTN_Y = H - 460f;
-
     static final float AIM_BTN_SIZE = 110f;
     static final float AIM_BTN_X = W - AIM_BTN_SIZE - 30f;
     static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
     static final float AUTO_AIM_DURATION = 8f;
     static final float AUTO_AIM_COOLDOWN = 12f;
-
     static final int MAX_POINTERS = 5;
     static final int OWNER_NONE = 0;
     static final int OWNER_MOVE = 1;
     static final int OWNER_AIM = 2;
     static final int OWNER_ZOOM = 3;
     static final int OWNER_IGNORED = 4;
-
     static final float HIT_FLASH_DURATION = 0.35f;
     static final float SHAKE_DURATION = 0.7f;
     static final float SHAKE_INTENSITY = 25f;
     static final float STUN_DURATION = 1.5f;
     static final float STUN_SPEED_FACTOR = 0.5f;
-
     static final float PLAYER_RECOIL_DURATION = 0.15f;
     static final float ENEMY_HIT_PULSE_DURATION = 0.25f;
     static final float ENEMY_ATTACK_PULSE_DURATION = 0.3f;
-
     static final float ATTENTION_MAX = 100f;
     static final float ATTENTION_DRAIN = 30f;
     static final float ATTENTION_REGEN = 15f;
     static final float AUTO_AIM_RANGE = 600f;
     static final float AUTO_AIM_RANGE_SQ = 600f * 600f;
-
     static final float AIM_STABILITY_TIME = 2.0f;
     static final float AIM_TREMBLE_MAX = 22f;
-
     static final int CHARGE_LEVEL_1 = 1;
     static final int CHARGE_LEVEL_2 = 2;
     static final int CHARGE_LEVEL_3 = 3;
     static final int CHARGE_DMG_LVL1 = 1;
     static final int CHARGE_DMG_LVL2 = 2;
     static final int CHARGE_DMG_LVL3 = 3;
-
     static final int TOTAL_FLOORS = 3;
 
     private final Game game;
@@ -141,24 +122,18 @@ public class GameScreen extends ScreenAdapter {
     boolean victory;
     String scoreText = "";
     String livesText = "";
-
     float attention = ATTENTION_MAX;
     Ennemi autoTarget = null;
-
     float aimStability = 0f;
     float aimTrembleSeed = 0f;
     float aimTrembleX = 0f;
     float aimTrembleY = 0f;
-
     int chargeLevel = 1;
-
     boolean autoAimActive = false;
     float autoAimTimer = 0f;
     float autoAimCooldown = 0f;
-
     float targetAcquiredTimer = 0f;
     Ennemi lastAutoTarget = null;
-
     int currentFloor = 1;
     float floorBannerTimer = 0f;
 
@@ -186,7 +161,6 @@ public class GameScreen extends ScreenAdapter {
 
     private void restart() {
         dungeon.generate();
-
         playerPos.set(W / 2f, H / 2f);
         fleches.clear();
         ennemis.clear();
@@ -231,9 +205,7 @@ public class GameScreen extends ScreenAdapter {
         lastAutoTarget = null;
         currentFloor = 1;
         floorBannerTimer = 0f;
-
         chest = new Chest(W / 2f, H / 2f);
-
         Room cur = dungeon.getCurrent();
         if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
     }
@@ -247,21 +219,10 @@ private void setLives(int l) {
     livesText = "Vies : " + l;
 }
 
-private void triggerShake() {
-    shakeTime = SHAKE_DURATION;
-}
-
-private void triggerStun() {
-    stunTimer = STUN_DURATION;
-}
-
-boolean isStunned() {
-    return stunTimer > 0f;
-}
-
-boolean isStunReady() {
-    return stunCooldown <= 0f;
-}
+private void triggerShake() { shakeTime = SHAKE_DURATION; }
+private void triggerStun() { stunTimer = STUN_DURATION; }
+boolean isStunned() { return stunTimer > 0f; }
+boolean isStunReady() { return stunCooldown <= 0f; }
 
 float getStunCooldownRatio() {
     if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
@@ -280,23 +241,13 @@ private void openChest() {
     weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
 }
 
-/** HP des ennemis selon l'etage. */
-private int getEnemyHp() {
-    return ENEMY_HP + (currentFloor - 1);
-}
+private int getEnemyHp() { return ENEMY_HP + (currentFloor - 1); }
+private int getBossHp() { return BOSS_HP + (currentFloor - 1) * 10; }
 
-/** HP du boss selon l'etage. */
-private int getBossHp() {
-    return BOSS_HP + (currentFloor - 1) * 10;
-}
-
-/** Passe a l'etage suivant (garde score, vies, XP). */
 private void nextFloor() {
     currentFloor++;
     floorBannerTimer = 3f;
-
     dungeon.generate();
-
     playerPos.set(W / 2f, H / 2f);
     fleches.clear();
     ennemis.clear();
@@ -331,11 +282,9 @@ private void nextFloor() {
     autoAimActive = false;
     autoAimTimer = 0f;
     autoAimCooldown = 0f;
-
     chest = new Chest(W / 2f, H / 2f);
     Room cur = dungeon.getCurrent();
     if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
-
     triggerShake();
     particles.spawnLightning(playerPos.x, playerPos.y, 0f, 12);
 }
@@ -343,7 +292,6 @@ private void nextFloor() {
 private void activateStunAbility() {
     if (stunCooldown > 0f) return;
     stunCooldown = STUN_ABILITY_COOLDOWN;
-
     for (int i = 0; i < ennemis.size; i++) {
         Ennemi e = ennemis.get(i);
         if (e.pos.dst2(playerPos) < STUN_ABILITY_RADIUS * STUN_ABILITY_RADIUS) {
@@ -353,14 +301,12 @@ private void activateStunAbility() {
             particles.spawnSmoke(e.pos.x, e.pos.y, 2);
         }
     }
-
     for (int i = 0; i < 24; i++) {
         float ang = i * (360f / 24f);
         float x = playerPos.x + MathUtils.cosDeg(ang) * STUN_ABILITY_RADIUS;
         float y = playerPos.y + MathUtils.sinDeg(ang) * STUN_ABILITY_RADIUS;
         particles.spawnLightning(x, y, ang, 1);
     }
-
     triggerShake();
 }
 
@@ -380,9 +326,7 @@ private void deactivateAutoAimPower() {
     autoAimTimer = 0f;
 }
 
-boolean isAutoAimReady() {
-    return !autoAimActive && autoAimCooldown <= 0f;
-}
+boolean isAutoAimReady() { return !autoAimActive && autoAimCooldown <= 0f; }
 
 float getAutoAimDurationRatio() {
     if (AUTO_AIM_DURATION <= 0f) return 0f;
@@ -401,10 +345,7 @@ private Ennemi findNearestEnemy() {
         Ennemi e = ennemis.get(i);
         if (e.hp <= 0) continue;
         float d = e.pos.dst2(playerPos);
-        if (d < bestDist) {
-            bestDist = d;
-            nearest = e;
-        }
+        if (d < bestDist) { bestDist = d; nearest = e; }
     }
     return nearest;
 }
@@ -418,22 +359,18 @@ private void fireAt(float angleDeg, int dmg) {
     f.fromEnemy = false;
     f.damage = dmg;
     fleches.add(f);
-
     if (equippedWeapon != null) {
         String s = equippedWeapon.spriteName;
         if (s != null) {
-            if (s.equals("bow_fire.png")) {
-                particles.spawnFire(playerPos.x, playerPos.y, 3);
-            } else if (s.equals("bow_ice.png")) {
-                particles.spawnWaterJet(playerPos.x, playerPos.y, angleDeg, 3);
-            } else if (s.equals("bow_void.png")) {
-                particles.spawnPoisonJet(playerPos.x, playerPos.y, angleDeg, 3);
-            } else if (s.equals("bow_legendary.png")) {
+            if (s.equals("bow_fire.png")) particles.spawnFire(playerPos.x, playerPos.y, 3);
+            else if (s.equals("bow_ice.png")) particles.spawnWaterJet(playerPos.x, playerPos.y, angleDeg, 3);
+            else if (s.equals("bow_void.png")) particles.spawnPoisonJet(playerPos.x, playerPos.y, angleDeg, 3);
+            else if (s.equals("bow_legendary.png")) {
                 particles.spawnFire(playerPos.x, playerPos.y, 2);
                 particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
-            } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
-                particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
             }
+            else if (s.equals("bow_fast.png") || s.equals("bow_triple.png"))
+                particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
         }
     }
 }
@@ -451,7 +388,6 @@ public void render(float delta) {
     update(delta);
     renderer.draw(this);
 }
-
 private void update(float delta) {
     pollTouches();
     zoom.update(delta);
@@ -463,16 +399,9 @@ private void update(float delta) {
         float intensity = SHAKE_INTENSITY * (shakeTime / SHAKE_DURATION);
         shakeOffsetX = MathUtils.random(-intensity, intensity);
         shakeOffsetY = MathUtils.random(-intensity, intensity);
-    } else {
-        shakeOffsetX = 0f;
-        shakeOffsetY = 0f;
-    }
+    } else { shakeOffsetX = 0f; shakeOffsetY = 0f; }
 
-    if (stunTimer > 0f) {
-        stunTimer -= delta;
-        dizzyTime += delta;
-    }
-
+    if (stunTimer > 0f) { stunTimer -= delta; dizzyTime += delta; }
     if (stunCooldown > 0f) stunCooldown -= delta;
 
     if (autoAimActive) {
@@ -503,11 +432,8 @@ private void update(float delta) {
 
     boolean stunned = isStunned();
 
-    if (aimStick.dir.len() > DEAD_ZONE) {
-        facing = aimStick.dir.angleDeg();
-    } else if (moveStick.dir.len() > DEAD_ZONE) {
-        facing = moveStick.dir.angleDeg();
-    }
+    if (aimStick.dir.len() > DEAD_ZONE) facing = aimStick.dir.angleDeg();
+    else if (moveStick.dir.len() > DEAD_ZONE) facing = moveStick.dir.angleDeg();
 
     if (moveStick.dir.len() > DEAD_ZONE) {
         float speedFactor = stunned ? STUN_SPEED_FACTOR : 1f;
@@ -527,22 +453,17 @@ private void update(float delta) {
     fireTimer -= delta;
     autoTarget = findNearestEnemy();
 
-    if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget) {
+    if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget)
         targetAcquiredTimer = 1.5f;
-    }
     lastAutoTarget = autoTarget;
 
     boolean useManual = aimStick.dir.len() > DEAD_ZONE;
-    boolean autoAimUsable = autoAimActive
-            && !useManual
-            && attention > 0f
-            && autoTarget != null
-            && !stunned;
+    boolean autoAimUsable = autoAimActive && !useManual && attention > 0f
+            && autoTarget != null && !stunned;
 
     if (!stunned && fireTimer <= 0f) {
         if (useManual) {
-            float fireAngle = aimStick.dir.angleDeg();
-            fireAt(fireAngle, CHARGE_DMG_LVL1);
+            fireAt(aimStick.dir.angleDeg(), CHARGE_DMG_LVL1);
             fireTimer = FIRE_DELAY;
             playerRecoil = PLAYER_RECOIL_DURATION;
         } else if (autoAimUsable) {
@@ -566,10 +487,8 @@ private void update(float delta) {
     }
 
     boolean moving = moveStick.dir.len() > DEAD_ZONE;
-
-    if (moving || !autoAimActive) {
-        aimStability = 0f;
-    } else if (autoTarget != null && !stunned) {
+    if (moving || !autoAimActive) aimStability = 0f;
+    else if (autoTarget != null && !stunned) {
         aimStability += delta / AIM_STABILITY_TIME;
         if (aimStability > 1f) aimStability = 1f;
     } else {
@@ -588,10 +507,7 @@ private void update(float delta) {
                     + MathUtils.sin(aimTrembleSeed * 2.7f) * trembleAmt * 0.5f;
         aimTrembleY = MathUtils.cos(aimTrembleSeed * 1.7f) * trembleAmt
                     + MathUtils.cos(aimTrembleSeed * 3.1f) * trembleAmt * 0.5f;
-    } else {
-        aimTrembleX = 0f;
-        aimTrembleY = 0f;
-    }
+    } else { aimTrembleX = 0f; aimTrembleY = 0f; }
 
     updateArrows(delta);
     updateEnemies(delta);
@@ -620,7 +536,6 @@ private void updateArrows(float delta) {
             }
         }
         f.life -= delta;
-
         if (f.fromEnemy && !remove) {
             float rr = PLAYER_RADIUS + ARROW_RADIUS;
             if (f.pos.dst2(playerPos) < rr * rr) {
@@ -628,7 +543,6 @@ private void updateArrows(float delta) {
                 if (invulnerable <= 0f) hurtPlayer();
             }
         }
-
         if (remove || f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
                 || f.pos.y < -20 || f.pos.y > H + 20) {
             fleches.removeIndex(i);
@@ -644,11 +558,8 @@ private void updateEnemies(float delta) {
         boolean frozen = e.stunned > 0f;
         if (frozen) {
             e.stunned -= delta;
-            if (Math.random() < 0.15f) {
-                particles.spawnLightning(e.pos.x, e.pos.y, 0f, 1);
-            }
+            if (Math.random() < 0.15f) particles.spawnLightning(e.pos.x, e.pos.y, 0f, 1);
         }
-
         if (e.hitPulse > 0f) e.hitPulse -= delta;
         if (e.attackPulse > 0f) e.attackPulse -= delta;
 
@@ -657,11 +568,7 @@ private void updateEnemies(float delta) {
             e.pos.x -= 400f * delta;
             e.pos.y += 250f * delta;
             e.angle = 135f;
-
-            if (Math.random() < 0.4f) {
-                particles.spawnSmoke(e.pos.x, e.pos.y, 1);
-            }
-
+            if (Math.random() < 0.4f) particles.spawnSmoke(e.pos.x, e.pos.y, 1);
             if (e.fleeTimer > 2.5f || e.pos.x < -150f || e.pos.y > H + 150f) {
                 ennemis.removeIndex(i);
                 bossFledThisRun = true;
@@ -687,7 +594,6 @@ private void updateEnemies(float delta) {
             if (ratio > 0.66f) newPhase = 1;
             else if (ratio > 0.33f) newPhase = 2;
             else newPhase = 3;
-
             if (newPhase > e.phase) {
                 e.phase = newPhase;
                 e.phaseChangeFlash = 1.0f;
@@ -695,33 +601,24 @@ private void updateEnemies(float delta) {
                 bossPhaseMessageTimer = 2.5f;
                 triggerShake();
                 particles.spawnSmoke(e.pos.x, e.pos.y, 15);
-                particles.spawnBossExplosion(e.pos.x, e.pos.y,
-                        new Color(1f, 0.5f, 0.1f, 1f));
+                particles.spawnBossExplosion(e.pos.x, e.pos.y, new Color(1f, 0.5f, 0.1f, 1f));
             }
-
             if (e.phaseChangeFlash > 0f) e.phaseChangeFlash -= delta;
-
             if (e.phase >= 2) {
                 e.attackCooldown -= delta;
                 if (e.attackCooldown <= 0f) {
-                    float cd = (e.phase == 2)
-                            ? BOSS_ATTACK_COOLDOWN_PHASE_2
-                            : BOSS_ATTACK_COOLDOWN_PHASE_3;
+                    float cd = (e.phase == 2) ? BOSS_ATTACK_COOLDOWN_PHASE_2 : BOSS_ATTACK_COOLDOWN_PHASE_3;
                     e.attackCooldown = cd;
-
                     Vector2 dir = playerPos.cpy().sub(e.pos).nor();
                     float baseAngle = dir.angleDeg();
-
-                    if (e.phase == 2) {
-                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
-                    } else {
+                    if (e.phase == 2) spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
+                    else {
                         spawnBossProjectile(e.pos.x, e.pos.y, baseAngle - 20f);
                         spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
                         spawnBossProjectile(e.pos.x, e.pos.y, baseAngle + 20f);
                     }
                 }
             }
-
             if (e.phase >= 3) {
                 e.spawnCooldown -= delta;
                 if (e.spawnCooldown <= 0f) {
@@ -751,9 +648,7 @@ private void updateEnemies(float delta) {
                     if (e.phase == 1) spd = BOSS_SPEED_PHASE_1;
                     else if (e.phase == 2) spd = BOSS_SPEED_PHASE_2;
                     else spd = BOSS_SPEED_PHASE_3;
-                } else {
-                    spd = normalSpeed;
-                }
+                } else spd = normalSpeed;
                 tmp.nor().scl(spd * delta);
                 e.pos.add(tmp);
             }
@@ -769,41 +664,31 @@ private void updateEnemies(float delta) {
                 e.hp -= arrowDmg;
                 e.hitPulse = ENEMY_HIT_PULSE_DURATION;
                 damage.add(e.pos.x, e.pos.y + e.size / 2f, "-" + arrowDmg, false);
-
                 if (equippedWeapon != null && equippedWeapon.spriteName != null) {
                     String s = equippedWeapon.spriteName;
                     if (s.equals("bow_fire.png")) {
                         particles.spawnFire(e.pos.x, e.pos.y, 4);
                         particles.spawnSmoke(e.pos.x, e.pos.y, 2);
-                    } else if (s.equals("bow_ice.png")) {
-                        particles.spawnWater(e.pos.x, e.pos.y, 5);
-                    } else if (s.equals("bow_void.png")) {
-                        particles.spawnPoison(e.pos.x, e.pos.y, 6);
-                    } else if (s.equals("bow_legendary.png")) {
+                    } else if (s.equals("bow_ice.png")) particles.spawnWater(e.pos.x, e.pos.y, 5);
+                    else if (s.equals("bow_void.png")) particles.spawnPoison(e.pos.x, e.pos.y, 6);
+                    else if (s.equals("bow_legendary.png")) {
                         particles.spawnFire(e.pos.x, e.pos.y, 3);
                         particles.spawnLightning(e.pos.x, e.pos.y, e.angle + 180f, 2);
-                    } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
+                    } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png"))
                         particles.spawnLightning(e.pos.x, e.pos.y, e.angle + 180f, 3);
-                    } else {
-                        Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f)
-                                              : new Color(1f, 0.9f, 0.4f, 1f);
+                    else {
+                        Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f) : new Color(1f, 0.9f, 0.4f, 1f);
                         particles.spawnHitSpark(e.pos.x, e.pos.y, spark);
                     }
                 } else {
-                    Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f)
-                                          : new Color(1f, 0.9f, 0.4f, 1f);
+                    Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f) : new Color(1f, 0.9f, 0.4f, 1f);
                     particles.spawnHitSpark(e.pos.x, e.pos.y, spark);
                 }
-
-                if (e.hp <= 0) {
-                    mort = true;
-                    break;
-                }
+                if (e.hp <= 0) { mort = true; break; }
             }
         }
         if (mort) {
-            Color pcolor = e.boss ? new Color(0.9f, 0.2f, 0.2f, 1f)
-                                   : new Color(0.2f, 0.9f, 0.9f, 1f);
+            Color pcolor = e.boss ? new Color(0.9f, 0.2f, 0.2f, 1f) : new Color(0.2f, 0.9f, 0.9f, 1f);
             if (e.boss) {
                 particles.spawnBossExplosion(e.pos.x, e.pos.y, pcolor);
                 particles.spawnBlood(e.pos.x, e.pos.y, 30);
@@ -818,18 +703,30 @@ private void updateEnemies(float delta) {
             setScore(score + (e.boss ? BOSS_SCORE : 1));
             xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
             if (e.boss) {
-                if (currentFloor < TOTAL_FLOORS) {
-                    nextFloor();
-                    return;
-                } else {
-                    victory = true;
-                    endTimer = 0f;
-                }
+                if (currentFloor < TOTAL_FLOORS) { nextFloor(); return; }
+                else { victory = true; endTimer = 0f; }
             }
             continue;
         }
 
-        float pr = e.ra
+        float pr = e.radius + PLAYER_RADIUS;
+        if (!frozen && e.pos.dst2(playerPos) < pr * pr) {
+            e.attackPulse = ENEMY_ATTACK_PULSE_DURATION;
+            if (e.boss) {
+                if (invulnerable <= 0f) hurtPlayer();
+                tmp.set(e.pos).sub(playerPos);
+                if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
+                tmp.nor().scl(BOSS_KNOCKBACK);
+                e.pos.add(tmp);
+                e.pos.x = MathUtils.clamp(e.pos.x, Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
+                e.pos.y = MathUtils.clamp(e.pos.y, Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
+            } else {
+                ennemis.removeIndex(i);
+                if (invulnerable <= 0f) hurtPlayer();
+            }
+        }
+    }
+}
     private void spawnBossProjectile(float x, float y, float angleDeg) {
         Fleche p = new Fleche();
         p.pos.set(x, y);
@@ -845,9 +742,7 @@ private void updateEnemies(float delta) {
 
     private void updateWeaponDrops(float delta) {
         for (int i = weaponDrops.size - 1; i >= 0; i--) {
-            if (!weaponDrops.get(i).update(delta)) {
-                weaponDrops.removeIndex(i);
-            }
+            if (!weaponDrops.get(i).update(delta)) weaponDrops.removeIndex(i);
         }
         for (int i = weaponDrops.size - 1; i >= 0; i--) {
             WeaponDrop d = weaponDrops.get(i);
@@ -870,12 +765,8 @@ private void updateEnemies(float delta) {
         triggerShake();
         triggerStun();
         damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
-        particles.spawnHitSpark(playerPos.x, playerPos.y,
-                new Color(1f, 0.3f, 0.3f, 1f));
-        if (lives <= 0) {
-            gameOver = true;
-            endTimer = 0f;
-        }
+        particles.spawnHitSpark(playerPos.x, playerPos.y, new Color(1f, 0.3f, 0.3f, 1f));
+        if (lives <= 0) { gameOver = true; endTimer = 0f; }
     }
 
     private void enterRoom(Room room) {
@@ -925,7 +816,6 @@ private void updateEnemies(float delta) {
     private void pollTouches() {
         zoom.resetFrame();
         newTouch = false;
-
         for (int i = 0; i < MAX_POINTERS; i++) {
             if (!Gdx.input.isTouched(i)) {
                 if (moveStick.pointer == i) moveStick.end();
@@ -933,12 +823,10 @@ private void updateEnemies(float delta) {
                 owner[i] = OWNER_NONE;
                 continue;
             }
-
             tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
             renderer.uiViewport.unproject(tmp);
             float x = tmp.x;
             float y = tmp.y;
-
             if (owner[i] == OWNER_NONE) {
                 if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
                         && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
@@ -960,9 +848,7 @@ private void updateEnemies(float delta) {
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 }
-                else if (zoom.handleTouch(x, y)) {
-                    owner[i] = OWNER_ZOOM;
-                }
+                else if (zoom.handleTouch(x, y)) owner[i] = OWNER_ZOOM;
                 else {
                     newTouch = true;
                     if (x < W / 2f && !moveStick.active()) {
@@ -971,9 +857,7 @@ private void updateEnemies(float delta) {
                     } else if (x >= W / 2f && !aimStick.active()) {
                         owner[i] = OWNER_AIM;
                         aimStick.begin(i, x, y);
-                    } else {
-                        owner[i] = OWNER_IGNORED;
-                    }
+                    } else owner[i] = OWNER_IGNORED;
                 }
             } else if (owner[i] == OWNER_ZOOM) {
                 zoom.handleTouch(x, y);
@@ -997,12 +881,8 @@ private void updateEnemies(float delta) {
     }
 
     @Override
-    public void dispose() {
-        disposeResources();
-    }
+    public void dispose() { disposeResources(); }
 
     @Override
-    public void hide() {
-        disposeResources();
-    }
+    public void hide() { disposeResources(); }
 }
