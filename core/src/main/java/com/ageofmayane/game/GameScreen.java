@@ -319,7 +319,8 @@ private void nextFloor() {
     Vector2 chestPos = findRandomFloorPos(40f, 200f);
 chest = new Chest(chestPos.x, chestPos.y);
     
-    elevator.reset();
+    Vector2 elevPos = findRandomFloorPos(60f, 250f);
+elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
     if (elevatorButton != null) elevatorButton.hide();
     floorTransitionPending = false;
     transitionTimer = 0f;
