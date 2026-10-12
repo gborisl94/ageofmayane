@@ -630,7 +630,7 @@ private Vector2 findRandomFloorPos(float radius, float minDistFromPlayer) {
     }
     out.set(W / 2f, H / 2f);
     return out;
-        }
+    }
 private void drawBossArrow() {
         Vector2 target = null;
         boolean isBoss = false;
