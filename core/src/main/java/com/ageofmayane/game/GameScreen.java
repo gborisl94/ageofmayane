@@ -1,1006 +1,982 @@
 package com.ageofmayane.game;
 
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import java.util.HashMap;
 
-public class GameScreen extends ScreenAdapter {
+class GameRenderer {
 
-    static final float W = 1280f;
-    static final float H = 720f;
+    static final float W = GameScreen.W;
+    static final float H = GameScreen.H;
 
-    static final float STICK_RADIUS = 110f;
-    static final float DEAD_ZONE = 0.2f;
+    static final float MINIMAP_X = 20f;
+    static final float MINIMAP_Y = H - 170f;
 
-    static final float PLAYER_RADIUS = 20f;
-    static final float PLAYER_SPEED = 280f;
-    static final float ENEMY_RADIUS = 18f;
-    static final float ARROW_RADIUS = 5f;
-    static final float ARROW_SPEED = 650f;
-    static final float FIRE_DELAY = 0.18f;
+    static final float FLOOR_TILE = 80f;
+    static final float WALL_TILE = 40f;
 
-    static final float PLAYER_SIZE = 64f;
-    static final float ENEMY_SIZE = 56f;
-    static final float ARROW_SIZE = 20f;
+    static final float XP_BAR_X = 20f;
+    static final float XP_BAR_Y = H - 100f;
+    static final float XP_BAR_W = 260f;
+    static final float XP_BAR_H = 20f;
 
-    static final float PLAYER_ROT = 0f;
-    static final float ENEMY_ROT = 0f;
-    static final float ARROW_ROT = 0f;
+    static final float ATT_BAR_X = 20f;
+    static final float ATT_BAR_Y = XP_BAR_Y - 32f;
+    static final float ATT_BAR_W = 260f;
+    static final float ATT_BAR_H = 18f;
 
-    static final int ENEMY_HP = 2;
-    static final int BOSS_HP = 20;
-    static final float BOSS_SIZE = ENEMY_SIZE * 2f;
-    static final float BOSS_RADIUS = ENEMY_RADIUS * 2f;
-    static final float BOSS_KNOCKBACK = 140f;
-    static final int BOSS_SCORE = 5;
+    OrthographicCamera camera;
+    OrthographicCamera uiCamera;
+    FitViewport viewport;
+    FitViewport uiViewport;
 
-    static final float BOSS_SPEED_PHASE_1 = 60f;
-    static final float BOSS_SPEED_PHASE_2 = 100f;
-    static final float BOSS_SPEED_PHASE_3 = 160f;
+    ShapeRenderer shapes;
+    SpriteBatch batch;
+    BitmapFont font;
 
-    static final float BOSS_ATTACK_COOLDOWN_PHASE_2 = 1.5f;
-    static final float BOSS_ATTACK_COOLDOWN_PHASE_3 = 1.2f;
-    static final float BOSS_SPAWN_COOLDOWN = 6f;
-    static final float BOSS_PROJECTILE_SPEED = 300f;
+    Texture texPlayer;
+    Texture texEnemy;
+    Texture texArrow;
+    Texture texBoss;
+    Texture texSol;
+    Texture texMur;
+    Texture texPorte;
+    Texture texChestClosed;
+    Texture texChestOpen;
 
-    static final int XP_PER_ENEMY = 5;
-    static final int XP_PER_BOSS = 100;
-    static final int XP_PER_ROOM = 20;
+    private final Color bossTint = new Color(1f, 0.55f, 0.55f, 1f);
+    private final Color bossTintPhase2 = new Color(1f, 0.4f, 0.2f, 1f);
+    private final Color bossTintPhase3 = new Color(1f, 0.2f, 0.6f, 1f);
+    private final Color enemyProjectileColor = new Color(1f, 0.4f, 0.1f, 1f);
+    private final Rectangle tmpRect = new Rectangle();
+    private final HashMap<String, Texture> dropCache = new HashMap<String, Texture>();
+    private final GlyphLayout layout = new GlyphLayout();
 
-    static final float SPAWN_MIN_DIST = 280f;
-    static final float CHEST_INTERACT_DIST = 120f;
+    void create() {
+        camera = new OrthographicCamera();
+        uiCamera = new OrthographicCamera();
+        camera.setToOrtho(false, W, H);
+        uiCamera.setToOrtho(false, W, H);
+        viewport = new FitViewport(W, H, camera);
+        uiViewport = new FitViewport(W, H, uiCamera);
 
-    static final float OPEN_BTN_W = 260f;
-    static final float OPEN_BTN_H = 80f;
-    static final float OPEN_BTN_X = W - OPEN_BTN_W - 30f;
-    static final float OPEN_BTN_Y = H - 320f;
+        int sw = Math.max(1, Gdx.graphics.getWidth());
+        int sh = Math.max(1, Gdx.graphics.getHeight());
+        viewport.update(sw, sh, true);
+        uiViewport.update(sw, sh, true);
 
-    static final float STUN_ABILITY_RADIUS = 280f;
-    static final float STUN_ABILITY_DURATION = 3.0f;
-    static final float STUN_ABILITY_COOLDOWN = 8.0f;
-    static final float STUN_BTN_SIZE = 110f;
-    static final float STUN_BTN_X = W - STUN_BTN_SIZE - 30f;
-    static final float STUN_BTN_Y = H - 460f;
+        shapes = new ShapeRenderer();
+        batch = new SpriteBatch();
+        font = new BitmapFont();
+        font.getData().setScale(2f);
+        font.getRegion().getTexture().setFilter(
+                Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
-    static final float AIM_BTN_SIZE = 110f;
-    static final float AIM_BTN_X = W - AIM_BTN_SIZE - 30f;
-    static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
-    static final float AUTO_AIM_DURATION = 8f;
-    static final float AUTO_AIM_COOLDOWN = 12f;
-
-    static final int MAX_POINTERS = 5;
-    static final int OWNER_NONE = 0;
-    static final int OWNER_MOVE = 1;
-    static final int OWNER_AIM = 2;
-    static final int OWNER_ZOOM = 3;
-    static final int OWNER_IGNORED = 4;
-
-    static final float HIT_FLASH_DURATION = 0.35f;
-    static final float SHAKE_DURATION = 0.7f;
-    static final float SHAKE_INTENSITY = 25f;
-    static final float STUN_DURATION = 1.5f;
-    static final float STUN_SPEED_FACTOR = 0.5f;
-
-    static final float PLAYER_RECOIL_DURATION = 0.15f;
-    static final float ENEMY_HIT_PULSE_DURATION = 0.25f;
-    static final float ENEMY_ATTACK_PULSE_DURATION = 0.3f;
-
-    static final float ATTENTION_MAX = 100f;
-    static final float ATTENTION_DRAIN = 30f;
-    static final float ATTENTION_REGEN = 15f;
-    static final float AUTO_AIM_RANGE = 600f;
-    static final float AUTO_AIM_RANGE_SQ = 600f * 600f;
-
-    static final float AIM_STABILITY_TIME = 2.0f;
-    static final float AIM_TREMBLE_MAX = 22f;
-
-    static final int CHARGE_LEVEL_1 = 1;
-    static final int CHARGE_LEVEL_2 = 2;
-    static final int CHARGE_LEVEL_3 = 3;
-    static final int CHARGE_DMG_LVL1 = 1;
-    static final int CHARGE_DMG_LVL2 = 2;
-    static final int CHARGE_DMG_LVL3 = 3;
-
-    static final int TOTAL_FLOORS = 3;
-
-    private final Game game;
-    private GameRenderer renderer;
-
-    ZoomController zoom;
-    XpSystem xpSystem;
-    final DungeonManager dungeon = new DungeonManager();
-    final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
-    final Array<Fleche> fleches = new Array<Fleche>();
-    final Array<Ennemi> ennemis = new Array<Ennemi>();
-    final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
-    final DamageNumbers damage = new DamageNumbers();
-    final ParticleSystem particles = new ParticleSystem();
-    final Stick moveStick = new Stick();
-    final Stick aimStick = new Stick();
-    Weapon equippedWeapon;
-    Chest chest;
-    float facing = 0f;
-    float invulnerable;
-    float hitFlash = 0f;
-    float playerRecoil = 0f;
-    float bossFleeMessageTimer = 0f;
-    float bossPhaseMessageTimer = 0f;
-    int bossPhaseMessage = 0;
-    float shakeTime = 0f;
-    float shakeOffsetX = 0f;
-    float shakeOffsetY = 0f;
-    float stunTimer = 0f;
-    float stunCooldown = 0f;
-    float dizzyTime = 0f;
-    boolean bossFledThisRun = false;
-    boolean gameOver;
-    boolean victory;
-    String scoreText = "";
-    String livesText = "";
-
-    float attention = ATTENTION_MAX;
-    Ennemi autoTarget = null;
-
-    float aimStability = 0f;
-    float aimTrembleSeed = 0f;
-    float aimTrembleX = 0f;
-    float aimTrembleY = 0f;
-
-    int chargeLevel = 1;
-
-    boolean autoAimActive = false;
-    float autoAimTimer = 0f;
-    float autoAimCooldown = 0f;
-
-    float targetAcquiredTimer = 0f;
-    Ennemi lastAutoTarget = null;
-
-    int currentFloor = 1;
-    float floorBannerTimer = 0f;
-
-    private final Vector2 tmp = new Vector2();
-    private final int[] owner = new int[MAX_POINTERS];
-    private boolean newTouch;
-
-    private int lives;
-    private int score;
-    private float fireTimer;
-    private float endTimer;
-
-    public GameScreen() { this(null); }
-    public GameScreen(Game game) { this.game = game; }
-
-    @Override
-    public void show() {
-        disposeResources();
-        renderer = new GameRenderer();
-        renderer.create();
-        zoom = new ZoomController(W, H);
-        xpSystem = new XpSystem();
-        restart();
+        texPlayer = loadTexture("player.png");
+        texEnemy = loadTexture("enemy.png");
+        texArrow = loadTexture("arrow.png");
+        texBoss = loadTexture("boss.png");
+        texSol = loadTexture("sol.png");
+        texMur = loadTexture("mur.png");
+        texPorte = loadTexture("porte.png");
+        texChestClosed = loadTexture("chest_closed.png");
+        texChestOpen = loadTexture("chest_open.png");
     }
 
-    private void restart() {
-        dungeon.generate();
-
-        playerPos.set(W / 2f, H / 2f);
-        fleches.clear();
-        ennemis.clear();
-        weaponDrops.clear();
-        damage.clear();
-        particles.clear();
-        moveStick.end();
-        aimStick.end();
-        for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
-        facing = 0f;
-        setLives(5);
-        setScore(0);
-        fireTimer = 0f;
-        invulnerable = 0f;
-        hitFlash = 0f;
-        playerRecoil = 0f;
-        bossFleeMessageTimer = 0f;
-        bossPhaseMessageTimer = 0f;
-        bossPhaseMessage = 0;
-        shakeTime = 0f;
-        shakeOffsetX = 0f;
-        shakeOffsetY = 0f;
-        stunTimer = 0f;
-        stunCooldown = 0f;
-        dizzyTime = 0f;
-        bossFledThisRun = false;
-        endTimer = 0f;
-        gameOver = false;
-        victory = false;
-        equippedWeapon = WeaponDatabase.woodBow();
-        attention = ATTENTION_MAX;
-        autoTarget = null;
-        aimStability = 0f;
-        aimTrembleSeed = 0f;
-        aimTrembleX = 0f;
-        aimTrembleY = 0f;
-        chargeLevel = CHARGE_LEVEL_1;
-        autoAimActive = false;
-        autoAimTimer = 0f;
-        autoAimCooldown = 0f;
-        targetAcquiredTimer = 0f;
-        lastAutoTarget = null;
-        currentFloor = 1;
-        floorBannerTimer = 0f;
-
-        chest = new Chest(W / 2f, H / 2f);
-
-        Room cur = dungeon.getCurrent();
-        if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
-    }private void setScore(int s) {
-    score = s;
-    scoreText = "Score : " + s;
-}
-
-private void setLives(int l) {
-    lives = l;
-    livesText = "Vies : " + l;
-}
-
-private void triggerShake() {
-    shakeTime = SHAKE_DURATION;
-}
-
-private void triggerStun() {
-    stunTimer = STUN_DURATION;
-}
-
-boolean isStunned() {
-    return stunTimer > 0f;
-}
-
-boolean isStunReady() {
-    return stunCooldown <= 0f;
-}
-
-float getStunCooldownRatio() {
-    if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
-    return Math.max(0f, Math.min(1f, stunCooldown / STUN_ABILITY_COOLDOWN));
-}
-
-boolean canInteractWithChest() {
-    if (chest == null || chest.opened) return false;
-    return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
-}
-
-private void openChest() {
-    if (chest == null || chest.opened) return;
-    chest.open();
-    Weapon loot = WeaponDatabase.randomChestLoot();
-    weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
-}
-
-/** HP des ennemis selon l'etage. */
-private int getEnemyHp() {
-    return ENEMY_HP + (currentFloor - 1);
-}
-
-/** HP du boss selon l'etage. */
-private int getBossHp() {
-    return BOSS_HP + (currentFloor - 1) * 10;
-}
-
-/** Passe a l'etage suivant (garde score, vies, XP). */
-private void nextFloor() {
-    currentFloor++;
-    floorBannerTimer = 3f;
-
-    dungeon.generate();
-
-    playerPos.set(W / 2f, H / 2f);
-    fleches.clear();
-    ennemis.clear();
-    weaponDrops.clear();
-    damage.clear();
-    particles.clear();
-    moveStick.end();
-    aimStick.end();
-    for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
-    facing = 0f;
-    fireTimer = 0f;
-    invulnerable = 2.5f;
-    hitFlash = 0f;
-    playerRecoil = 0f;
-    bossFleeMessageTimer = 0f;
-    bossPhaseMessageTimer = 0f;
-    bossPhaseMessage = 0;
-    shakeTime = 0f;
-    stunTimer = 0f;
-    stunCooldown = 0f;
-    dizzyTime = 0f;
-    bossFledThisRun = false;
-    endTimer = 0f;
-    gameOver = false;
-    victory = false;
-    attention = ATTENTION_MAX;
-    autoTarget = null;
-    aimStability = 0f;
-    targetAcquiredTimer = 0f;
-    lastAutoTarget = null;
-    chargeLevel = CHARGE_LEVEL_1;
-    autoAimActive = false;
-    autoAimTimer = 0f;
-    autoAimCooldown = 0f;
-
-    chest = new Chest(W / 2f, H / 2f);
-    Room cur = dungeon.getCurrent();
-    if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
-
-    triggerShake();
-    particles.spawnLightning(playerPos.x, playerPos.y, 0f, 12);
-}
-
-private void activateStunAbility() {
-    if (stunCooldown > 0f) return;
-    stunCooldown = STUN_ABILITY_COOLDOWN;
-
-    for (int i = 0; i < ennemis.size; i++) {
-        Ennemi e = ennemis.get(i);
-        if (e.pos.dst2(playerPos) < STUN_ABILITY_RADIUS * STUN_ABILITY_RADIUS) {
-            e.stunned = STUN_ABILITY_DURATION;
-            e.stunBase = STUN_ABILITY_DURATION;
-            particles.spawnLightning(e.pos.x, e.pos.y, 0f, 3);
-            particles.spawnSmoke(e.pos.x, e.pos.y, 2);
+    private Texture loadTexture(String name) {
+        try {
+            Texture t = new Texture(Gdx.files.internal(name));
+            t.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            return t;
+        } catch (Throwable e) {
+            Gdx.app.error("Mayane", "Texture introuvable : " + name, e);
+            return null;
         }
     }
 
-    for (int i = 0; i < 24; i++) {
-        float ang = i * (360f / 24f);
-        float x = playerPos.x + MathUtils.cosDeg(ang) * STUN_ABILITY_RADIUS;
-        float y = playerPos.y + MathUtils.sinDeg(ang) * STUN_ABILITY_RADIUS;
-        particles.spawnLightning(x, y, ang, 1);
+    private Texture loadDropTexture(String name) {
+        if (name == null) return null;
+        if (dropCache.containsKey(name)) return dropCache.get(name);
+        Texture t = loadTexture(name);
+        dropCache.put(name, t);
+        return t;
     }
 
-    triggerShake();
-}
+    void resize(int width, int height) {
+        if (viewport == null || uiViewport == null) return;
+        int w = Math.max(1, width);
+        int h = Math.max(1, height);
+        viewport.update(w, h, true);
+        uiViewport.update(w, h, true);
+    }
 
-private void activateAutoAimPower() {
-    if (autoAimCooldown > 0f) return;
-    if (autoAimActive) return;
-    autoAimActive = true;
-    autoAimTimer = AUTO_AIM_DURATION;
-    aimStability = 0f;
-    particles.spawnLightning(playerPos.x, playerPos.y, 0f, 6);
-}
-
-private void deactivateAutoAimPower() {
-    if (!autoAimActive) return;
-    autoAimActive = false;
-    autoAimCooldown = AUTO_AIM_COOLDOWN * 0.5f;
-    autoAimTimer = 0f;
-}
-
-boolean isAutoAimReady() {
-    return !autoAimActive && autoAimCooldown <= 0f;
-}
-
-float getAutoAimDurationRatio() {
-    if (AUTO_AIM_DURATION <= 0f) return 0f;
-    return Math.max(0f, Math.min(1f, autoAimTimer / AUTO_AIM_DURATION));
-}
-
-float getAutoAimCooldownRatio() {
-    if (AUTO_AIM_COOLDOWN <= 0f) return 0f;
-    return Math.max(0f, Math.min(1f, autoAimCooldown / AUTO_AIM_COOLDOWN));
-}
-
-private Ennemi findNearestEnemy() {
-    Ennemi nearest = null;
-    float bestDist = AUTO_AIM_RANGE_SQ;
-    for (int i = 0; i < ennemis.size; i++) {
-        Ennemi e = ennemis.get(i);
-        if (e.hp <= 0) continue;
-        float d = e.pos.dst2(playerPos);
-        if (d < bestDist) {
-            bestDist = d;
-            nearest = e;
+    void dispose() {
+        if (shapes != null) shapes.dispose();
+        if (batch != null) batch.dispose();
+        if (font != null) font.dispose();
+        if (texPlayer != null) texPlayer.dispose();
+        if (texEnemy != null) texEnemy.dispose();
+        if (texArrow != null) texArrow.dispose();
+        if (texBoss != null) texBoss.dispose();
+        if (texSol != null) texSol.dispose();
+        if (texMur != null) texMur.dispose();
+        if (texPorte != null) texPorte.dispose();
+        if (texChestClosed != null) texChestClosed.dispose();
+        if (texChestOpen != null) texChestOpen.dispose();
+        for (Texture t : dropCache.values()) {
+            if (t != null) t.dispose();
         }
+        dropCache.clear();
+        shapes = null; batch = null; font = null;
+        texPlayer = null; texEnemy = null; texArrow = null; texBoss = null;
+        texSol = null; texMur = null; texPorte = null;
+        texChestClosed = null; texChestOpen = null;
+        viewport = null; uiViewport = null; camera = null; uiCamera = null;
     }
-    return nearest;
+private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
+    float w = h * t.getWidth() / (float) t.getHeight();
+    batch.draw(t, cx - w / 2f, cy - h / 2f, w / 2f, h / 2f, w, h,
+            1f, 1f, rotation, 0, 0, t.getWidth(), t.getHeight(), false, false);
 }
 
-private void fireAt(float angleDeg, int dmg) {
-    Fleche f = new Fleche();
-    f.pos.set(playerPos);
-    f.vel.set(MathUtils.cosDeg(angleDeg) * ARROW_SPEED,
-              MathUtils.sinDeg(angleDeg) * ARROW_SPEED);
-    f.angle = angleDeg;
-    f.fromEnemy = false;
-    f.damage = dmg;
-    fleches.add(f);
-
-    if (equippedWeapon != null) {
-        String s = equippedWeapon.spriteName;
-        if (s != null) {
-            if (s.equals("bow_fire.png")) {
-                particles.spawnFire(playerPos.x, playerPos.y, 3);
-            } else if (s.equals("bow_ice.png")) {
-                particles.spawnWaterJet(playerPos.x, playerPos.y, angleDeg, 3);
-            } else if (s.equals("bow_void.png")) {
-                particles.spawnPoisonJet(playerPos.x, playerPos.y, angleDeg, 3);
-            } else if (s.equals("bow_legendary.png")) {
-                particles.spawnFire(playerPos.x, playerPos.y, 2);
-                particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
-            } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
-                particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
-            }
+private void drawTiled(Texture t, float x, float y, float w, float h, float tile) {
+    int tw = t.getWidth();
+    int th = t.getHeight();
+    int nx = (int) Math.ceil(w / tile - 0.001f);
+    int ny = (int) Math.ceil(h / tile - 0.001f);
+    for (int iy = 0; iy < ny; iy++) {
+        float yy = iy * tile;
+        float ch = Math.min(tile, h - yy);
+        int srcH = Math.max(1, Math.round(th * ch / tile));
+        for (int ix = 0; ix < nx; ix++) {
+            float xx = ix * tile;
+            float cw = Math.min(tile, w - xx);
+            int srcW = Math.max(1, Math.round(tw * cw / tile));
+            batch.draw(t, x + xx, y + yy, cw, ch, 0, 0, srcW, srcH, false, false);
         }
     }
 }
 
-private int getChargeDamage() {
-    if (chargeLevel == CHARGE_LEVEL_3) return CHARGE_DMG_LVL3;
-    if (chargeLevel == CHARGE_LEVEL_2) return CHARGE_DMG_LVL2;
-    return CHARGE_DMG_LVL1;
+private void drawDoorTexture(GameScreen gs, int dir) {
+    Rectangle r = gs.dungeon.doorRectOrNull(dir, tmpRect);
+    if (r == null) return;
+    if (gs.dungeon.doorsOpen()) batch.setColor(0.6f, 1f, 0.6f, 1f);
+    else batch.setColor(1f, 0.55f, 0.55f, 1f);
+    float cx = r.x + r.width / 2f;
+    float cy = r.y + r.height / 2f;
+    boolean vertical = r.height > r.width;
+    float len = Math.max(r.width, r.height);
+    float thick = Math.min(r.width, r.height);
+    batch.draw(texPorte, cx - len / 2f, cy - thick / 2f, len / 2f, thick / 2f,
+            len, thick, 1f, 1f, vertical ? 90f : 0f,
+            0, 0, texPorte.getWidth(), texPorte.getHeight(), false, false);
+    batch.setColor(Color.WHITE);
 }
 
-@Override
-public void render(float delta) {
-    if (renderer == null || zoom == null) return;
-    if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
-    update(delta);
-    renderer.draw(this);
+private void drawStick(Stick s, float r, float g, float b) {
+    if (!s.active()) return;
+    shapes.setColor(r, g, b, 0.15f);
+    shapes.circle(s.origin.x, s.origin.y, GameScreen.STICK_RADIUS, 32);
+    shapes.setColor(r, g, b, 0.45f);
+    shapes.circle(s.current.x, s.current.y, 45f, 24);
 }
 
-private void update(float delta) {
-    pollTouches();
-    zoom.update(delta);
-    damage.update(delta);
-    particles.update(delta);
+private void drawChest(Chest c) {
+    Texture t = c.opened ? texChestOpen : texChestClosed;
+    float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
 
-    if (shakeTime > 0f) {
-        shakeTime -= delta;
-        float intensity = SHAKE_INTENSITY * (shakeTime / SHAKE_DURATION);
-        shakeOffsetX = MathUtils.random(-intensity, intensity);
-        shakeOffsetY = MathUtils.random(-intensity, intensity);
+    if (!c.opened) {
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(1f, 0.85f, 0.2f, 0.15f + 0.25f * pulse);
+        shapes.circle(c.pos.x, c.pos.y, 45f + 10f * pulse, 32);
+        shapes.end();
+    }
+
+    if (t != null) {
+        batch.begin();
+        batch.setColor(Color.WHITE);
+        float size = 64f;
+        batch.draw(t, c.pos.x - size / 2f, c.pos.y - size / 2f, size, size);
+        batch.end();
     } else {
-        shakeOffsetX = 0f;
-        shakeOffsetY = 0f;
-    }
-
-    if (stunTimer > 0f) {
-        stunTimer -= delta;
-        dizzyTime += delta;
-    }
-
-    if (stunCooldown > 0f) stunCooldown -= delta;
-
-    if (autoAimActive) {
-        autoAimTimer -= delta;
-        if (autoAimTimer <= 0f) {
-            autoAimActive = false;
-            autoAimTimer = 0f;
-            autoAimCooldown = AUTO_AIM_COOLDOWN;
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.55f, 0.35f, 0.1f, 1f);
+        shapes.rect(c.pos.x - 25f, c.pos.y - 25f, 50f, 50f);
+        shapes.setColor(0.3f, 0.3f, 0.35f, 1f);
+        shapes.rect(c.pos.x - 25f, c.pos.y + 17f, 50f, 4f);
+        shapes.rect(c.pos.x - 25f, c.pos.y - 21f, 50f, 4f);
+        if (!c.opened) {
+            shapes.setColor(1f, 0.85f, 0.2f, 1f);
+            shapes.circle(c.pos.x, c.pos.y, 6f, 16);
         }
-    } else if (autoAimCooldown > 0f) {
-        autoAimCooldown -= delta;
-        if (autoAimCooldown < 0f) autoAimCooldown = 0f;
-    }
-
-    if (gameOver || victory) {
-        endTimer += delta;
-        if (endTimer > 0.6f && newTouch) restart();
-        return;
-    }
-
-    if (invulnerable > 0f) invulnerable -= delta;
-    if (hitFlash > 0f) hitFlash -= delta;
-    if (playerRecoil > 0f) playerRecoil -= delta;
-    if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
-    if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
-    if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
-    if (floorBannerTimer > 0f) floorBannerTimer -= delta;
-
-    boolean stunned = isStunned();
-
-    if (aimStick.dir.len() > DEAD_ZONE) {
-        facing = aimStick.dir.angleDeg();
-    } else if (moveStick.dir.len() > DEAD_ZONE) {
-        facing = moveStick.dir.angleDeg();
-    }
-
-    if (moveStick.dir.len() > DEAD_ZONE) {
-        float speedFactor = stunned ? STUN_SPEED_FACTOR : 1f;
-        playerPos.x += moveStick.dir.x * PLAYER_SPEED * speedFactor * delta;
-        playerPos.y += moveStick.dir.y * PLAYER_SPEED * speedFactor * delta;
-    }
-    dungeon.collide(playerPos, PLAYER_RADIUS);
-    playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
-    playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
-
-    int exitDir = dungeon.checkDoorExit(playerPos);
-    if (exitDir >= 0) {
-        Room next = dungeon.moveThrough(exitDir, playerPos);
-        if (next != null) enterRoom(next);
-    }
-
-    fireTimer -= delta;
-    autoTarget = findNearestEnemy();
-
-    if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget) {
-        targetAcquiredTimer = 1.5f;
-    }
-    lastAutoTarget = autoTarget;
-
-    boolean useManual = aimStick.dir.len() > DEAD_ZONE;
-    boolean autoAimUsable = autoAimActive
-            && !useManual
-            && attention > 0f
-            && autoTarget != null
-            && !stunned;
-
-    if (!stunned && fireTimer <= 0f) {
-        if (useManual) {
-            float fireAngle = aimStick.dir.angleDeg();
-            fireAt(fireAngle, CHARGE_DMG_LVL1);
-            fireTimer = FIRE_DELAY;
-            playerRecoil = PLAYER_RECOIL_DURATION;
-        } else if (autoAimUsable) {
-            tmp.set(autoTarget.pos).sub(playerPos);
-            if (tmp.len2() > 0.001f) {
-                float fireAngle = tmp.angleDeg();
-                facing = fireAngle;
-                fireAt(fireAngle, getChargeDamage());
-                fireTimer = FIRE_DELAY;
-                playerRecoil = PLAYER_RECOIL_DURATION;
-            }
-        }
-    }
-
-    if (autoAimUsable && fireTimer > 0f) {
-        attention -= ATTENTION_DRAIN * delta;
-        if (attention < 0f) attention = 0f;
-    } else if (autoAimActive && !useManual && moveStick.dir.len() < DEAD_ZONE) {
-        attention += ATTENTION_REGEN * delta;
-        if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
-    }
-
-    boolean moving = moveStick.dir.len() > DEAD_ZONE;
-
-    if (moving || !autoAimActive) {
-        aimStability = 0f;
-    } else if (autoTarget != null && !stunned) {
-        aimStability += delta / AIM_STABILITY_TIME;
-        if (aimStability > 1f) aimStability = 1f;
-    } else {
-        aimStability -= delta * 0.5f;
-        if (aimStability < 0f) aimStability = 0f;
-    }
-
-    if (aimStability >= 0.66f) chargeLevel = CHARGE_LEVEL_3;
-    else if (aimStability >= 0.33f) chargeLevel = CHARGE_LEVEL_2;
-    else chargeLevel = CHARGE_LEVEL_1;
-
-    aimTrembleSeed += delta * 25f;
-    float trembleAmt = (1f - aimStability) * AIM_TREMBLE_MAX;
-    if (trembleAmt > 0.5f && autoAimActive) {
-        aimTrembleX = MathUtils.sin(aimTrembleSeed * 1.3f) * trembleAmt
-                    + MathUtils.sin(aimTrembleSeed * 2.7f) * trembleAmt * 0.5f;
-        aimTrembleY = MathUtils.cos(aimTrembleSeed * 1.7f) * trembleAmt
-                    + MathUtils.cos(aimTrembleSeed * 3.1f) * trembleAmt * 0.5f;
-    } else {
-        aimTrembleX = 0f;
-        aimTrembleY = 0f;
-    }
-
-    updateArrows(delta);
-    updateEnemies(delta);
-    updateWeaponDrops(delta);
-    updateChest(delta);
-
-    Room cur = dungeon.getCurrent();
-    if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
-        dungeon.markCleared();
-        xpSystem.addXp(XP_PER_ROOM);
+        shapes.end();
     }
 }
 
-private void updateArrows(float delta) {
-    for (int i = fleches.size - 1; i >= 0; i--) {
-        Fleche f = fleches.get(i);
-        int steps = MathUtils.clamp((int) Math.ceil(ARROW_SPEED * delta / 8f), 1, 8);
-        float sdt = delta / steps;
-        boolean remove = false;
-        for (int s = 0; s < steps; s++) {
-            f.pos.x += f.vel.x * sdt;
-            f.pos.y += f.vel.y * sdt;
-            if (dungeon.circleHitsWall(f.pos.x, f.pos.y, ARROW_RADIUS)) {
-                remove = true;
-                break;
-            }
-        }
-        f.life -= delta;
+private void drawOpenButton(GameScreen gs) {
+    if (!gs.canInteractWithChest()) return;
 
-        if (f.fromEnemy && !remove) {
-            float rr = PLAYER_RADIUS + ARROW_RADIUS;
-            if (f.pos.dst2(playerPos) < rr * rr) {
-                remove = true;
-                if (invulnerable <= 0f) hurtPlayer();
-            }
-        }
+    float bx = GameScreen.OPEN_BTN_X;
+    float by = GameScreen.OPEN_BTN_Y;
+    float bw = GameScreen.OPEN_BTN_W;
+    float bh = GameScreen.OPEN_BTN_H;
 
-        if (remove || f.life <= 0f || f.pos.x < -20 || f.pos.x > W + 20
-                || f.pos.y < -20 || f.pos.y > H + 20) {
-            fleches.removeIndex(i);
-        }
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.1f, 0.1f, 0.15f, 0.9f);
+    shapes.rect(bx - 3f, by - 3f, bw + 6f, bh + 6f);
+    shapes.setColor(0.85f, 0.65f, 0.15f, 0.95f);
+    shapes.rect(bx, by, bw, bh);
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.5f);
+    font.setColor(1f, 1f, 1f, 1f);
+    String txt = "OUVRIR";
+    layout.setText(font, txt);
+    float tx = bx + (bw - layout.width) / 2f;
+    float ty = by + bh * 0.7f;
+    font.draw(batch, txt, tx, ty);
+
+    String txt2 = "LE COFFRE";
+    layout.setText(font, txt2);
+    float tx2 = bx + (bw - layout.width) / 2f;
+    float ty2 = by + bh * 0.35f;
+    font.draw(batch, txt2, tx2, ty2);
+    font.getData().setScale(2f);
+    batch.end();
+}
+
+private void drawStunButton(GameScreen gs) {
+    float bx = GameScreen.STUN_BTN_X;
+    float by = GameScreen.STUN_BTN_Y;
+    float bs = GameScreen.STUN_BTN_SIZE;
+
+    float ratio = gs.getStunCooldownRatio();
+    boolean ready = gs.isStunReady();
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
+
+    if (ready) shapes.setColor(0.9f, 0.75f, 0.2f, 0.95f);
+    else shapes.setColor(0.35f, 0.35f, 0.4f, 0.9f);
+    shapes.rect(bx, by, bs, bs);
+
+    if (!ready) {
+        shapes.setColor(0.1f, 0.1f, 0.15f, 0.75f);
+        float barH = bs * ratio;
+        shapes.rect(bx, by + bs - barH, bs, barH);
+    }
+
+    if (ready) shapes.setColor(1f, 1f, 0.4f, 1f);
+    else shapes.setColor(0.6f, 0.6f, 0.6f, 1f);
+
+    float cx = bx + bs / 2f;
+    float cy = by + bs / 2f + 5f;
+    float sz = bs * 0.25f;
+    shapes.rectLine(cx - sz * 0.5f, cy + sz, cx + sz * 0.3f, cy, 6f);
+    shapes.rectLine(cx + sz * 0.3f, cy, cx - sz * 0.2f, cy - sz, 6f);
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.3f);
+    String txt = "STUN";
+    font.setColor(0.1f, 0.1f, 0.1f, 1f);
+    layout.setText(font, txt);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f + 1f,
+            by + bs * 0.22f + 1f);
+    font.setColor(1f, 1f, 1f, 1f);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + bs * 0.22f);
+
+    if (!ready) {
+        String cd = String.format("%.1f", gs.stunCooldown);
+        layout.setText(font, cd);
+        font.setColor(1f, 0.4f, 0.4f, 1f);
+        font.draw(batch, cd, bx + (bs - layout.width) / 2f, by + bs - 8f);
+    } else {
+        String rdy = "PRET";
+        layout.setText(font, rdy);
+        font.setColor(0.2f, 0.6f, 0.2f, 1f);
+        font.draw(batch, rdy, bx + (bs - layout.width) / 2f, by + bs - 8f);
+    }
+    font.getData().setScale(2f);
+    font.setColor(Color.WHITE);
+    batch.end();
+}
+
+private void drawAutoAimButton(GameScreen gs) {
+    float bx = GameScreen.AIM_BTN_X;
+    float by = GameScreen.AIM_BTN_Y;
+    float bs = GameScreen.AIM_BTN_SIZE;
+
+    boolean ready = gs.isAutoAimReady();
+    boolean active = gs.autoAimActive;
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
+
+    if (active) shapes.setColor(1f, 0.85f, 0.2f, 0.98f);
+    else if (ready) shapes.setColor(0.2f, 0.75f, 0.35f, 0.95f);
+    else shapes.setColor(0.3f, 0.3f, 0.35f, 0.9f);
+    shapes.rect(bx, by, bs, bs);
+
+    if (active) {
+        float ratio = gs.getAutoAimDurationRatio();
+        shapes.setColor(0.6f, 0.4f, 0.05f, 0.7f);
+        shapes.rect(bx, by, bs * ratio, 8f);
+    } else if (!ready) {
+        float ratio = gs.getAutoAimCooldownRatio();
+        shapes.setColor(0.15f, 0.15f, 0.2f, 0.75f);
+        float barH = bs * ratio;
+        shapes.rect(bx, by, bs, barH);
+    }
+
+    float cx = bx + bs / 2f;
+    float cy = by + bs / 2f + 5f;
+
+    if (active) shapes.setColor(1f, 1f, 1f, 0.95f);
+    else if (ready) shapes.setColor(1f, 1f, 1f, 0.9f);
+    else shapes.setColor(0.7f, 0.7f, 0.7f, 0.7f);
+
+    float r1 = 22f;
+    float r2 = 12f;
+    int segments = 16;
+    for (int i = 0; i < segments; i++) {
+        float a = i * (360f / segments);
+        float px1 = cx + MathUtils.cosDeg(a) * r1;
+        float py1 = cy + MathUtils.sinDeg(a) * r1;
+        shapes.rect(px1 - 1.5f, py1 - 1.5f, 3f, 3f);
+
+        float px2 = cx + MathUtils.cosDeg(a) * r2;
+        float py2 = cy + MathUtils.sinDeg(a) * r2;
+        shapes.rect(px2 - 1f, py2 - 1f, 2f, 2f);
+    }
+    shapes.rect(cx - 2f, cy - 2f, 4f, 4f);
+
+    if (!ready && !active) {
+        shapes.setColor(1f, 0.2f, 0.2f, 0.75f);
+        shapes.rectLine(cx - 26f, cy - 26f, cx + 26f, cy + 26f, 5f);
+    }
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.3f);
+    String txt;
+    Color txtColor;
+    if (active) { txt = "ACTIF"; txtColor = new Color(0.2f, 0.1f, 0f, 1f); }
+    else if (ready) { txt = "PRET"; txtColor = new Color(1f, 1f, 1f, 1f); }
+    else { txt = "RECHARGE"; txtColor = new Color(1f, 0.7f, 0.7f, 1f); }
+    layout.setText(font, txt);
+    float tx = bx + (bs - layout.width) / 2f;
+    float ty = by + 22f;
+    font.setColor(0f, 0f, 0f, 0.8f);
+    font.draw(batch, txt, tx + 1f, ty + 1f);
+    font.setColor(txtColor);
+    font.draw(batch, txt, tx, ty);
+
+    font.getData().setScale(1.5f);
+    String sub;
+    if (active) sub = String.format("%.1fs", gs.autoAimTimer);
+    else if (ready) sub = "AIM";
+    else sub = String.format("%.1fs", gs.autoAimCooldown);
+    layout.setText(font, sub);
+    font.setColor(1f, 1f, 1f, 0.95f);
+    font.draw(batch, sub, bx + (bs - layout.width) / 2f, by + bs - 10f);
+    font.getData().setScale(2f);
+    font.setColor(Color.WHITE);
+    batch.end();
+}
+
+private void drawDashedH(float x1, float x2, float y, float thick, float dash, Color c) {
+    shapes.setColor(c);
+    float len = x2 - x1;
+    int count = (int) Math.max(1, len / dash);
+    float step = len / count;
+    for (int i = 0; i < count; i++) {
+        shapes.rect(x1 + i * step, y - thick / 2f, step * 0.6f, thick);
     }
 }
 
-private void updateEnemies(float delta) {
-    float normalSpeed = Math.min(80f + score * 1.5f, 200f);
-    for (int i = ennemis.size - 1; i >= 0; i--) {
-        Ennemi e = ennemis.get(i);
+private void drawDashedV(float x, float y1, float y2, float thick, float dash, Color c) {
+    shapes.setColor(c);
+    float len = Math.abs(y2 - y1);
+    float dir = (y2 > y1) ? 1f : -1f;
+    int count = (int) Math.max(1, len / dash);
+    float step = len / count;
+    for (int i = 0; i < count; i++) {
+        shapes.rect(x - thick / 2f, y1 + i * step * dir, thick, step * 0.6f);
+    }
+}
 
-        boolean frozen = e.stunned > 0f;
-        if (frozen) {
-            e.stunned -= delta;
-            if (Math.random() < 0.15f) {
-                particles.spawnLightning(e.pos.x, e.pos.y, 0f, 1);
-            }
+private void drawAutoAimVisual(GameScreen gs) {
+    if (gs.autoTarget == null) return;
+    if (gs.attention <= 0f) return;
+    if (gs.aimStick.active()) return;
+    if (!gs.autoAimActive) return;
+
+    Ennemi target = gs.autoTarget;
+
+    float cx = target.pos.x + gs.aimTrembleX;
+    float cy = target.pos.y + gs.aimTrembleY;
+
+    Color reticleColor;
+    if (gs.chargeLevel == 3) reticleColor = new Color(1f, 0.9f, 0.2f, 1f);
+    else if (gs.chargeLevel == 2) reticleColor = new Color(1f, 0.6f, 0.1f, 1f);
+    else reticleColor = new Color(1f, 0.25f, 0.25f, 0.95f);
+
+    float r = target.radius * 1.4f + 10f;
+    float len = 14f;
+    float thick = 4f;
+    float dash = 6f;
+
+    drawDashedH(cx - r, cx - r + len, cy + r, thick, dash, reticleColor);
+    drawDashedV(cx - r, cy + r, cy + r - len, thick, dash, reticleColor);
+    drawDashedH(cx + r - len, cx + r, cy + r, thick, dash, reticleColor);
+    drawDashedV(cx + r, cy + r, cy + r - len, thick, dash, reticleColor);
+    drawDashedH(cx - r, cx - r + len, cy - r, thick, dash, reticleColor);
+    drawDashedV(cx - r, cy - r, cy - r + len, thick, dash, reticleColor);
+    drawDashedH(cx + r - len, cx + r, cy - r, thick, dash, reticleColor);
+    drawDashedV(cx + r, cy - r, cy - r + len, thick, dash, reticleColor);
+
+    float tickLen = 6f;
+    drawDashedV(cx, cy + r + 2f, cy + r - tickLen, thick, dash, reticleColor);
+    drawDashedV(cx, cy - r - 2f, cy - r + tickLen, thick, dash, reticleColor);
+    drawDashedH(cx + r + 2f, cx + r - tickLen, cy, thick, dash, reticleColor);
+    drawDashedH(cx - r - 2f, cx - r + tickLen, cy, thick, dash, reticleColor);
+
+    shapes.setColor(reticleColor);
+    shapes.rect(cx - 2f, cy - 2f, 4f, 4f);
+
+    if (gs.aimStability < 1f) {
+        float barW = 60f;
+        float barH = 6f;
+        float barX = cx - barW / 2f;
+        float barY = cy - r - 18f;
+
+        shapes.setColor(0f, 0f, 0f, 0.75f);
+        shapes.rect(barX - 1f, barY - 1f, barW + 2f, barH + 2f);
+
+        Color barColor;
+        if (gs.aimStability > 0.66f) barColor = new Color(1f, 0.9f, 0.2f, 1f);
+        else if (gs.aimStability > 0.33f) barColor = new Color(1f, 0.6f, 0.1f, 1f);
+        else barColor = new Color(1f, 0.3f, 0.3f, 1f);
+
+        shapes.setColor(barColor);
+        shapes.rect(barX, barY, barW * gs.aimStability, barH);
+
+        shapes.setColor(0f, 0f, 0f, 0.6f);
+        shapes.rect(barX + barW * 0.33f, barY, 1.5f, barH);
+        shapes.rect(barX + barW * 0.66f, barY, 1.5f, barH);
+    }
+}
+
+private void drawTargetAcquiredText(GameScreen gs) {
+    if (gs.targetAcquiredTimer <= 0f) return;
+    if (gs.autoTarget == null) return;
+    if (!gs.autoAimActive) return;
+
+    float alpha = Math.min(1f, gs.targetAcquiredTimer * 2f);
+    if (gs.targetAcquiredTimer < 0.5f) {
+        alpha = gs.targetAcquiredTimer / 0.5f;
+    }
+
+    Ennemi target = gs.autoTarget;
+    float cx = target.pos.x;
+    float cy = target.pos.y + target.radius + 42f;
+
+    String txt = "Target acquired.";
+    font.getData().setScale(1.4f);
+    layout.setText(font, txt);
+    float tx = cx - layout.width / 2f;
+
+    font.setColor(0f, 0f, 0f, alpha * 0.9f);
+    font.draw(batch, txt, tx + 1.5f, cy + 1.5f);
+    font.draw(batch, txt, tx - 1.5f, cy + 1.5f);
+    font.draw(batch, txt, tx + 1.5f, cy - 1.5f);
+    font.draw(batch, txt, tx - 1.5f, cy - 1.5f);
+
+    font.setColor(1f, 0.85f, 0.2f, alpha);
+    font.draw(batch, txt, tx, cy);
+
+    font.getData().setScale(2f);
+    font.setColor(Color.WHITE);
+}
+
+private void drawXpBar(GameScreen gs) {
+    if (gs.xpSystem == null) return;
+    float bx = XP_BAR_X;
+    float by = XP_BAR_Y;
+    float bw = XP_BAR_W;
+    float bh = XP_BAR_H;
+    float ratio = gs.xpSystem.getProgress();
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
+    if (ratio > 0.66f) shapes.setColor(0.2f, 0.9f, 0.3f, 1f);
+    else if (ratio > 0.33f) shapes.setColor(1f, 0.85f, 0.2f, 1f);
+    else shapes.setColor(0.9f, 0.4f, 0.2f, 1f);
+    shapes.rect(bx, by, bw * ratio, bh);
+    shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by, 2f, bh);
+    shapes.rect(bx + bw, by, 2f, bh);
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.5f);
+    font.setColor(1f, 0.9f, 0.3f, 1f);
+    font.draw(batch, "Niv " + gs.xpSystem.level, bx, by + bh + 26f);
+    font.getData().setScale(1.2f);
+    font.setColor(1f, 1f, 1f, 1f);
+    String txt = gs.xpSystem.xp + " / " + gs.xpSystem.xpRequired;
+    layout.setText(font, txt);
+    font.draw(batch, txt, bx + bw - layout.width, by + bh + 22f);
+    font.getData().setScale(2f);
+    batch.end();
+}
+
+private void drawAttentionGauge(GameScreen gs) {
+    float bx = ATT_BAR_X;
+    float by = ATT_BAR_Y;
+    float bw = ATT_BAR_W;
+    float bh = ATT_BAR_H;
+    float ratio = gs.attention / GameScreen.ATTENTION_MAX;
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
+    Color col;
+    if (ratio > 0.5f) col = new Color(0.3f, 0.8f, 1f, 1f);
+    else if (ratio > 0.2f) col = new Color(1f, 0.8f, 0.2f, 1f);
+    else col = new Color(1f, 0.3f, 0.3f, 1f);
+    shapes.setColor(col);
+    shapes.rect(bx, by, bw * ratio, bh);
+    shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by, 2f, bh);
+    shapes.rect(bx + bw, by, 2f, bh);
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.1f);
+    font.setColor(1f, 1f, 1f, 1f);
+    font.draw(batch, "ATTENTION", bx + 4f, by + bh - 3f);
+    String val = ((int) gs.attention) + "";
+    layout.setText(font, val);
+    font.draw(batch, val, bx + bw - layout.width - 4f, by + bh - 3f);
+    font.getData().setScale(2f);
+    batch.end();
+}
+
+private void drawEnemyStunStars(Ennemi e) {
+    if (e.stunned <= 0f) return;
+    float cx = e.pos.x;
+    float cy = e.pos.y + e.size / 2f + 18f;
+    float radius = 18f;
+    float baseAngle = e.stunned * 6f;
+    for (int i = 0; i < 3; i++) {
+        float a = baseAngle + i * (MathUtils.PI2 / 3f);
+        float sx = cx + MathUtils.cos(a) * radius;
+        float sy = cy + MathUtils.sin(a) * radius * 0.5f;
+        shapes.setColor(1f, 0.9f, 0.2f, 0.9f);
+        shapes.circle(sx, sy, 5f, 10);
+        shapes.setColor(1f, 0.95f, 0.5f, 0.7f);
+        shapes.circle(sx, sy, 2.5f, 8);
+    }
+}
+
+private void drawDizzyStars(GameScreen gs) {
+    if (!gs.isStunned()) return;
+    float cx = gs.playerPos.x;
+    float cy = gs.playerPos.y + 50f;
+    float radius = 32f;
+    for (int i = 0; i < 4; i++) {
+        float angle = gs.dizzyTime * 3f + i * (MathUtils.PI2 / 4f);
+        float sx = cx + MathUtils.cos(angle) * radius;
+        float sy = cy + MathUtils.sin(angle) * radius * 0.5f;
+        shapes.setColor(1f, 0.9f, 0.2f, 0.9f);
+        shapes.circle(sx, sy, 6f, 12);
+        shapes.setColor(1f, 0.95f, 0.4f, 0.8f);
+        shapes.circle(sx, sy, 3f, 8);
+    }
+}
+    void draw(GameScreen gs) {
+        Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        gs.zoom.applyToCamera(camera, gs.playerPos.x, gs.playerPos.y, W, H);
+        camera.position.x += gs.shakeOffsetX;
+        camera.position.y += gs.shakeOffsetY;
+        camera.update();
+
+        viewport.apply();
+        shapes.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(camera.combined);
+
+        boolean playerVisible = !gs.gameOver
+                && (gs.invulnerable <= 0f || ((int) (gs.invulnerable * 10f)) % 2 == 0);
+
+        if (texSol != null) {
+            batch.begin();
+            batch.setColor(Color.WHITE);
+            drawTiled(texSol, 0f, 0f, W, H, FLOOR_TILE);
+            batch.end();
         }
 
-        if (e.hitPulse > 0f) e.hitPulse -= delta;
-        if (e.attackPulse > 0f) e.attackPulse -= delta;
-
-        if (!frozen && e.boss && e.fleeing) {
-            e.fleeTimer += delta;
-            e.pos.x -= 400f * delta;
-            e.pos.y += 250f * delta;
-            e.angle = 135f;
-
-            if (Math.random() < 0.4f) {
-                particles.spawnSmoke(e.pos.x, e.pos.y, 1);
-            }
-
-            if (e.fleeTimer > 2.5f || e.pos.x < -150f || e.pos.y > H + 150f) {
-                ennemis.removeIndex(i);
-                bossFledThisRun = true;
-                continue;
-            }
-            continue;
+        if (texSol == null || texMur == null) {
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            if (texSol == null) gs.dungeon.drawFloorColor(shapes);
+            if (texMur == null) gs.dungeon.drawWallsColor(shapes);
+            shapes.end();
         }
 
-        if (!frozen && e.boss && !e.fleeing && e.hp > 0 && e.hp <= e.maxHp * 0.2f) {
-            if (Math.random() < 0.5f * delta) {
-                e.fleeing = true;
-                e.fleeTimer = 0f;
-                bossFleeMessageTimer = 3.5f;
-                triggerShake();
-                triggerStun();
-                particles.spawnSmoke(e.pos.x, e.pos.y, 8);
-            }
-        }
-
-        if (!frozen && e.boss && !e.fleeing) {
-            float ratio = e.hp / (float) e.maxHp;
-            int newPhase = 1;
-            if (ratio > 0.66f) newPhase = 1;
-            else if (ratio > 0.33f) newPhase = 2;
-            else newPhase = 3;
-
-            if (newPhase > e.phase) {
-                e.phase = newPhase;
-                e.phaseChangeFlash = 1.0f;
-                bossPhaseMessage = newPhase;
-                bossPhaseMessageTimer = 2.5f;
-                triggerShake();
-                particles.spawnSmoke(e.pos.x, e.pos.y, 15);
-                particles.spawnBossExplosion(e.pos.x, e.pos.y,
-                        new Color(1f, 0.5f, 0.1f, 1f));
-            }
-
-            if (e.phaseChangeFlash > 0f) e.phaseChangeFlash -= delta;
-
-            if (e.phase >= 2) {
-                e.attackCooldown -= delta;
-                if (e.attackCooldown <= 0f) {
-                    float cd = (e.phase == 2)
-                            ? BOSS_ATTACK_COOLDOWN_PHASE_2
-                            : BOSS_ATTACK_COOLDOWN_PHASE_3;
-                    e.attackCooldown = cd;
-
-                    Vector2 dir = playerPos.cpy().sub(e.pos).nor();
-                    float baseAngle = dir.angleDeg();
-
-                    if (e.phase == 2) {
-                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
-                    } else {
-                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle - 20f);
-                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle);
-                        spawnBossProjectile(e.pos.x, e.pos.y, baseAngle + 20f);
-                    }
+        if (texMur != null || texPorte != null) {
+            batch.begin();
+            batch.setColor(Color.WHITE);
+            if (texMur != null) {
+                Array<Rectangle> solids = gs.dungeon.getSolids();
+                for (int i = 0; i < solids.size; i++) {
+                    Rectangle s = solids.get(i);
+                    float tile = Math.min(WALL_TILE, Math.min(s.width, s.height));
+                    drawTiled(texMur, s.x, s.y, s.width, s.height, tile);
                 }
             }
-
-            if (e.phase >= 3) {
-                e.spawnCooldown -= delta;
-                if (e.spawnCooldown <= 0f) {
-                    e.spawnCooldown = BOSS_SPAWN_COOLDOWN;
-                    for (int k = 0; k < 2; k++) {
-                        Ennemi sbire = new Ennemi();
-                        sbire.hp = getEnemyHp();
-                        sbire.maxHp = getEnemyHp();
-                        float ang = MathUtils.random(0f, 360f);
-                        float dist = MathUtils.random(80f, 150f);
-                        sbire.pos.set(
-                                MathUtils.clamp(e.pos.x + MathUtils.cosDeg(ang) * dist, 40f, W - 40f),
-                                MathUtils.clamp(e.pos.y + MathUtils.sinDeg(ang) * dist, 40f, H - 40f));
-                        ennemis.add(sbire);
-                        particles.spawnPoison(sbire.pos.x, sbire.pos.y, 3);
-                    }
-                }
+            if (texPorte != null) {
+                for (int d = 0; d < 4; d++) drawDoorTexture(gs, d);
             }
+            batch.setColor(Color.WHITE);
+            batch.end();
         }
 
-        if (!frozen) {
-            tmp.set(playerPos).sub(e.pos);
-            if (tmp.len2() > 0.001f) {
-                e.angle = tmp.angleDeg();
-                float spd;
-                if (e.boss) {
-                    if (e.phase == 1) spd = BOSS_SPEED_PHASE_1;
-                    else if (e.phase == 2) spd = BOSS_SPEED_PHASE_2;
-                    else spd = BOSS_SPEED_PHASE_3;
-                } else {
-                    spd = normalSpeed;
-                }
-                tmp.nor().scl(spd * delta);
-                e.pos.add(tmp);
-            }
+        if (texPorte == null) {
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            gs.dungeon.drawDoorsColor(shapes);
+            shapes.end();
         }
 
-        boolean mort = false;
-        float rr = e.radius + ARROW_RADIUS;
-        for (int j = fleches.size - 1; j >= 0; j--) {
-            if (fleches.get(j).fromEnemy) continue;
-            if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
-                int arrowDmg = fleches.get(j).damage;
-                fleches.removeIndex(j);
-                e.hp -= arrowDmg;
-                e.hitPulse = ENEMY_HIT_PULSE_DURATION;
-                damage.add(e.pos.x, e.pos.y + e.size / 2f, "-" + arrowDmg, false);
-
-                if (equippedWeapon != null && equippedWeapon.spriteName != null) {
-                    String s = equippedWeapon.spriteName;
-                    if (s.equals("bow_fire.png")) {
-                        particles.spawnFire(e.pos.x, e.pos.y, 4);
-                        particles.spawnSmoke(e.pos.x, e.pos.y, 2);
-                    } else if (s.equals("bow_ice.png")) {
-                        particles.spawnWater(e.pos.x, e.pos.y, 5);
-                    } else if (s.equals("bow_void.png")) {
-                        particles.spawnPoison(e.pos.x, e.pos.y, 6);
-                    } else if (s.equals("bow_legendary.png")) {
-                        particles.spawnFire(e.pos.x, e.pos.y, 3);
-                        particles.spawnLightning(e.pos.x, e.pos.y, e.angle + 180f, 2);
-                    } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
-                        particles.spawnLightning(e.pos.x, e.pos.y, e.angle + 180f, 3);
-                    } else {
-                        Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f)
-                                              : new Color(1f, 0.9f, 0.4f, 1f);
-                        particles.spawnHitSpark(e.pos.x, e.pos.y, spark);
-                    }
-                } else {
-                    Color spark = e.boss ? new Color(1f, 0.5f, 0.3f, 1f)
-                                          : new Color(1f, 0.9f, 0.4f, 1f);
-                    particles.spawnHitSpark(e.pos.x, e.pos.y, spark);
-                }
-
-                if (e.hp <= 0) {
-                    mort = true;
-                    break;
-                }
-            }
+        if (gs.chest != null) {
+            drawChest(gs.chest);
         }
-        if (mort) {
-            Color pcolor = e.boss ? new Color(0.9f, 0.2f, 0.2f, 1f)
-                                   : new Color(0.2f, 0.9f, 0.9f, 1f);
+
+        batch.begin();
+        batch.setColor(Color.WHITE);
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            Ennemi e = gs.ennemis.get(i);
+            Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
+            if (t == null) continue;
+
+            float scale = 1f;
+
             if (e.boss) {
-                particles.spawnBossExplosion(e.pos.x, e.pos.y, pcolor);
-                particles.spawnBlood(e.pos.x, e.pos.y, 30);
-                particles.spawnSmoke(e.pos.x, e.pos.y, 20);
-                triggerShake();
+                if (e.phase == 1) batch.setColor(bossTint);
+                else if (e.phase == 2) batch.setColor(bossTintPhase2);
+                else batch.setColor(bossTintPhase3);
             } else {
-                particles.spawnEnemyExplosion(e.pos.x, e.pos.y, pcolor);
-                particles.spawnBlood(e.pos.x, e.pos.y, 12);
-                particles.spawnSmoke(e.pos.x, e.pos.y, 5);
-            }
-            ennemis.removeIndex(i);
-            setScore(score + (e.boss ? BOSS_SCORE : 1));
-            xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
-            if (e.boss) {
-                if (currentFloor < TOTAL_FLOORS) {
-                    nextFloor();
-                    return;
-                } else {
-                    victory = true;
-                    endTimer = 0f;
-                }
-            }
-            continue;
-        }
-
-        float pr = e.ra    private void spawnBossProjectile(float x, float y, float angleDeg) {
-        Fleche p = new Fleche();
-        p.pos.set(x, y);
-        p.vel.set(MathUtils.cosDeg(angleDeg) * BOSS_PROJECTILE_SPEED,
-                MathUtils.sinDeg(angleDeg) * BOSS_PROJECTILE_SPEED);
-        p.angle = angleDeg;
-        p.fromEnemy = true;
-        p.life = 3f;
-        p.damage = 1;
-        fleches.add(p);
-        particles.spawnFire(x, y, 2);
-    }
-
-    private void updateWeaponDrops(float delta) {
-        for (int i = weaponDrops.size - 1; i >= 0; i--) {
-            if (!weaponDrops.get(i).update(delta)) {
-                weaponDrops.removeIndex(i);
-            }
-        }
-        for (int i = weaponDrops.size - 1; i >= 0; i--) {
-            WeaponDrop d = weaponDrops.get(i);
-            if (d.pos.dst2(playerPos) < 40f * 40f) {
-                equippedWeapon = d.weapon.copy();
-                weaponDrops.removeIndex(i);
-            }
-        }
-    }
-
-    private void updateChest(float delta) {
-        if (chest == null) return;
-        chest.update(delta);
-    }
-
-    private void hurtPlayer() {
-        setLives(lives - 1);
-        invulnerable = 1f;
-        hitFlash = HIT_FLASH_DURATION;
-        triggerShake();
-        triggerStun();
-        damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
-        particles.spawnHitSpark(playerPos.x, playerPos.y,
-                new Color(1f, 0.3f, 0.3f, 1f));
-        if (lives <= 0) {
-            gameOver = true;
-            endTimer = 0f;
-        }
-    }
-
-    private void enterRoom(Room room) {
-        fleches.clear();
-        ennemis.clear();
-        damage.clear();
-        if (!room.cleared) spawnRoomEnemies(room);
-    }
-
-    private void spawnRoomEnemies(Room room) {
-        if (room.boss) {
-            Ennemi b = new Ennemi();
-            b.boss = true;
-            b.hp = getBossHp();
-            b.maxHp = getBossHp();
-            b.radius = BOSS_RADIUS;
-            b.size = BOSS_SIZE;
-            b.phase = 1;
-            b.attackCooldown = BOSS_ATTACK_COOLDOWN_PHASE_2;
-            b.spawnCooldown = BOSS_SPAWN_COOLDOWN;
-            b.pos.set(W / 2f, H / 2f);
-            ennemis.add(b);
-        }
-        for (int i = 0; i < room.enemyCount; i++) {
-            Ennemi e = new Ennemi();
-            e.hp = getEnemyHp();
-            e.maxHp = getEnemyHp();
-            findSpawnPoint(e.pos, ENEMY_RADIUS);
-            ennemis.add(e);
-        }
-        if (ennemis.size == 0) dungeon.markCleared();
-    }
-
-    private void findSpawnPoint(Vector2 out, float radius) {
-        for (int i = 0; i < 40; i++) {
-            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
-            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
-            out.set(x, y);
-            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
-            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
-            return;
-        }
-        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
-                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
-    }
-
-    private void pollTouches() {
-        zoom.resetFrame();
-        newTouch = false;
-
-        for (int i = 0; i < MAX_POINTERS; i++) {
-            if (!Gdx.input.isTouched(i)) {
-                if (moveStick.pointer == i) moveStick.end();
-                if (aimStick.pointer == i) aimStick.end();
-                owner[i] = OWNER_NONE;
-                continue;
+                batch.setColor(Color.WHITE);
             }
 
-            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-            renderer.uiViewport.unproject(tmp);
-            float x = tmp.x;
-            float y = tmp.y;
+            if (e.fleeing) {
+                float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
+                batch.setColor(1f, 1f, 1f, alpha);
+            }
 
-            if (owner[i] == OWNER_NONE) {
-                if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
-                        && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
-                    if (autoAimActive) deactivateAutoAimPower();
-                    else if (isAutoAimReady()) activateAutoAimPower();
-                    newTouch = true;
-                    owner[i] = OWNER_IGNORED;
-                }
-                else if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
-                        && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
-                    if (isStunReady()) activateStunAbility();
-                    newTouch = true;
-                    owner[i] = OWNER_IGNORED;
-                }
-                else if (canInteractWithChest()
-                        && x >= OPEN_BTN_X && x <= OPEN_BTN_X + OPEN_BTN_W
-                        && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
-                    openChest();
-                    newTouch = true;
-                    owner[i] = OWNER_IGNORED;
-                }
-                else if (zoom.handleTouch(x, y)) {
-                    owner[i] = OWNER_ZOOM;
-                }
-                else {
-                    newTouch = true;
-                    if (x < W / 2f && !moveStick.active()) {
-                        owner[i] = OWNER_MOVE;
-                        moveStick.begin(i, x, y);
-                    } else if (x >= W / 2f && !aimStick.active()) {
-                        owner[i] = OWNER_AIM;
-                        aimStick.begin(i, x, y);
-                    } else {
-                        owner[i] = OWNER_IGNORED;
-                    }
-                }
-            } else if (owner[i] == OWNER_ZOOM) {
-                zoom.handleTouch(x, y);
-            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
-                moveStick.move(x, y);
-            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
-                aimStick.move(x, y);
+            if (e.boss && e.phaseChangeFlash > 0f) {
+                scale = 1f + 0.3f * (e.phaseChangeFlash);
+                batch.setColor(1f, 1f, 1f, 1f);
+            }
+
+            if (e.stunned > 0f) {
+                float alpha = 0.6f + 0.4f * (float) Math.sin(e.stunned * 20f);
+                batch.setColor(1f, 1f, 1f, alpha);
+            }
+
+            if (e.hitPulse > 0f) {
+                float pulsePct = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;
+                scale *= 1f + 0.5f * pulsePct;
+                float blink = (float) Math.sin(e.hitPulse * 60f);
+                if (blink > 0f) batch.setColor(1f, 1f, 1f, 1f);
+                else batch.setColor(1f, 0.2f, 0.2f, 1f);
+            }
+
+            if (e.attackPulse > 0f) {
+                float atkPct = e.attackPulse / GameScreen.ENEMY_ATTACK_PULSE_DURATION;
+                scale *= 1f + 0.35f * atkPct;
+                float greenVal = 0.5f + 0.5f * (1f - atkPct);
+                float blueVal = 0.5f + 0.5f * (1f - atkPct);
+                batch.setColor(1f, greenVal, blueVal, 1f);
+            }
+
+            drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
+                    e.angle + GameScreen.ENEMY_ROT);
+        }
+        batch.setColor(Color.WHITE);
+
+        for (int i = 0; i < gs.fleches.size; i++) {
+            Fleche f = gs.fleches.get(i);
+            if (f.fromEnemy) {
+                batch.end();
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(enemyProjectileColor);
+                shapes.circle(f.pos.x, f.pos.y, 9f, 16);
+                shapes.setColor(1f, 0.8f, 0.3f, 0.7f);
+                shapes.circle(f.pos.x, f.pos.y, 5f, 12);
+                shapes.end();
+                batch.begin();
+                batch.setColor(Color.WHITE);
+            } else if (texArrow != null) {
+                drawSprite(texArrow, f.pos.x, f.pos.y, GameScreen.ARROW_SIZE,
+                        f.angle + GameScreen.ARROW_ROT);
             }
         }
-    }
 
-    @Override
-    public void resize(int width, int height) {
-        if (renderer != null) renderer.resize(width, height);
-    }
+        if (texPlayer != null && playerVisible) {
+            float playerScale = 1f;
+            if (gs.playerRecoil > 0f) {
+                float pct = gs.playerRecoil / GameScreen.PLAYER_RECOIL_DURATION;
+                playerScale = 1f + 0.25f * pct;
+                float recoilOffset = -12f * pct;
+                float dx = -MathUtils.cosDeg(gs.facing) * recoilOffset;
+                float dy = -MathUtils.sinDeg(gs.facing) * recoilOffset;
+                drawSprite(texPlayer,
+                        gs.playerPos.x + dx,
+                        gs.playerPos.y + dy,
+                        GameScreen.PLAYER_SIZE * playerScale,
+                        gs.facing + GameScreen.PLAYER_ROT);
+            } else {
+                drawSprite(texPlayer, gs.playerPos.x, gs.playerPos.y,
+                        GameScreen.PLAYER_SIZE, gs.facing + GameScreen.PLAYER_ROT);
+            }
+        }
 
-    private void disposeResources() {
-        if (renderer != null) renderer.dispose();
-        renderer = null;
-        zoom = null;
-    }
+        drawTargetAcquiredText(gs);
+        gs.damage.draw(batch, font);
+        batch.end();
 
-    @Override
-    public void dispose() {
-        disposeResources();
-    }
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            Ennemi e = gs.ennemis.get(i);
+            boolean hasTex = e.boss ? (texBoss != null || texEnemy != null) : texEnemy != null;
+            if (!hasTex) {
+                if (e.boss) shapes.setColor(0.9f, 0.3f, 0.3f, 1f);
+                else shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
+                shapes.circle(e.pos.x, e.pos.y, e.radius, 24);
+            }
+            if (e.boss && !e.fleeing) {
+                float bw = 120f;
+                float bx = e.pos.x - bw / 2f;
+                float by = e.pos.y + e.size / 2f + 8f;
+                float frac = MathUtils.clamp(e.hp / (float) e.maxHp, 0f, 1f);
+                shapes.setColor(0.05f, 0.05f, 0.05f, 0.9f);
+                shapes.rect(bx - 2f, by - 2f, bw + 4f, 12f);
+                if (e.phase == 1) shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
+                else if (e.phase == 2) shapes.setColor(1f, 0.6f, 0.1f, 1f);
+                else shapes.setColor(1f, 0.2f, 0.9f, 1f);
+                shapes.rect(bx, by, bw * frac, 8f);
+            }
+        }
+        if (texArrow == null) {
+            shapes.setColor(1f, 0.9f, 0.3f, 1f);
+            for (int i = 0; i < gs.fleches.size; i++) {
+                Fleche f = gs.fleches.get(i);
+                if (!f.fromEnemy) {
+                    shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
+                }
+            }
+        }
+        if (texPlayer == null && playerVisible) {
+            shapes.setColor(1f, 0.4f, 0.7f, 1f);
+            shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
+        }
 
-    @Override
-    public void hide() {
-        disposeResources();
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            drawEnemyStunStars(gs.ennemis.get(i));
+        }
+
+        gs.particles.draw(shapes);
+        drawDizzyStars(gs);
+        drawAutoAimVisual(gs);
+        shapes.end();
+
+        for (int i = 0; i < gs.weaponDrops.size; i++) {
+            WeaponDrop d = gs.weaponDrops.get(i);
+            float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(d.weapon.rarity.colorWithAlpha(0.15f + 0.2f * pulse));
+            shapes.circle(d.pos.x, d.pos.y, 18f + 4f * pulse, 20);
+            shapes.end();
+
+            Texture t = loadDropTexture(d.weapon.spriteName);
+            if (t != null) {
+                batch.begin();
+                batch.setColor(Color.WHITE);
+                float w = 32f;
+                float h = 16f;
+                batch.draw(t, d.pos.x - w / 2f, d.pos.y - h / 2f, w, h);
+                batch.end();
+            }
+        }
+
+        uiViewport.apply();
+        shapes.setProjectionMatrix(uiCamera.combined);
+        batch.setProjectionMatrix(uiCamera.combined);
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
+        drawStick(gs.moveStick, 1f, 1f, 1f);
+        drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
+        shapes.end();
+
+        gs.zoom.draw(shapes, batch, font);
+
+        drawOpenButton(gs);
+        drawStunButton(gs);
+        drawAutoAimButton(gs);
+        drawXpBar(gs);
+        drawAttentionGauge(gs);
+
+        batch.begin();
+        font.setColor(Color.WHITE);
+        font.draw(batch, gs.scoreText, 20, H - 20);
+        font.draw(batch, gs.livesText, W - 160, H - 20);
+
+        font.getData().setScale(1.5f);
+        font.setColor(1f, 0.75f, 0.3f, 1f);
+        font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
+                W / 2f - 80f, H - 20);
+        font.getData().setScale(2f);
+        font.setColor(Color.WHITE);
+
+        if (gs.bossFleeMessageTimer > 0f) {
+            float alpha = Math.min(1f, gs.bossFleeMessageTimer);
+            font.getData().setScale(2.2f);
+            String fleeMsg = "LE CHAMPION S'ENFUIT !";
+            layout.setText(font, fleeMsg);
+            float msgX = W / 2f - layout.width / 2f;
+            float msgY = H / 2f + 80f;
+            font.setColor(0f, 0f, 0f, alpha * 0.8f);
+            font.draw(batch, fleeMsg, msgX + 3f, msgY - 3f);
+            font.setColor(1f, 0.3f, 0.3f, alpha);
+            font.draw(batch, fleeMsg, msgX, msgY);
+            font.getData().setScale(1.4f);
+            font.setColor(1f, 1f, 1f, alpha);
+            String subMsg = "Reviens le defier plus tard...";
+            layout.setText(font, subMsg);
+            font.draw(batch, subMsg, W / 2f - layout.width / 2f, msgY - 40f);
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        if (gs.bossPhaseMessageTimer > 0f) {
+            float alpha = Math.min(1f, gs.bossPhaseMessageTimer);
+            font.getData().setScale(3.2f);
+            String phaseMsg = "PHASE " + gs.bossPhaseMessage + " !";
+            layout.setText(font, phaseMsg);
+            float msgX = W / 2f - layout.width / 2f;
+            float msgY = H / 2f + 150f;
+            Color phaseColor;
+            if (gs.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
+            else phaseColor = new Color(1f, 0.2f, 0.9f, alpha);
+            font.setColor(0f, 0f, 0f, alpha * 0.8f);
+            font.draw(batch, phaseMsg, msgX + 4f, msgY - 4f);
+            font.setColor(phaseColor);
+            font.draw(batch, phaseMsg, msgX, msgY);
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        if (gs.floorBannerTimer > 0f) {
+            float alpha = Math.min(1f, gs.floorBannerTimer);
+            if (gs.floorBannerTimer < 1f) alpha = gs.floorBannerTimer;
+
+            font.getData().setScale(4f);
+            String banner = "ETAGE " + gs.currentFloor;
+            layout.setText(font, banner);
+            float bx = W / 2f - layout.width / 2f;
+            float by = H / 2f + 50f;
+
+            font.setColor(0f, 0f, 0f, alpha);
+            font.draw(batch, banner, bx + 4f, by + 4f);
+            font.draw(batch, banner, bx - 4f, by + 4f);
+            font.draw(batch, banner, bx + 4f, by - 4f);
+            font.draw(batch, banner, bx - 4f, by - 4f);
+
+            font.setColor(1f, 0.75f, 0.2f, alpha);
+            font.draw(batch, banner, bx, by);
+
+            font.getData().setScale(1.8f);
+            String sub = "Prepare-toi au combat...";
+            layout.setText(font, sub);
+            font.setColor(1f, 1f, 1f, alpha);
+            font.draw(batch, sub, W / 2f - layout.width / 2f, by - 50f);
+
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        if (gs.isStunned()) {
+            font.getData().setScale(1.8f);
+            font.setColor(1f, 0.9f, 0.3f, 0.9f);
+            String stunMsg = "ETOURDI !";
+            layout.setText(font, stunMsg);
+            font.draw(batch, stunMsg, W / 2f - layout.width / 2f, H / 2f - 100f);
+            font.getData().setScale(2f);
+            font.setColor(Color.WHITE);
+        }
+
+        if (gs.victory) {
+            font.setColor(1f, 0.85f, 0.2f, 1f);
+            font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
+            font.setColor(Color.WHITE);
+            font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
+        } else if (gs.gameOver) {
+            font.setColor(1f, 0.4f, 0.4f, 1f);
+            font.draw(batch, "GAME OVER", W / 2f - 100, H / 2f + 30);
+            font.setColor(Color.WHITE);
+            font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
+        }
+        batch.end();
+
+        if (gs.hitFlash > 0f) {
+            float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0f, 0f, alpha);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+            shapes.setColor(1f, 1f, 1f, 1f);
+        }
+
+        if (gs.isStunned()) {
+            float a = Math.min(0.35f, gs.stunTimer / GameScreen.STUN_DURATION * 0.35f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0.9f, 0.2f, a * 0.3f);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+            shapes.setColor(1f, 1f, 1f, 1f);
+        }
     }
 }
