@@ -597,7 +597,14 @@ private void update(float delta) {
     updateArrows(delta);
     updateEnemies(delta);
     updateWeaponDrops(delta);
-    updateChest(delta);
+    updateChest(delta);if (chest != null && !chest.opened) {
+    particles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 1f));
+}
+for (int i = 0; i < weaponDrops.size; i++) {
+    WeaponDrop wd = weaponDrops.get(i);
+    Color dropColor = wd.weapon.rarity.colorWithAlpha(1f);
+    particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
+    }
 
     boolean unlocked = bossFledThisRun || lives <= 0;
     if (elevator != null) {
