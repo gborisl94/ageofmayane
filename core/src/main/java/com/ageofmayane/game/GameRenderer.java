@@ -306,7 +306,36 @@ private void drawStunButton(GameScreen gs) {
     float by = GameScreen.GLITCH_BTN_Y;
     float bs = GameScreen.GLITCH_BTN_SIZE;
     boolean ready = gs.glitchCooldown <= 0f;
-    private void drawAutoAimButton(GameScreen gs) {
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
+    if (ready) shapes.setColor(0.2f, 0.9f, 1f, 0.95f);
+    else shapes.setColor(0.3f, 0.3f, 0.4f, 0.9f);
+    shapes.rect(bx, by, bs, bs);
+    if (!ready) {
+        float ratio = Math.max(0f, Math.min(1f, gs.glitchCooldown / GameScreen.GLITCH_COOLDOWN));
+        shapes.setColor(0.1f, 0.1f, 0.15f, 0.75f);
+        shapes.rect(bx, by + bs - bs * ratio, bs, bs * ratio);
+    }
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.2f);
+    String txt = "GLITCH";
+    layout.setText(font, txt);
+    font.setColor(1f, 1f, 1f, 1f);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + 22f);
+    String sub = ready ? "DASH" : String.format("%.1fs", gs.glitchCooldown);
+    layout.setText(font, sub);
+    font.setColor(ready ? new Color(0.2f, 0.1f, 0f, 1f) : new Color(1f, 0.7f, 0.7f, 1f));
+    font.draw(batch, sub, bx + (bs - layout.width) / 2f, by + bs - 10f);
+    font.getData().setScale(2f);
+    font.setColor(Color.WHITE);
+    batch.end();
+}
+
+private void drawAutoAimButton(GameScreen gs) {
     float bx = GameScreen.AIM_BTN_X;
     float by = GameScreen.AIM_BTN_Y;
     float bs = GameScreen.AIM_BTN_SIZE;
