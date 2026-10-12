@@ -192,9 +192,6 @@ private void drawChest(Chest c) {
     Texture t = c.opened ? texChestOpen : texChestClosed;
     float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
 
-    
-}
-
     if (t != null) {
         batch.begin();
         batch.setColor(Color.WHITE);
