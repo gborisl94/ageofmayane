@@ -583,6 +583,22 @@ private void drawEnemyStunStars(Ennemi e) {
     }
 }
 
+private void drawGlitchEffect(GameScreen gs) {
+    if (gs.glitchEffectTimer <= 0f) return;
+    float alpha = gs.glitchEffectTimer / 0.4f;
+    uiViewport.apply();
+    shapes.setProjectionMatrix(uiCamera.combined);
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    for (int i = 0; i < 10; i++) {
+        float by = MathUtils.random(0f, GameScreen.H);
+        float bh = MathUtils.random(4f, 22f);
+        float bx = MathUtils.random(-50f, 50f);
+        if (Math.random() < 0.5f) shapes.setColor(0.2f, 0.9f, 1f, alpha * 0.55f);
+        else shapes.setColor(1f, 0.2f, 0.9f, alpha * 0.55f);
+        shapes.rect(bx, by, GameScreen.W, bh);
+    }
+    shapes.end();
+}
 private void drawDizzyStars(GameScreen gs) {
     if (!gs.isStunned()) return;
     float cx = gs.playerPos.x;
