@@ -424,7 +424,7 @@ public void render(float delta) {
     update(delta);
     renderer.draw(this);
 
-    if (elevator != null && !floorTransitionPending) {
+    if (elevator != null && !floorTransitionPending && elevator.isUnlocked()) {
         uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
         uiShapes.begin(ShapeRenderer.ShapeType.Filled);
         elevator.render(uiShapes);
