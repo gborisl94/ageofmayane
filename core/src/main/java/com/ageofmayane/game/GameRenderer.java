@@ -192,12 +192,7 @@ private void drawChest(Chest c) {
     Texture t = c.opened ? texChestOpen : texChestClosed;
     float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
 
-    if (!c.opened) {
-    Color haloGold = new Color(1f, 0.85f, 0.2f, 1f);
-    c.haloTimer += Gdx.graphics.getDeltaTime();
-    if (c.haloTimer >= 0.1f) {
-        c.haloTimer = 0f;
-    }
+    
 }
 
     if (t != null) {
