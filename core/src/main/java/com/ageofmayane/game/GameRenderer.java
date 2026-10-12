@@ -143,7 +143,8 @@ class GameRenderer {
         texSol = null; texMur = null; texPorte = null;
         texChestClosed = null; texChestOpen = null;
         viewport = null; uiViewport = null; camera = null; uiCamera = null;
-    }private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
+    }
+private void drawSprite(Texture t, float cx, float cy, float h, float rotation) {
     float w = h * t.getWidth() / (float) t.getHeight();
     batch.draw(t, cx - w / 2f, cy - h / 2f, w / 2f, h / 2f, w, h,
             1f, 1f, rotation, 0, 0, t.getWidth(), t.getHeight(), false, false);
@@ -637,7 +638,8 @@ private void drawDizzyStars(GameScreen gs) {
         shapes.setColor(1f, 0.95f, 0.4f, 0.8f);
         shapes.circle(sx, sy, 3f, 8);
     }
-}    void draw(GameScreen gs) {
+}
+    void draw(GameScreen gs) {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_BLEND);
