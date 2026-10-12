@@ -8,6 +8,7 @@ class Fleche {
     float angle = 0f;
     float life = 1.5f;
     boolean fromEnemy = false;
+    int damage = 1;
 }
 
 class Ennemi {
