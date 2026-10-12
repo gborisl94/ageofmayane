@@ -1,6 +1,7 @@
 package com.ageofmayane.game;
 
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 
 class Fleche {
     final Vector2 pos = new Vector2();
@@ -19,18 +20,22 @@ class Ennemi {
     int maxHp = 1;
     float radius = GameScreen.ENEMY_RADIUS;
     float size = GameScreen.ENEMY_SIZE;
-
     boolean fleeing = false;
     float fleeTimer = 0f;
-
     int phase = 1;
     float attackCooldown = 0f;
     float spawnCooldown = 0f;
     float phaseChangeFlash = 0f;
-
     float stunned = 0f;
     float stunBase = 0f;
-
     float hitPulse = 0f;
     float attackPulse = 0f;
+
+    // --- AJOUTS POUR LA VENGEANCE ---
+    boolean berserker        = false;
+    int     shieldCharges    = 0;
+    int     vengeanceLevel   = 0;
+    Array<VengeanceBonus> vengeanceBonuses = null;
+    float   teleportTimer    = 0f;
+    float   summonTimer      = 0f;
 }
