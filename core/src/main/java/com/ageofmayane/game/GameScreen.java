@@ -152,7 +152,7 @@ public class GameScreen extends ScreenAdapter {
     private float fireTimer;
     private float endTimer;
 
-    // --- AJOUTS : VENGEANCE + ASCENSEUR ---
+    // --- VENGEANCE + ASCENSEUR ---
     private final VengeanceManager vengeance = VengeanceManager.get();
     Elevator elevator;
     ElevatorButton elevatorButton;
@@ -420,16 +420,13 @@ public class GameScreen extends ScreenAdapter {
         if (chargeLevel == CHARGE_LEVEL_3) return CHARGE_DMG_LVL3;
         if (chargeLevel == CHARGE_LEVEL_2) return CHARGE_DMG_LVL2;
         return CHARGE_DMG_LVL1;
-    }
-
-    @Override
+    }    @Override
     public void render(float delta) {
         if (renderer == null || zoom == null) return;
         if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
         update(delta);
         renderer.draw(this);
 
-        // --- Rendu ascenseur + bouton + transition ---
         if (elevator != null && !floorTransitionPending) {
             uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
             uiShapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -544,7 +541,7 @@ public class GameScreen extends ScreenAdapter {
         lastAutoTarget = autoTarget;
 
         boolean useManual = aimStick.dir.len() > DEAD_ZONE;
-        boolean autoAimUsable = autoAimActive && !useManual  && attention > 0f
+        boolean autoAimUsable = autoAimActive && !useManual && attention > 0f
                 && autoTarget != null && !stunned;
 
         if (!stunned && fireTimer <= 0f) {
@@ -707,7 +704,7 @@ public class GameScreen extends ScreenAdapter {
             if (!frozen && e.boss && !e.fleeing) {
                 if (e.vengeanceBonuses != null
                         && e.vengeanceBonuses.contains(VengeanceBonus.REGENERATOR, true)) {
-                    e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.01f * delta);
+                    e.hp = (int) Math.min(e.maxHp, e.hp + e.maxHp * 0.01f * delta);
                 }
                 if (e.vengeanceBonuses != null
                         && e.vengeanceBonuses.contains(VengeanceBonus.TELEPORTER, true)) {
@@ -887,8 +884,7 @@ public class GameScreen extends ScreenAdapter {
                     if (invulnerable <= 0f) hurtPlayer();
                     if (e.vengeanceBonuses != null
                             && e.vengeanceBonuses.contains(VengeanceBonus.VAMPIRIC, true)) {
-                        e.hp = Math.min(e.maxHp, e.hp + 3f);
-                    }
+                        e.hp = (int) Math.min(e.maxHp, e.hp + 3f)                    }
                     if (e.vengeanceBonuses != null
                             && e.vengeanceBonuses.contains(VengeanceBonus.FROZEN, true)) {
                         stunTimer = Math.max(stunTimer, 1.0f);
