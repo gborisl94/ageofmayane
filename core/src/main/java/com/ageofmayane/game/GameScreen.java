@@ -105,6 +105,8 @@ public class GameScreen extends ScreenAdapter {
     static final int CHARGE_DMG_LVL2 = 2;
     static final int CHARGE_DMG_LVL3 = 3;
 
+    static final int TOTAL_FLOORS = 3;
+
     private final Game game;
     private GameRenderer renderer;
 
@@ -156,6 +158,9 @@ public class GameScreen extends ScreenAdapter {
 
     float targetAcquiredTimer = 0f;
     Ennemi lastAutoTarget = null;
+
+    int currentFloor = 1;
+    float floorBannerTimer = 0f;
 
     private final Vector2 tmp = new Vector2();
     private final int[] owner = new int[MAX_POINTERS];
@@ -224,167 +229,229 @@ public class GameScreen extends ScreenAdapter {
         autoAimCooldown = 0f;
         targetAcquiredTimer = 0f;
         lastAutoTarget = null;
+        currentFloor = 1;
+        floorBannerTimer = 0f;
 
         chest = new Chest(W / 2f, H / 2f);
 
         Room cur = dungeon.getCurrent();
         if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
+    }private void setScore(int s) {
+    score = s;
+    scoreText = "Score : " + s;
+}
+
+private void setLives(int l) {
+    lives = l;
+    livesText = "Vies : " + l;
+}
+
+private void triggerShake() {
+    shakeTime = SHAKE_DURATION;
+}
+
+private void triggerStun() {
+    stunTimer = STUN_DURATION;
+}
+
+boolean isStunned() {
+    return stunTimer > 0f;
+}
+
+boolean isStunReady() {
+    return stunCooldown <= 0f;
+}
+
+float getStunCooldownRatio() {
+    if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
+    return Math.max(0f, Math.min(1f, stunCooldown / STUN_ABILITY_COOLDOWN));
+}
+
+boolean canInteractWithChest() {
+    if (chest == null || chest.opened) return false;
+    return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
+}
+
+private void openChest() {
+    if (chest == null || chest.opened) return;
+    chest.open();
+    Weapon loot = WeaponDatabase.randomChestLoot();
+    weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
+}
+
+/** HP des ennemis selon l'etage. */
+private int getEnemyHp() {
+    return ENEMY_HP + (currentFloor - 1);
+}
+
+/** HP du boss selon l'etage. */
+private int getBossHp() {
+    return BOSS_HP + (currentFloor - 1) * 10;
+}
+
+/** Passe a l'etage suivant (garde score, vies, XP). */
+private void nextFloor() {
+    currentFloor++;
+    floorBannerTimer = 3f;
+
+    dungeon.generate();
+
+    playerPos.set(W / 2f, H / 2f);
+    fleches.clear();
+    ennemis.clear();
+    weaponDrops.clear();
+    damage.clear();
+    particles.clear();
+    moveStick.end();
+    aimStick.end();
+    for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
+    facing = 0f;
+    fireTimer = 0f;
+    invulnerable = 2.5f;
+    hitFlash = 0f;
+    playerRecoil = 0f;
+    bossFleeMessageTimer = 0f;
+    bossPhaseMessageTimer = 0f;
+    bossPhaseMessage = 0;
+    shakeTime = 0f;
+    stunTimer = 0f;
+    stunCooldown = 0f;
+    dizzyTime = 0f;
+    bossFledThisRun = false;
+    endTimer = 0f;
+    gameOver = false;
+    victory = false;
+    attention = ATTENTION_MAX;
+    autoTarget = null;
+    aimStability = 0f;
+    targetAcquiredTimer = 0f;
+    lastAutoTarget = null;
+    chargeLevel = CHARGE_LEVEL_1;
+    autoAimActive = false;
+    autoAimTimer = 0f;
+    autoAimCooldown = 0f;
+
+    chest = new Chest(W / 2f, H / 2f);
+    Room cur = dungeon.getCurrent();
+    if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
+
+    triggerShake();
+    particles.spawnLightning(playerPos.x, playerPos.y, 0f, 12);
+}
+
+private void activateStunAbility() {
+    if (stunCooldown > 0f) return;
+    stunCooldown = STUN_ABILITY_COOLDOWN;
+
+    for (int i = 0; i < ennemis.size; i++) {
+        Ennemi e = ennemis.get(i);
+        if (e.pos.dst2(playerPos) < STUN_ABILITY_RADIUS * STUN_ABILITY_RADIUS) {
+            e.stunned = STUN_ABILITY_DURATION;
+            e.stunBase = STUN_ABILITY_DURATION;
+            particles.spawnLightning(e.pos.x, e.pos.y, 0f, 3);
+            particles.spawnSmoke(e.pos.x, e.pos.y, 2);
+        }
     }
 
-    private void setScore(int s) {
-        score = s;
-        scoreText = "Score : " + s;
+    for (int i = 0; i < 24; i++) {
+        float ang = i * (360f / 24f);
+        float x = playerPos.x + MathUtils.cosDeg(ang) * STUN_ABILITY_RADIUS;
+        float y = playerPos.y + MathUtils.sinDeg(ang) * STUN_ABILITY_RADIUS;
+        particles.spawnLightning(x, y, ang, 1);
     }
 
-    private void setLives(int l) {
-        lives = l;
-        livesText = "Vies : " + l;
+    triggerShake();
+}
+
+private void activateAutoAimPower() {
+    if (autoAimCooldown > 0f) return;
+    if (autoAimActive) return;
+    autoAimActive = true;
+    autoAimTimer = AUTO_AIM_DURATION;
+    aimStability = 0f;
+    particles.spawnLightning(playerPos.x, playerPos.y, 0f, 6);
+}
+
+private void deactivateAutoAimPower() {
+    if (!autoAimActive) return;
+    autoAimActive = false;
+    autoAimCooldown = AUTO_AIM_COOLDOWN * 0.5f;
+    autoAimTimer = 0f;
+}
+
+boolean isAutoAimReady() {
+    return !autoAimActive && autoAimCooldown <= 0f;
+}
+
+float getAutoAimDurationRatio() {
+    if (AUTO_AIM_DURATION <= 0f) return 0f;
+    return Math.max(0f, Math.min(1f, autoAimTimer / AUTO_AIM_DURATION));
+}
+
+float getAutoAimCooldownRatio() {
+    if (AUTO_AIM_COOLDOWN <= 0f) return 0f;
+    return Math.max(0f, Math.min(1f, autoAimCooldown / AUTO_AIM_COOLDOWN));
+}
+
+private Ennemi findNearestEnemy() {
+    Ennemi nearest = null;
+    float bestDist = AUTO_AIM_RANGE_SQ;
+    for (int i = 0; i < ennemis.size; i++) {
+        Ennemi e = ennemis.get(i);
+        if (e.hp <= 0) continue;
+        float d = e.pos.dst2(playerPos);
+        if (d < bestDist) {
+            bestDist = d;
+            nearest = e;
+        }
     }
+    return nearest;
+}
 
-    private void triggerShake() {
-        shakeTime = SHAKE_DURATION;
-    }
+private void fireAt(float angleDeg, int dmg) {
+    Fleche f = new Fleche();
+    f.pos.set(playerPos);
+    f.vel.set(MathUtils.cosDeg(angleDeg) * ARROW_SPEED,
+              MathUtils.sinDeg(angleDeg) * ARROW_SPEED);
+    f.angle = angleDeg;
+    f.fromEnemy = false;
+    f.damage = dmg;
+    fleches.add(f);
 
-    private void triggerStun() {
-        stunTimer = STUN_DURATION;
-    }
-
-    boolean isStunned() {
-        return stunTimer > 0f;
-    }
-
-    boolean isStunReady() {
-        return stunCooldown <= 0f;
-    }
-
-    float getStunCooldownRatio() {
-        if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
-        return Math.max(0f, Math.min(1f, stunCooldown / STUN_ABILITY_COOLDOWN));
-    }
-
-    boolean canInteractWithChest() {
-        if (chest == null || chest.opened) return false;
-        return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
-    }
-
-    private void openChest() {
-        if (chest == null || chest.opened) return;
-        chest.open();
-        Weapon loot = WeaponDatabase.randomChestLoot();
-        weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
-    }
-
-    private void activateStunAbility() {
-        if (stunCooldown > 0f) return;
-        stunCooldown = STUN_ABILITY_COOLDOWN;
-
-        for (int i = 0; i < ennemis.size; i++) {
-            Ennemi e = ennemis.get(i);
-            if (e.pos.dst2(playerPos) < STUN_ABILITY_RADIUS * STUN_ABILITY_RADIUS) {
-                e.stunned = STUN_ABILITY_DURATION;
-                e.stunBase = STUN_ABILITY_DURATION;
-                particles.spawnLightning(e.pos.x, e.pos.y, 0f, 3);
-                particles.spawnSmoke(e.pos.x, e.pos.y, 2);
+    if (equippedWeapon != null) {
+        String s = equippedWeapon.spriteName;
+        if (s != null) {
+            if (s.equals("bow_fire.png")) {
+                particles.spawnFire(playerPos.x, playerPos.y, 3);
+            } else if (s.equals("bow_ice.png")) {
+                particles.spawnWaterJet(playerPos.x, playerPos.y, angleDeg, 3);
+            } else if (s.equals("bow_void.png")) {
+                particles.spawnPoisonJet(playerPos.x, playerPos.y, angleDeg, 3);
+            } else if (s.equals("bow_legendary.png")) {
+                particles.spawnFire(playerPos.x, playerPos.y, 2);
+                particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
+            } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
+                particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
             }
         }
-
-        for (int i = 0; i < 24; i++) {
-            float ang = i * (360f / 24f);
-            float x = playerPos.x + MathUtils.cosDeg(ang) * STUN_ABILITY_RADIUS;
-            float y = playerPos.y + MathUtils.sinDeg(ang) * STUN_ABILITY_RADIUS;
-            particles.spawnLightning(x, y, ang, 1);
-        }
-
-        triggerShake();
     }
+}
 
-    private void activateAutoAimPower() {
-        if (autoAimCooldown > 0f) return;
-        if (autoAimActive) return;
-        autoAimActive = true;
-        autoAimTimer = AUTO_AIM_DURATION;
-        aimStability = 0f;
-        particles.spawnLightning(playerPos.x, playerPos.y, 0f, 6);
-    }
+private int getChargeDamage() {
+    if (chargeLevel == CHARGE_LEVEL_3) return CHARGE_DMG_LVL3;
+    if (chargeLevel == CHARGE_LEVEL_2) return CHARGE_DMG_LVL2;
+    return CHARGE_DMG_LVL1;
+}
 
-    private void deactivateAutoAimPower() {
-        if (!autoAimActive) return;
-        autoAimActive = false;
-        autoAimCooldown = AUTO_AIM_COOLDOWN * 0.5f;
-        autoAimTimer = 0f;
-    }
+@Override
+public void render(float delta) {
+    if (renderer == null || zoom == null) return;
+    if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
+    update(delta);
+    renderer.draw(this);
+}
 
-    boolean isAutoAimReady() {
-        return !autoAimActive && autoAimCooldown <= 0f;
-    }
-
-    float getAutoAimDurationRatio() {
-        if (AUTO_AIM_DURATION <= 0f) return 0f;
-        return Math.max(0f, Math.min(1f, autoAimTimer / AUTO_AIM_DURATION));
-    }
-
-    float getAutoAimCooldownRatio() {
-        if (AUTO_AIM_COOLDOWN <= 0f) return 0f;
-        return Math.max(0f, Math.min(1f, autoAimCooldown / AUTO_AIM_COOLDOWN));
-    }
-
-    private Ennemi findNearestEnemy() {
-        Ennemi nearest = null;
-        float bestDist = AUTO_AIM_RANGE_SQ;
-        for (int i = 0; i < ennemis.size; i++) {
-            Ennemi e = ennemis.get(i);
-            if (e.hp <= 0) continue;
-            float d = e.pos.dst2(playerPos);
-            if (d < bestDist) {
-                bestDist = d;
-                nearest = e;
-            }
-        }
-        return nearest;
-    }
-
-    private void fireAt(float angleDeg, int dmg) {
-        Fleche f = new Fleche();
-        f.pos.set(playerPos);
-        f.vel.set(MathUtils.cosDeg(angleDeg) * ARROW_SPEED,
-                  MathUtils.sinDeg(angleDeg) * ARROW_SPEED);
-        f.angle = angleDeg;
-        f.fromEnemy = false;
-        f.damage = dmg;
-        fleches.add(f);
-
-        if (equippedWeapon != null) {
-            String s = equippedWeapon.spriteName;
-            if (s != null) {
-                if (s.equals("bow_fire.png")) {
-                    particles.spawnFire(playerPos.x, playerPos.y, 3);
-                } else if (s.equals("bow_ice.png")) {
-                    particles.spawnWaterJet(playerPos.x, playerPos.y, angleDeg, 3);
-                } else if (s.equals("bow_void.png")) {
-                    particles.spawnPoisonJet(playerPos.x, playerPos.y, angleDeg, 3);
-                } else if (s.equals("bow_legendary.png")) {
-                    particles.spawnFire(playerPos.x, playerPos.y, 2);
-                    particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
-                } else if (s.equals("bow_fast.png") || s.equals("bow_triple.png")) {
-                    particles.spawnLightning(playerPos.x, playerPos.y, angleDeg, 2);
-                }
-            }
-        }
-    }
-
-    private int getChargeDamage() {
-        if (chargeLevel == CHARGE_LEVEL_3) return CHARGE_DMG_LVL3;
-        if (chargeLevel == CHARGE_LEVEL_2) return CHARGE_DMG_LVL2;
-        return CHARGE_DMG_LVL1;
-    }
-
-    @Override
-    public void render(float delta) {
-        if (renderer == null || zoom == null) return;
-        if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
-        update(delta);
-        renderer.draw(this);
-    }private void update(float delta) {
+private void update(float delta) {
     pollTouches();
     zoom.update(delta);
     damage.update(delta);
@@ -431,6 +498,7 @@ public class GameScreen extends ScreenAdapter {
     if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
     if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
     if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
+    if (floorBannerTimer > 0f) floorBannerTimer -= delta;
 
     boolean stunned = isStunned();
 
@@ -455,11 +523,9 @@ public class GameScreen extends ScreenAdapter {
         if (next != null) enterRoom(next);
     }
 
-    // TIR + AUTO-AIM
     fireTimer -= delta;
     autoTarget = findNearestEnemy();
 
-    // Detection du changement de cible pour le message "Target acquired"
     if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget) {
         targetAcquiredTimer = 1.5f;
     }
@@ -498,7 +564,6 @@ public class GameScreen extends ScreenAdapter {
         if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
     }
 
-    // STABILISATION DU VISUER
     boolean moving = moveStick.dir.len() > DEAD_ZONE;
 
     if (moving || !autoAimActive) {
@@ -604,7 +669,7 @@ private void updateEnemies(float delta) {
             continue;
         }
 
-        if (!frozen && e.boss && !e.fleeing && e.hp > 0 && e.hp <= BOSS_HP * 0.2f) {
+        if (!frozen && e.boss && !e.fleeing && e.hp > 0 && e.hp <= e.maxHp * 0.2f) {
             if (Math.random() < 0.5f * delta) {
                 e.fleeing = true;
                 e.fleeTimer = 0f;
@@ -662,8 +727,8 @@ private void updateEnemies(float delta) {
                     e.spawnCooldown = BOSS_SPAWN_COOLDOWN;
                     for (int k = 0; k < 2; k++) {
                         Ennemi sbire = new Ennemi();
-                        sbire.hp = ENEMY_HP;
-                        sbire.maxHp = ENEMY_HP;
+                        sbire.hp = getEnemyHp();
+                        sbire.maxHp = getEnemyHp();
                         float ang = MathUtils.random(0f, 360f);
                         float dist = MathUtils.random(80f, 150f);
                         sbire.pos.set(
@@ -752,78 +817,66 @@ private void updateEnemies(float delta) {
             setScore(score + (e.boss ? BOSS_SCORE : 1));
             xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
             if (e.boss) {
-                victory = true;
-                endTimer = 0f;
+                if (currentFloor < TOTAL_FLOORS) {
+                    nextFloor();
+                    return;
+                } else {
+                    victory = true;
+                    endTimer = 0f;
+                }
             }
             continue;
         }
 
-        float pr = e.radius + PLAYER_RADIUS;
-        if (!frozen && e.pos.dst2(playerPos) < pr * pr) {
-            e.attackPulse = ENEMY_ATTACK_PULSE_DURATION;
-            if (e.boss) {
-                if (invulnerable <= 0f) hurtPlayer();
-                tmp.set(e.pos).sub(playerPos);
-                if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
-                tmp.nor().scl(BOSS_KNOCKBACK);
-                e.pos.add(tmp);
-                e.pos.x = MathUtils.clamp(e.pos.x, Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
-                e.pos.y = MathUtils.clamp(e.pos.y, Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
-            } else {
-                ennemis.removeIndex(i);
-                if (invulnerable <= 0f) hurtPlayer();
+        float pr = e.ra    private void spawnBossProjectile(float x, float y, float angleDeg) {
+        Fleche p = new Fleche();
+        p.pos.set(x, y);
+        p.vel.set(MathUtils.cosDeg(angleDeg) * BOSS_PROJECTILE_SPEED,
+                MathUtils.sinDeg(angleDeg) * BOSS_PROJECTILE_SPEED);
+        p.angle = angleDeg;
+        p.fromEnemy = true;
+        p.life = 3f;
+        p.damage = 1;
+        fleches.add(p);
+        particles.spawnFire(x, y, 2);
+    }
+
+    private void updateWeaponDrops(float delta) {
+        for (int i = weaponDrops.size - 1; i >= 0; i--) {
+            if (!weaponDrops.get(i).update(delta)) {
+                weaponDrops.removeIndex(i);
+            }
+        }
+        for (int i = weaponDrops.size - 1; i >= 0; i--) {
+            WeaponDrop d = weaponDrops.get(i);
+            if (d.pos.dst2(playerPos) < 40f * 40f) {
+                equippedWeapon = d.weapon.copy();
+                weaponDrops.removeIndex(i);
             }
         }
     }
-}
 
-private void spawnBossProjectile(float x, float y, float angleDeg) {
-    Fleche p = new Fleche();
-    p.pos.set(x, y);
-    p.vel.set(MathUtils.cosDeg(angleDeg) * BOSS_PROJECTILE_SPEED,
-            MathUtils.sinDeg(angleDeg) * BOSS_PROJECTILE_SPEED);
-    p.angle = angleDeg;
-    p.fromEnemy = true;
-    p.life = 3f;
-    p.damage = 1;
-    fleches.add(p);
-    particles.spawnFire(x, y, 2);
-}
+    private void updateChest(float delta) {
+        if (chest == null) return;
+        chest.update(delta);
+    }
 
-private void updateWeaponDrops(float delta) {
-    for (int i = weaponDrops.size - 1; i >= 0; i--) {
-        if (!weaponDrops.get(i).update(delta)) {
-            weaponDrops.removeIndex(i);
+    private void hurtPlayer() {
+        setLives(lives - 1);
+        invulnerable = 1f;
+        hitFlash = HIT_FLASH_DURATION;
+        triggerShake();
+        triggerStun();
+        damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
+        particles.spawnHitSpark(playerPos.x, playerPos.y,
+                new Color(1f, 0.3f, 0.3f, 1f));
+        if (lives <= 0) {
+            gameOver = true;
+            endTimer = 0f;
         }
     }
-    for (int i = weaponDrops.size - 1; i >= 0; i--) {
-        WeaponDrop d = weaponDrops.get(i);
-        if (d.pos.dst2(playerPos) < 40f * 40f) {
-            equippedWeapon = d.weapon.copy();
-            weaponDrops.removeIndex(i);
-        }
-    }
-}
 
-private void updateChest(float delta) {
-    if (chest == null) return;
-    chest.update(delta);
-}
-
-private void hurtPlayer() {
-    setLives(lives - 1);
-    invulnerable = 1f;
-    hitFlash = HIT_FLASH_DURATION;
-    triggerShake();
-    triggerStun();
-    damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
-    particles.spawnHitSpark(playerPos.x, playerPos.y,
-            new Color(1f, 0.3f, 0.3f, 1f));
-    if (lives <= 0) {
-        gameOver = true;
-        endTimer = 0f;
-    }
-}    private void enterRoom(Room room) {
+    private void enterRoom(Room room) {
         fleches.clear();
         ennemis.clear();
         damage.clear();
@@ -834,8 +887,8 @@ private void hurtPlayer() {
         if (room.boss) {
             Ennemi b = new Ennemi();
             b.boss = true;
-            b.hp = BOSS_HP;
-            b.maxHp = BOSS_HP;
+            b.hp = getBossHp();
+            b.maxHp = getBossHp();
             b.radius = BOSS_RADIUS;
             b.size = BOSS_SIZE;
             b.phase = 1;
@@ -846,8 +899,8 @@ private void hurtPlayer() {
         }
         for (int i = 0; i < room.enemyCount; i++) {
             Ennemi e = new Ennemi();
-            e.hp = ENEMY_HP;
-            e.maxHp = ENEMY_HP;
+            e.hp = getEnemyHp();
+            e.maxHp = getEnemyHp();
             findSpawnPoint(e.pos, ENEMY_RADIUS);
             ennemis.add(e);
         }
@@ -885,7 +938,6 @@ private void hurtPlayer() {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                // Bouton AUTO-AIM
                 if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
                         && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
                     if (autoAimActive) deactivateAutoAimPower();
@@ -893,14 +945,12 @@ private void hurtPlayer() {
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 }
-                // Bouton STUN
                 else if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
                         && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
                     if (isStunReady()) activateStunAbility();
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 }
-                // Bouton OUVRIR
                 else if (canInteractWithChest()
                         && x >= OPEN_BTN_X && x <= OPEN_BTN_X + OPEN_BTN_W
                         && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
@@ -908,11 +958,9 @@ private void hurtPlayer() {
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 }
-                // Zoom
                 else if (zoom.handleTouch(x, y)) {
                     owner[i] = OWNER_ZOOM;
                 }
-                // Joysticks
                 else {
                     newTouch = true;
                     if (x < W / 2f && !moveStick.active()) {
