@@ -66,7 +66,6 @@ public class GameScreen extends ScreenAdapter {
     static final float STUN_BTN_X = W - STUN_BTN_SIZE - 30f;
     static final float STUN_BTN_Y = H - 460f;
 
-    // === POUVOIR AUTO-AIM ===
     static final float AIM_BTN_SIZE = 110f;
     static final float AIM_BTN_X = W - AIM_BTN_SIZE - 30f;
     static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
@@ -151,10 +150,12 @@ public class GameScreen extends ScreenAdapter {
 
     int chargeLevel = 1;
 
-    // Pouvoir auto-aim
-    boolean autoAimActive = false;      // true quand le pouvoir est en cours
-    float autoAimTimer = 0f;             // secondes restantes d'activation
-    float autoAimCooldown = 0f;          // secondes restantes de recharge
+    boolean autoAimActive = false;
+    float autoAimTimer = 0f;
+    float autoAimCooldown = 0f;
+
+    float targetAcquiredTimer = 0f;
+    Ennemi lastAutoTarget = null;
 
     private final Vector2 tmp = new Vector2();
     private final int[] owner = new int[MAX_POINTERS];
@@ -221,6 +222,8 @@ public class GameScreen extends ScreenAdapter {
         autoAimActive = false;
         autoAimTimer = 0f;
         autoAimCooldown = 0f;
+        targetAcquiredTimer = 0f;
+        lastAutoTarget = null;
 
         chest = new Chest(W / 2f, H / 2f);
 
@@ -295,22 +298,18 @@ public class GameScreen extends ScreenAdapter {
         triggerShake();
     }
 
-    /** Active le pouvoir auto-aim (si pret). */
     private void activateAutoAimPower() {
         if (autoAimCooldown > 0f) return;
         if (autoAimActive) return;
         autoAimActive = true;
         autoAimTimer = AUTO_AIM_DURATION;
-        // Reset stabilite pour recharger le viseur
         aimStability = 0f;
         particles.spawnLightning(playerPos.x, playerPos.y, 0f, 6);
     }
 
-    /** Desactive volontairement le pouvoir (cout reduit cooldown). */
     private void deactivateAutoAimPower() {
         if (!autoAimActive) return;
         autoAimActive = false;
-        // Cooldown reduit si on coupe manuellement (retour anticipe)
         autoAimCooldown = AUTO_AIM_COOLDOWN * 0.5f;
         autoAimTimer = 0f;
     }
@@ -408,11 +407,9 @@ public class GameScreen extends ScreenAdapter {
 
     if (stunCooldown > 0f) stunCooldown -= delta;
 
-    // ==================== GESTION DU POUVOIR AUTO-AIM ====================
     if (autoAimActive) {
         autoAimTimer -= delta;
         if (autoAimTimer <= 0f) {
-            // Fin naturelle du pouvoir
             autoAimActive = false;
             autoAimTimer = 0f;
             autoAimCooldown = AUTO_AIM_COOLDOWN;
@@ -433,6 +430,7 @@ public class GameScreen extends ScreenAdapter {
     if (playerRecoil > 0f) playerRecoil -= delta;
     if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
     if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
+    if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
 
     boolean stunned = isStunned();
 
@@ -457,9 +455,15 @@ public class GameScreen extends ScreenAdapter {
         if (next != null) enterRoom(next);
     }
 
-    // ==================== TIR + AUTO-AIM ====================
+    // TIR + AUTO-AIM
     fireTimer -= delta;
     autoTarget = findNearestEnemy();
+
+    // Detection du changement de cible pour le message "Target acquired"
+    if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget) {
+        targetAcquiredTimer = 1.5f;
+    }
+    lastAutoTarget = autoTarget;
 
     boolean useManual = aimStick.dir.len() > DEAD_ZONE;
     boolean autoAimUsable = autoAimActive
@@ -486,7 +490,6 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-    // Drain / Recharge de l'attention (uniquement quand le pouvoir est actif)
     if (autoAimUsable && fireTimer > 0f) {
         attention -= ATTENTION_DRAIN * delta;
         if (attention < 0f) attention = 0f;
@@ -495,7 +498,7 @@ public class GameScreen extends ScreenAdapter {
         if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
     }
 
-    // ==================== STABILISATION DU VISUER ====================
+    // STABILISATION DU VISUER
     boolean moving = moveStick.dir.len() > DEAD_ZONE;
 
     if (moving || !autoAimActive) {
@@ -512,7 +515,6 @@ public class GameScreen extends ScreenAdapter {
     else if (aimStability >= 0.33f) chargeLevel = CHARGE_LEVEL_2;
     else chargeLevel = CHARGE_LEVEL_1;
 
-    // Tremblement du viseur
     aimTrembleSeed += delta * 25f;
     float trembleAmt = (1f - aimStability) * AIM_TREMBLE_MAX;
     if (trembleAmt > 0.5f && autoAimActive) {
@@ -883,17 +885,11 @@ private void hurtPlayer() {
             float y = tmp.y;
 
             if (owner[i] == OWNER_NONE) {
-                // Bouton AUTO-AIM (pouvoir actif)
+                // Bouton AUTO-AIM
                 if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
                         && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
-                    if (autoAimActive) {
-                        // Tap pendant que le pouvoir est actif → desactivation anticipee
-                        deactivateAutoAimPower();
-                    } else if (isAutoAimReady()) {
-                        // Tap quand pret → activation
-                        activateAutoAimPower();
-                    }
-                    // Sinon (cooldown) → rien ne se passe
+                    if (autoAimActive) deactivateAutoAimPower();
+                    else if (isAutoAimReady()) activateAutoAimPower();
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 }
@@ -912,7 +908,7 @@ private void hurtPlayer() {
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 }
-                // Boutons zoom
+                // Zoom
                 else if (zoom.handleTouch(x, y)) {
                     owner[i] = OWNER_ZOOM;
                 }
