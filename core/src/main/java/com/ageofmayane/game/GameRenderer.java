@@ -803,6 +803,7 @@ private void drawDizzyStars(GameScreen gs) {
         gs.zoom.draw(shapes, batch, font);
         drawOpenButton(gs);
         drawStunButton(gs);
+        drawGlitchButton(gs)
         drawAutoAimButton(gs);
         drawXpBar(gs);
         drawAttentionGauge(gs);
