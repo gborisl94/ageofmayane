@@ -786,11 +786,7 @@ private void drawDizzyStars(GameScreen gs) {
         for (int i = 0; i < gs.weaponDrops.size; i++) {
             WeaponDrop d = gs.weaponDrops.get(i);
             float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            shapes.setColor(d.weapon.rarity.colorWithAlpha(0.15f + 0.2f * pulse));
-            shapes.circle(d.pos.x, d.pos.y, 18f + 4f * pulse, 20);
-            shapes.end();
-
+            // Halo géré dans GameScreen.update() via particles.spawnHalo()
             Texture t = loadDropTexture(d.weapon.spriteName);
             if (t != null) {
                 batch.begin();
