@@ -251,7 +251,6 @@ private void drawOpenButton(GameScreen g) {
     batch.end();
 }
 
-/** Bouton STUN avec indicateur de cooldown. */
 private void drawStunButton(GameScreen g) {
     float bx = GameScreen.STUN_BTN_X;
     float by = GameScreen.STUN_BTN_Y;
@@ -278,7 +277,6 @@ private void drawStunButton(GameScreen g) {
         shapes.rect(bx, by + bs - barH, bs, barH);
     }
 
-    // Eclair stylise
     if (ready) shapes.setColor(1f, 1f, 0.4f, 1f);
     else shapes.setColor(0.6f, 0.6f, 0.6f, 1f);
 
@@ -357,7 +355,6 @@ private void drawXpBar(GameScreen g) {
     batch.end();
 }
 
-/** Etoiles au-dessus d'un ennemi etourdi. */
 private void drawEnemyStunStars(Ennemi e) {
     if (e.stunned <= 0f) return;
     float cx = e.pos.x;
@@ -455,6 +452,7 @@ void draw(GameScreen g) {
         drawChest(g.chest);
     }
 
+    // ==================== ENNEMIS ====================
     batch.begin();
     batch.setColor(Color.WHITE);
     for (int i = 0; i < g.ennemis.size; i++) {
@@ -462,29 +460,64 @@ void draw(GameScreen g) {
         Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
         if (t == null) continue;
 
-        Color tint = Color.WHITE;
-        if (e.boss) {
-            if (e.phase == 1) tint = bossTint;
-            else if (e.phase == 2) tint = bossTintPhase2;
-            else tint = bossTintPhase3;
-        }
-        batch.setColor(tint);
+        float scale = 1f;
 
+        // Couleur de base selon la phase du boss
+        if (e.boss) {
+            if (e.phase == 1) batch.setColor(bossTint);
+            else if (e.phase == 2) batch.setColor(bossTintPhase2);
+            else batch.setColor(bossTintPhase3);
+        } else {
+            batch.setColor(Color.WHITE);
+        }
+
+        // Fleeing : fondu
         if (e.fleeing) {
             float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
             batch.setColor(1f, 1f, 1f, alpha);
         }
 
-        float scale = 1f;
+        // Flash au changement de phase du boss
         if (e.boss && e.phaseChangeFlash > 0f) {
             scale = 1f + 0.3f * (e.phaseChangeFlash);
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
-        // Effet visuel quand etourdi : legerement flou/transparent
+        // Stun : clignotement transparent
         if (e.stunned > 0f) {
             float alpha = 0.6f + 0.4f * (float) Math.sin(e.stunned * 20f);
             batch.setColor(1f, 1f, 1f, alpha);
+        }
+
+        // ==================== HIT PULSE ====================
+        // L'ennemi grossit + clignote quand il subit un degat
+        if (e.hitPulse > 0f) {
+            float t = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;   // 1 → 0
+
+            // GROSSISSEMENT : +50% au moment de l'impact, puis revient a 1
+            scale *= 1f + 0.5f * t;
+
+            // CLIGNOTEMENT : alternance rapide blanc / rouge fonce
+            // On utilise sin avec une frequence elevee pour clignoter ~20 fois/sec
+            float blink = (float) Math.sin(e.hitPulse * 60f);
+            if (blink > 0f) {
+                // Phase blanche
+                batch.setColor(1f, 1f, 1f, 1f);
+            } else {
+                // Phase rouge fonce
+                batch.setColor(1f, 0.2f, 0.2f, 1f);
+            }
+        }
+
+        // ==================== ATTACK PULSE ====================
+        if (e.attackPulse > 0f) {
+            float t = e.attackPulse / GameScreen.ENEMY_ATTACK_PULSE_DURATION;
+            scale *= 1f + 0.35f * t;
+            // Teinte rouge qui s'estompe
+            float r = 1f;
+            float g = 0.5f + 0.5f * (1f - t);
+            float b = 0.5f + 0.5f * (1f - t);
+            batch.setColor(r, g, b, 1f);
         }
 
         drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
@@ -492,6 +525,7 @@ void draw(GameScreen g) {
     }
     batch.setColor(Color.WHITE);
 
+    // Projectiles
     for (int i = 0; i < g.fleches.size; i++) {
         Fleche f = g.fleches.get(i);
         if (f.fromEnemy) {
@@ -510,8 +544,24 @@ void draw(GameScreen g) {
         }
     }
 
+    // ==================== JOUEUR ====================
     if (texPlayer != null && playerVisible) {
-        drawSprite(texPlayer, g.playerPos.x, g.playerPos.y, GameScreen.PLAYER_SIZE,
+        float playerScale = 1f;
+        float recoilOffset = 0f;
+        if (g.playerRecoil > 0f) {
+            float t = g.playerRecoil / GameScreen.PLAYER_RECOIL_DURATION;
+            playerScale = 1f + 0.25f * t;
+            recoilOffset = -12f * t;
+        }
+        float dx = 0f, dy = 0f;
+        if (g.playerRecoil > 0f) {
+            dx = -MathUtils.cosDeg(g.facing) * recoilOffset;
+            dy = -MathUtils.sinDeg(g.facing) * recoilOffset;
+        }
+        drawSprite(texPlayer,
+                g.playerPos.x + dx,
+                g.playerPos.y + dy,
+                GameScreen.PLAYER_SIZE * playerScale,
                 g.facing + GameScreen.PLAYER_ROT);
     }
 
@@ -603,7 +653,6 @@ void draw(GameScreen g) {
         font.draw(batch, g.scoreText, 20, H - 20);
         font.draw(batch, g.livesText, W - 160, H - 20);
 
-        // Message "Le champion s'enfuit !"
         if (g.bossFleeMessageTimer > 0f) {
             float alpha = Math.min(1f, g.bossFleeMessageTimer);
             font.getData().setScale(2.2f);
@@ -627,7 +676,6 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
-        // Message "PHASE X !"
         if (g.bossPhaseMessageTimer > 0f) {
             float alpha = Math.min(1f, g.bossPhaseMessageTimer);
             font.getData().setScale(3.2f);
@@ -649,7 +697,6 @@ void draw(GameScreen g) {
             font.setColor(Color.WHITE);
         }
 
-        // Message "ETOURDI !"
         if (g.isStunned()) {
             font.getData().setScale(1.8f);
             font.setColor(1f, 0.9f, 0.3f, 0.9f);
@@ -673,7 +720,6 @@ void draw(GameScreen g) {
         }
         batch.end();
 
-        // FLASH ROUGE
         if (g.hitFlash > 0f) {
             float alpha = Math.min(0.55f, g.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -687,7 +733,6 @@ void draw(GameScreen g) {
             shapes.setColor(1f, 1f, 1f, 1f);
         }
 
-        // VIGNETTE JAUNE pendant le stun du joueur
         if (g.isStunned()) {
             float a = Math.min(0.35f, g.stunTimer / GameScreen.STUN_DURATION * 0.35f);
             Gdx.gl.glEnable(GL20.GL_BLEND);
