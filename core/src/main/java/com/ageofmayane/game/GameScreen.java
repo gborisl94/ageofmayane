@@ -1132,11 +1132,16 @@ private void updateEnemies(float delta) {
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
                 } else if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
-                        && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
-                    if (isStunReady()) activateStunAbility();
-                    newTouch = true;
-                    owner[i] = OWNER_IGNORED;
-                } else if (canInteractWithChest() && x >= OPEN_BTN_X
+        && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
+    if (isStunReady()) activateStunAbility();
+    newTouch = true;
+    owner[i] = OWNER_IGNORED;
+} else if (x >= GLITCH_BTN_X && x <= GLITCH_BTN_X + GLITCH_BTN_SIZE
+        && y >= GLITCH_BTN_Y && y <= GLITCH_BTN_Y + GLITCH_BTN_SIZE) {
+    if (glitchCooldown <= 0f) activateGlitchDash();
+    newTouch = true;
+    owner[i] = OWNER_IGNORED;
+} else if (canInteractWithChest() && x >= OPEN_BTN_X
                         && x <= OPEN_BTN_X + OPEN_BTN_W
                         && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
                     openChest();
