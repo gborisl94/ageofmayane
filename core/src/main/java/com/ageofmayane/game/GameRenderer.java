@@ -301,7 +301,12 @@ private void drawStunButton(GameScreen gs) {
     batch.end();
 }
 
-private void drawAutoAimButton(GameScreen gs) {
+    private void drawGlitchButton(GameScreen gs) {
+    float bx = GameScreen.GLITCH_BTN_X;
+    float by = GameScreen.GLITCH_BTN_Y;
+    float bs = GameScreen.GLITCH_BTN_SIZE;
+    boolean ready = gs.glitchCooldown <= 0f;
+    private void drawAutoAimButton(GameScreen gs) {
     float bx = GameScreen.AIM_BTN_X;
     float by = GameScreen.AIM_BTN_Y;
     float bs = GameScreen.AIM_BTN_SIZE;
