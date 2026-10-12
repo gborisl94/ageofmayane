@@ -190,7 +190,6 @@ private void drawStick(Stick s, float r, float g, float b) {
 
 private void drawChest(Chest c) {
     Texture t = c.opened ? texChestOpen : texChestClosed;
-    float pulse = c.opened ? 0f : (0.5f + 0.5f * MathUtils.sin(c.pulseTime * 3f));
 
     if (t != null) {
         batch.begin();
@@ -227,25 +226,6 @@ private void drawOpenButton(GameScreen gs) {
     shapes.setColor(0.85f, 0.65f, 0.15f, 0.95f);
     shapes.rect(bx, by, bw, bh);
     shapes.end();
-
-    batch.begin();
-    font.getData().setScale(1.5f);
-    font.setColor(1f, 1f, 1f, 1f);
-    String txt = "OUVRIR";
-    layout.setText(font, txt);
-    float tx = bx + (bw - layout.width) / 2f;
-    float ty = by + bh * 0.7f;
-    font.draw(batch, txt, tx, ty);
-
-    String txt2 = "LE COFFRE";
-    layout.setText(font, txt2);
-    float tx2 = bx + (bw - layout.width) / 2f;
-    float ty2 = by + bh * 0.35f;
-    font.draw(batch, txt2, tx2, ty2);
-    font.getData().setScale(2f);
-    batch.end();
-}
-
 private void drawStunButton(GameScreen gs) {
     float bx = GameScreen.STUN_BTN_X;
     float by = GameScreen.STUN_BTN_Y;
@@ -380,6 +360,7 @@ private void drawAutoAimButton(GameScreen gs) {
     font.setColor(Color.WHITE);
     batch.end();
 }
+
 private void drawDashedH(float x1, float x2, float y, float thick, float dash, Color c) {
     shapes.setColor(c);
     float len = x2 - x1;
@@ -462,6 +443,23 @@ private void drawAutoAimVisual(GameScreen gs) {
     }
 }
 
+    batch.begin();
+    font.getData().setScale(1.5f);
+    font.setColor(1f, 1f, 1f, 1f);
+    String txt = "OUVRIR";
+    layout.setText(font, txt);
+    float tx = bx + (bw - layout.width) / 2f;
+    float ty = by + bh * 0.7f;
+    font.draw(batch, txt, tx, ty);
+
+    String txt2 = "LE COFFRE";
+    layout.setText(font, txt2);
+    float tx2 = bx + (bw - layout.width) / 2f;
+    float ty2 = by + bh * 0.35f;
+    font.draw(batch, txt2, tx2, ty2);
+    font.getData().setScale(2f);
+    batch.end();
+}
 private void drawTargetAcquiredText(GameScreen gs) {
     if (gs.targetAcquiredTimer <= 0f) return;
     if (gs.autoTarget == null) return;
@@ -591,348 +589,5 @@ private void drawDizzyStars(GameScreen gs) {
         shapes.circle(sx, sy, 6f, 12);
         shapes.setColor(1f, 0.95f, 0.4f, 0.8f);
         shapes.circle(sx, sy, 3f, 8);
-    }
-}
-    void draw(GameScreen gs) {
-        Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
-        gs.zoom.applyToCamera(camera, gs.playerPos.x, gs.playerPos.y, W, H);
-        camera.position.x += gs.shakeOffsetX;
-        camera.position.y += gs.shakeOffsetY;
-        camera.update();
-
-        viewport.apply();
-        shapes.setProjectionMatrix(camera.combined);
-        batch.setProjectionMatrix(camera.combined);
-
-        boolean playerVisible = !gs.gameOver
-                && (gs.invulnerable <= 0f || ((int) (gs.invulnerable * 10f)) % 2 == 0);
-
-        if (texSol != null) {
-            batch.begin();
-            batch.setColor(Color.WHITE);
-            drawTiled(texSol, 0f, 0f, W, H, FLOOR_TILE);
-            batch.end();
-        }
-
-        if (texSol == null || texMur == null) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            if (texSol == null) gs.dungeon.drawFloorColor(shapes);
-            if (texMur == null) gs.dungeon.drawWallsColor(shapes);
-            shapes.end();
-        }
-
-        if (texMur != null || texPorte != null) {
-            batch.begin();
-            batch.setColor(Color.WHITE);
-            if (texMur != null) {
-                Array<Rectangle> solids = gs.dungeon.getSolids();
-                for (int i = 0; i < solids.size; i++) {
-                    Rectangle s = solids.get(i);
-                    float tile = Math.min(WALL_TILE, Math.min(s.width, s.height));
-                    drawTiled(texMur, s.x, s.y, s.width, s.height, tile);
-                }
-            }
-            if (texPorte != null) {
-                for (int d = 0; d < 4; d++) drawDoorTexture(gs, d);
-            }
-            batch.setColor(Color.WHITE);
-            batch.end();
-        }
-
-        if (texPorte == null) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            gs.dungeon.drawDoorsColor(shapes);
-            shapes.end();
-        }
-
-        if (gs.chest != null) drawChest(gs.chest);
-
-        batch.begin();
-        batch.setColor(Color.WHITE);
-        for (int i = 0; i < gs.ennemis.size; i++) {
-            Ennemi e = gs.ennemis.get(i);
-            Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
-            if (t == null) continue;
-            float scale = 1f;
-            if (e.boss) {
-                if (e.phase == 1) batch.setColor(bossTint);
-                else if (e.phase == 2) batch.setColor(bossTintPhase2);
-                else batch.setColor(bossTintPhase3);
-            } else batch.setColor(Color.WHITE);
-
-            if (e.fleeing) {
-                float alpha = Math.max(0f, 1f - e.fleeTimer / 2.5f);
-                batch.setColor(1f, 1f, 1f, alpha);
-            }
-            if (e.boss && e.phaseChangeFlash > 0f) {
-                scale = 1f + 0.3f * (e.phaseChangeFlash);
-                batch.setColor(1f, 1f, 1f, 1f);
-            }
-            if (e.stunned > 0f) {
-                float alpha = 0.6f + 0.4f * (float) Math.sin(e.stunned * 20f);
-                batch.setColor(1f, 1f, 1f, alpha);
-            }
-            if (e.hitPulse > 0f) {
-                float pulsePct = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;
-                scale *= 1f + 0.5f * pulsePct;
-                float blink = (float) Math.sin(e.hitPulse * 60f);
-                if (blink > 0f) batch.setColor(1f, 1f, 1f, 1f);
-                else batch.setColor(1f, 0.2f, 0.2f, 1f);
-            }
-            if (e.attackPulse > 0f) {
-                float atkPct = e.attackPulse / GameScreen.ENEMY_ATTACK_PULSE_DURATION;
-                scale *= 1f + 0.35f * atkPct;
-                float greenVal = 0.5f + 0.5f * (1f - atkPct);
-                float blueVal = 0.5f + 0.5f * (1f - atkPct);
-                batch.setColor(1f, greenVal, blueVal, 1f);
-            }
-            drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
-                    e.angle + GameScreen.ENEMY_ROT);
-        }
-        batch.setColor(Color.WHITE);
-
-        for (int i = 0; i < gs.fleches.size; i++) {
-            Fleche f = gs.fleches.get(i);
-            if (f.fromEnemy) {
-                batch.end();
-                shapes.begin(ShapeRenderer.ShapeType.Filled);
-                shapes.setColor(enemyProjectileColor);
-                shapes.circle(f.pos.x, f.pos.y, 9f, 16);
-                shapes.setColor(1f, 0.8f, 0.3f, 0.7f);
-                shapes.circle(f.pos.x, f.pos.y, 5f, 12);
-                shapes.end();
-                batch.begin();
-                batch.setColor(Color.WHITE);
-            } else if (texArrow != null) {
-                drawSprite(texArrow, f.pos.x, f.pos.y, GameScreen.ARROW_SIZE,
-                        f.angle + GameScreen.ARROW_ROT);
-            }
-        }
-
-        if (texPlayer != null && playerVisible) {
-            float playerScale = 1f;
-            if (gs.playerRecoil > 0f) {
-                float pct = gs.playerRecoil / GameScreen.PLAYER_RECOIL_DURATION;
-                playerScale = 1f + 0.25f * pct;
-                float recoilOffset = -12f * pct;
-                float dx = -MathUtils.cosDeg(gs.facing) * recoilOffset;
-                float dy = -MathUtils.sinDeg(gs.facing) * recoilOffset;
-                drawSprite(texPlayer, gs.playerPos.x + dx, gs.playerPos.y + dy,
-                        GameScreen.PLAYER_SIZE * playerScale,
-                        gs.facing + GameScreen.PLAYER_ROT);
-            } else {
-                drawSprite(texPlayer, gs.playerPos.x, gs.playerPos.y,
-                        GameScreen.PLAYER_SIZE, gs.facing + GameScreen.PLAYER_ROT);
-            }
-        }
-
-        drawTargetAcquiredText(gs);
-        gs.damage.draw(batch, font);
-        batch.end();
-
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int i = 0; i < gs.ennemis.size; i++) {
-            Ennemi e = gs.ennemis.get(i);
-            boolean hasTex = e.boss ? (texBoss != null || texEnemy != null) : texEnemy != null;
-            if (!hasTex) {
-                if (e.boss) shapes.setColor(0.9f, 0.3f, 0.3f, 1f);
-                else shapes.setColor(0.2f, 0.9f, 0.9f, 1f);
-                shapes.circle(e.pos.x, e.pos.y, e.radius, 24);
-            }
-            if (e.boss && !e.fleeing) {
-                float bw = 120f;
-                float bx = e.pos.x - bw / 2f;
-                float by = e.pos.y + e.size / 2f + 8f;
-                float frac = MathUtils.clamp(e.hp / (float) e.maxHp, 0f, 1f);
-                shapes.setColor(0.05f, 0.05f, 0.05f, 0.9f);
-                shapes.rect(bx - 2f, by - 2f, bw + 4f, 12f);
-                if (e.phase == 1) shapes.setColor(0.85f, 0.1f, 0.1f, 1f);
-                else if (e.phase == 2) shapes.setColor(1f, 0.6f, 0.1f, 1f);
-                else shapes.setColor(1f, 0.2f, 0.9f, 1f);
-                shapes.rect(bx, by, bw * frac, 8f);
-            }
-        }
-        if (texArrow == null) {
-            shapes.setColor(1f, 0.9f, 0.3f, 1f);
-            for (int i = 0; i < gs.fleches.size; i++) {
-                Fleche f = gs.fleches.get(i);
-                if (!f.fromEnemy) shapes.circle(f.pos.x, f.pos.y, GameScreen.ARROW_RADIUS, 10);
-            }
-        }
-        if (texPlayer == null && playerVisible) {
-            shapes.setColor(1f, 0.4f, 0.7f, 1f);
-            shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
-        }
-
-        for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
-
-        gs.particles.draw(shapes);
-        drawDizzyStars(gs);
-        drawAutoAimVisual(gs);
-        shapes.end();
-
-        for (int i = 0; i < gs.weaponDrops.size; i++) {
-            WeaponDrop d = gs.weaponDrops.get(i);
-            float pulse = 0.5f + 0.5f * MathUtils.sin(d.pulseTime * 6f);
-            // Halo géré dans GameScreen.update() via particles.spawnHalo()
-            Texture t = loadDropTexture(d.weapon.spriteName);
-            if (t != null) {
-                batch.begin();
-                batch.setColor(Color.WHITE);
-                float w = 32f;
-                float h = 16f;
-                batch.draw(t, d.pos.x - w / 2f, d.pos.y - h / 2f, w, h);
-                batch.end();
-            }
-        }
-
-        uiViewport.apply();
-        shapes.setProjectionMatrix(uiCamera.combined);
-        batch.setProjectionMatrix(uiCamera.combined);
-
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
-        drawStick(gs.moveStick, 1f, 1f, 1f);
-        drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
-        shapes.end();
-
-        gs.zoom.draw(shapes, batch, font);
-        drawOpenButton(gs);
-        drawStunButton(gs);
-        drawAutoAimButton(gs);
-        drawXpBar(gs);
-        drawAttentionGauge(gs);
-
-        batch.begin();
-        font.setColor(Color.WHITE);
-        font.draw(batch, gs.scoreText, 20, H - 20);
-        font.draw(batch, gs.livesText, W - 160, H - 20);
-
-        font.getData().setScale(1.5f);
-        font.setColor(1f, 0.75f, 0.3f, 1f);
-        font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
-                W / 2f - 80f, H - 20);
-        font.getData().setScale(2f);
-        font.setColor(Color.WHITE);
-
-        if (gs.bossFleeMessageTimer > 0f) {
-            float alpha = Math.min(1f, gs.bossFleeMessageTimer);
-            font.getData().setScale(2.2f);
-            String fleeMsg = "LE CHAMPION S'ENFUIT !";
-            layout.setText(font, fleeMsg);
-            float msgX = W / 2f - layout.width / 2f;
-            float msgY = H / 2f + 80f;
-            font.setColor(0f, 0f, 0f, alpha * 0.8f);
-            font.draw(batch, fleeMsg, msgX + 3f, msgY - 3f);
-            font.setColor(1f, 0.3f, 0.3f, alpha);
-            font.draw(batch, fleeMsg, msgX, msgY);
-            font.getData().setScale(1.4f);
-            font.setColor(1f, 1f, 1f, alpha);
-            String subMsg = "Reviens le defier plus tard...";
-            layout.setText(font, subMsg);
-            font.draw(batch, subMsg, W / 2f - layout.width / 2f, msgY - 40f);
-            font.getData().setScale(2f);
-            font.setColor(Color.WHITE);
-        }
-
-        if (gs.bossPhaseMessageTimer > 0f) {
-            float alpha = Math.min(1f, gs.bossPhaseMessageTimer);
-            font.getData().setScale(3.2f);
-            String phaseMsg = "PHASE " + gs.bossPhaseMessage + " !";
-            layout.setText(font, phaseMsg);
-            float msgX = W / 2f - layout.width / 2f;
-            float msgY = H / 2f + 150f;
-            Color phaseColor;
-            if (gs.bossPhaseMessage == 2) phaseColor = new Color(1f, 0.6f, 0.1f, alpha);
-            else phaseColor = new Color(1f, 0.2f, 0.9f, alpha);
-            font.setColor(0f, 0f, 0f, alpha * 0.8f);
-            font.draw(batch, phaseMsg, msgX + 4f, msgY - 4f);
-            font.setColor(phaseColor);
-            font.draw(batch, phaseMsg, msgX, msgY);
-            font.getData().setScale(2f);
-            font.setColor(Color.WHITE);
-        }
-
-        if (gs.floorBannerTimer > 0f) {
-            float alpha = Math.min(1f, gs.floorBannerTimer);
-            if (gs.floorBannerTimer < 1f) alpha = gs.floorBannerTimer;
-
-            font.getData().setScale(4f);
-            String banner = "ETAGE " + gs.currentFloor;
-            layout.setText(font, banner);
-            float bx = W / 2f - layout.width / 2f;
-            float by = H / 2f + 50f;
-
-            font.setColor(0f, 0f, 0f, alpha);
-            font.draw(batch, banner, bx + 4f, by + 4f);
-            font.draw(batch, banner, bx - 4f, by + 4f);
-            font.draw(batch, banner, bx + 4f, by - 4f);
-            font.draw(batch, banner, bx - 4f, by - 4f);
-
-            font.setColor(1f, 0.75f, 0.2f, alpha);
-            font.draw(batch, banner, bx, by);
-
-            font.getData().setScale(1.8f);
-            String sub = "Prepare-toi au combat...";
-            layout.setText(font, sub);
-            font.setColor(1f, 1f, 1f, alpha);
-            font.draw(batch, sub, W / 2f - layout.width / 2f, by - 50f);
-
-            font.getData().setScale(2f);
-            font.setColor(Color.WHITE);
-        }
-
-        if (gs.isStunned()) {
-            font.getData().setScale(1.8f);
-            font.setColor(1f, 0.9f, 0.3f, 0.9f);
-            String stunMsg = "ETOURDI !";
-            layout.setText(font, stunMsg);
-            font.draw(batch, stunMsg, W / 2f - layout.width / 2f, H / 2f - 100f);
-            font.getData().setScale(2f);
-            font.setColor(Color.WHITE);
-        }
-
-        if (gs.victory) {
-            font.setColor(1f, 0.85f, 0.2f, 1f);
-            font.draw(batch, "VICTOIRE !", W / 2f - 110, H / 2f + 30);
-            font.setColor(Color.WHITE);
-            font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
-        } else if (gs.gameOver) {
-            font.setColor(1f, 0.4f, 0.4f, 1f);
-            font.draw(batch, "GAME OVER", W / 2f - 100, H / 2f + 30);
-            font.setColor(Color.WHITE);
-            font.draw(batch, "Touche l'ecran pour rejouer", W / 2f - 220, H / 2f - 20);
-        }
-        batch.end();
-
-        if (gs.hitFlash > 0f) {
-            float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
-            Gdx.gl.glEnable(GL20.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-            uiViewport.apply();
-            shapes.setProjectionMatrix(uiCamera.combined);
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            shapes.setColor(1f, 0f, 0f, alpha);
-            shapes.rect(0f, 0f, W, H);
-            shapes.end();
-            shapes.setColor(1f, 1f, 1f, 1f);
-        }
-
-        if (gs.isStunned()) {
-            float a = Math.min(0.35f, gs.stunTimer / GameScreen.STUN_DURATION * 0.35f);
-            Gdx.gl.glEnable(GL20.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-            uiViewport.apply();
-            shapes.setProjectionMatrix(uiCamera.combined);
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            shapes.setColor(1f, 0.9f, 0.2f, a * 0.3f);
-            shapes.rect(0f, 0f, W, H);
-            shapes.end();
-            shapes.setColor(1f, 1f, 1f, 1f);
-        }
     }
 }
