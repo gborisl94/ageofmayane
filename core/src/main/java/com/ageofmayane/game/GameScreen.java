@@ -110,6 +110,10 @@ public class GameScreen extends ScreenAdapter {
     final Array<Fleche> fleches = new Array<Fleche>();
     final Array<Ennemi> ennemis = new Array<Ennemi>();
     final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
+    final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
+int nbFleches = 50;
+static final int NB_FLECHES_MAX = 50;
+static final float RAMASSAGE_DIST = 60f;
     final DamageNumbers damage = new DamageNumbers();
     final ParticleSystem particles = new ParticleSystem();
     final Stick moveStick = new Stick();
@@ -235,6 +239,8 @@ private void restart() {
     floorBannerTimer = 0f;
     Vector2 chestPos = findRandomFloorPos(40f, 200f);
     chest = new Chest(chestPos.x, chestPos.y);
+    flechesSol.clear();
+nbFleches = 50;
     vengeance.clear();
     floorTransitionPending = false;
     transitionTimer = 0f;

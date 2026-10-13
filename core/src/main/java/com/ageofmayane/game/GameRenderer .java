@@ -19,7 +19,7 @@ class GameRenderer {
 
     static final float W = GameScreen.W;
     static final float H = GameScreen.H;
-    static final float MINIMAP_X = 20f;
+    static final float MINIMAP_X = W / 2f - 60f;
     static final float MINIMAP_Y = H - 170f;
     static final float FLOOR_TILE = 80f;
     static final float WALL_TILE = 40f;
@@ -59,6 +59,15 @@ class GameRenderer {
     private final HashMap<String, Texture> dropCache = new HashMap<String, Texture>();
     private final GlyphLayout layout = new GlyphLayout();
 
+    private final Color[] rainbow = {
+        new Color(0.2f, 0.4f, 1f, 1f),
+        new Color(1f, 0.15f, 0.15f, 1f),
+        new Color(1f, 1f, 1f, 1f),
+        new Color(0.1f, 0.1f, 0.1f, 1f),
+        new Color(0.2f, 0.4f, 1f, 1f),
+        new Color(1f, 0.15f, 0.15f, 1f)
+    };
+
     void create() {
         camera = new OrthographicCamera();
         uiCamera = new OrthographicCamera();
@@ -66,19 +75,16 @@ class GameRenderer {
         uiCamera.setToOrtho(false, W, H);
         viewport = new FitViewport(W, H, camera);
         uiViewport = new FitViewport(W, H, uiCamera);
-
         int sw = Math.max(1, Gdx.graphics.getWidth());
         int sh = Math.max(1, Gdx.graphics.getHeight());
         viewport.update(sw, sh, true);
         uiViewport.update(sw, sh, true);
-
         shapes = new ShapeRenderer();
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(2f);
         font.getRegion().getTexture().setFilter(
                 Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-
         texPlayer = loadTexture("player.png");
         texEnemy = loadTexture("enemy.png");
         texArrow = loadTexture("arrow.png");
@@ -201,30 +207,21 @@ class GameRenderer {
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(0.55f, 0.35f, 0.1f, 1f);
             shapes.rect(c.pos.x - 25f, c.pos.y - 25f, 50f, 50f);
-            shapes.setColor(0.3f, 0.3f, 0.35f, 1f);
-            shapes.rect(c.pos.x - 25f, c.pos.y + 17f, 50f, 4f);
-            shapes.rect(c.pos.x - 25f, c.pos.y - 21f, 50f, 4f);
-            if (!c.opened) {
-                shapes.setColor(1f, 0.85f, 0.2f, 1f);
-                shapes.circle(c.pos.x, c.pos.y, 6f, 16);
-            }
             shapes.end();
         }
     }
-private void drawOpenButton(GameScreen gs) {
+  private void drawOpenButton(GameScreen gs) {
     if (!gs.canInteractWithChest()) return;
     float bx = GameScreen.OPEN_BTN_X;
     float by = GameScreen.OPEN_BTN_Y;
     float bw = GameScreen.OPEN_BTN_W;
     float bh = GameScreen.OPEN_BTN_H;
-
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.1f, 0.1f, 0.15f, 0.9f);
     shapes.rect(bx - 3f, by - 3f, bw + 6f, bh + 6f);
     shapes.setColor(0.85f, 0.65f, 0.15f, 0.95f);
     shapes.rect(bx, by, bw, bh);
     shapes.end();
-
     batch.begin();
     font.getData().setScale(1.5f);
     font.setColor(1f, 1f, 1f, 1f);
@@ -244,7 +241,6 @@ private void drawStunButton(GameScreen gs) {
     float bs = GameScreen.STUN_BTN_SIZE;
     float ratio = gs.getStunCooldownRatio();
     boolean ready = gs.isStunReady();
-
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
@@ -263,7 +259,6 @@ private void drawStunButton(GameScreen gs) {
     shapes.rectLine(cx - sz * 0.5f, cy + sz, cx + sz * 0.3f, cy, 6f);
     shapes.rectLine(cx + sz * 0.3f, cy, cx - sz * 0.2f, cy - sz, 6f);
     shapes.end();
-
     batch.begin();
     font.getData().setScale(1.3f);
     String txt = "STUN";
@@ -285,7 +280,6 @@ private void drawAutoAimButton(GameScreen gs) {
     float bs = GameScreen.AIM_BTN_SIZE;
     boolean ready = gs.isAutoAimReady();
     boolean active = gs.autoAimActive;
-
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
@@ -309,9 +303,7 @@ private void drawAutoAimButton(GameScreen gs) {
         shapes.rect(cx + MathUtils.cosDeg(a) * 22f - 1.5f, cy + MathUtils.sinDeg(a) * 22f - 1.5f, 3f, 3f);
         shapes.rect(cx + MathUtils.cosDeg(a) * 12f - 1f, cy + MathUtils.sinDeg(a) * 12f - 1f, 2f, 2f);
     }
-    shapes.rect(cx - 2f, cy - 2f, 4f, 4f);
     shapes.end();
-
     batch.begin();
     font.getData().setScale(1.3f);
     String txt = active ? "ACTIF" : (ready ? "PRET" : "RECHARGE");
@@ -331,7 +323,6 @@ private void drawGlitchButton(GameScreen gs) {
     float by = GameScreen.GLITCH_BTN_Y;
     float bs = GameScreen.GLITCH_BTN_SIZE;
     boolean ready = gs.glitchCooldown <= 0f;
-
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
@@ -344,7 +335,6 @@ private void drawGlitchButton(GameScreen gs) {
         shapes.rect(bx, by + bs - bs * ratio, bs, bs * ratio);
     }
     shapes.end();
-
     batch.begin();
     font.getData().setScale(1.2f);
     String txt = "GLITCH";
@@ -359,7 +349,7 @@ private void drawGlitchButton(GameScreen gs) {
     font.setColor(Color.WHITE);
     batch.end();
 }
-private void drawDashedH(float x1, float x2, float y, float thick, float dash, Color c) {
+  private void drawDashedH(float x1, float x2, float y, float thick, float dash, Color c) {
     shapes.setColor(c);
     float len = x2 - x1;
     int count = (int) Math.max(1, len / dash);
@@ -385,21 +375,17 @@ private void drawAutoAimVisual(GameScreen gs) {
     if (gs.attention <= 0f) return;
     if (gs.aimStick.active()) return;
     if (!gs.autoAimActive) return;
-
     Ennemi target = gs.autoTarget;
     float cx = target.pos.x + gs.aimTrembleX;
     float cy = target.pos.y + gs.aimTrembleY;
-
     Color reticleColor;
     if (gs.chargeLevel == 3) reticleColor = new Color(1f, 0.9f, 0.2f, 1f);
     else if (gs.chargeLevel == 2) reticleColor = new Color(1f, 0.6f, 0.1f, 1f);
     else reticleColor = new Color(1f, 0.25f, 0.25f, 0.95f);
-
     float r = target.radius * 1.4f + 10f;
     float len = 14f;
     float thick = 4f;
     float dash = 6f;
-
     drawDashedH(cx - r, cx - r + len, cy + r, thick, dash, reticleColor);
     drawDashedV(cx - r, cy + r, cy + r - len, thick, dash, reticleColor);
     drawDashedH(cx + r - len, cx + r, cy + r, thick, dash, reticleColor);
@@ -408,7 +394,6 @@ private void drawAutoAimVisual(GameScreen gs) {
     drawDashedV(cx - r, cy - r, cy - r + len, thick, dash, reticleColor);
     drawDashedH(cx + r - len, cx + r, cy - r, thick, dash, reticleColor);
     drawDashedV(cx + r, cy - r, cy - r + len, thick, dash, reticleColor);
-
     shapes.setColor(reticleColor);
     shapes.rect(cx - 2f, cy - 2f, 4f, 4f);
 }
@@ -417,14 +402,11 @@ private void drawTargetAcquiredText(GameScreen gs) {
     if (gs.targetAcquiredTimer <= 0f) return;
     if (gs.autoTarget == null) return;
     if (!gs.autoAimActive) return;
-
     float alpha = Math.min(1f, gs.targetAcquiredTimer * 2f);
     if (gs.targetAcquiredTimer < 0.5f) alpha = gs.targetAcquiredTimer / 0.5f;
-
     Ennemi target = gs.autoTarget;
     float cx = target.pos.x;
     float cy = target.pos.y + target.radius + 42f;
-
     String txt = "Target acquired.";
     font.getData().setScale(1.4f);
     layout.setText(font, txt);
@@ -442,7 +424,6 @@ private void drawXpBar(GameScreen gs) {
     float bw = XP_BAR_W;
     float bh = XP_BAR_H;
     float ratio = gs.xpSystem.getProgress();
-
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
@@ -451,7 +432,6 @@ private void drawXpBar(GameScreen gs) {
     else shapes.setColor(0.9f, 0.4f, 0.2f, 1f);
     shapes.rect(bx, by, bw * ratio, bh);
     shapes.end();
-
     batch.begin();
     font.getData().setScale(1.5f);
     font.setColor(1f, 0.9f, 0.3f, 1f);
@@ -471,7 +451,6 @@ private void drawAttentionGauge(GameScreen gs) {
     float bw = ATT_BAR_W;
     float bh = ATT_BAR_H;
     float ratio = gs.attention / GameScreen.ATTENTION_MAX;
-
     shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
     shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
@@ -482,7 +461,6 @@ private void drawAttentionGauge(GameScreen gs) {
     shapes.setColor(col);
     shapes.rect(bx, by, bw * ratio, bh);
     shapes.end();
-
     batch.begin();
     font.getData().setScale(1.1f);
     font.setColor(1f, 1f, 1f, 1f);
@@ -539,21 +517,18 @@ private void drawGlitchEffect(GameScreen gs) {
     }
     shapes.end();
 }
-    void draw(GameScreen gs) {
+      void draw(GameScreen gs) {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
         gs.zoom.applyToCamera(camera, gs.playerPos.x, gs.playerPos.y, W, H);
         camera.position.x += gs.shakeOffsetX;
         camera.position.y += gs.shakeOffsetY;
         camera.update();
-
         viewport.apply();
         shapes.setProjectionMatrix(camera.combined);
         batch.setProjectionMatrix(camera.combined);
-
         boolean playerVisible = !gs.gameOver
                 && (gs.invulnerable <= 0f || ((int) (gs.invulnerable * 10f)) % 2 == 0);
 
@@ -562,13 +537,6 @@ private void drawGlitchEffect(GameScreen gs) {
             batch.setColor(Color.WHITE);
             drawTiled(texSol, 0f, 0f, W, H, FLOOR_TILE);
             batch.end();
-        }
-
-        if (texSol == null || texMur == null) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            if (texSol == null) gs.dungeon.drawFloorColor(shapes);
-            if (texMur == null) gs.dungeon.drawWallsColor(shapes);
-            shapes.end();
         }
 
         if (texMur != null || texPorte != null) {
@@ -589,11 +557,16 @@ private void drawGlitchEffect(GameScreen gs) {
             batch.end();
         }
 
-        if (texPorte == null) {
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            gs.dungeon.drawDoorsColor(shapes);
-            shapes.end();
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.35f, 0.25f, 0.2f, 1f);
+        Array<Rectangle> allSolids = gs.dungeon.getSolids();
+        for (int i = 0; i < allSolids.size; i++) {
+            Rectangle s = allSolids.get(i);
+            if (s.width < 40f || s.height < 40f) {
+                shapes.rect(s.x, s.y, s.width, s.height);
+            }
         }
+        shapes.end();
 
         if (gs.chest != null) drawChest(gs.chest);
 
@@ -611,9 +584,10 @@ private void drawGlitchEffect(GameScreen gs) {
             } else batch.setColor(Color.WHITE);
             if (e.fleeing) batch.setColor(1f, 1f, 1f, Math.max(0f, 1f - e.fleeTimer / 2.5f));
             if (e.hitPulse > 0f) {
-                scale *= 1f + 0.5f * (e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION);
-                float blink = (float) Math.sin(e.hitPulse * 60f);
-                batch.setColor(1f, blink > 0f ? 1f : 0.2f, blink > 0f ? 1f : 0.2f, 1f);
+                float pulsePct = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;
+                scale *= 1f + 0.6f * pulsePct;
+                int colorIndex = ((int) (e.hitPulse * 40f)) % 6;
+                batch.setColor(rainbow[colorIndex]);
             }
             drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
                     e.angle + GameScreen.ENEMY_ROT);
@@ -636,8 +610,15 @@ private void drawGlitchEffect(GameScreen gs) {
         }
 
         if (texPlayer != null && playerVisible) {
+            if (gs.invulnerable > 0f) {
+                int colorIndex = ((int) (gs.invulnerable * 15f)) % 6;
+                batch.setColor(rainbow[colorIndex]);
+            } else {
+                batch.setColor(Color.WHITE);
+            }
             drawSprite(texPlayer, gs.playerPos.x, gs.playerPos.y,
                     GameScreen.PLAYER_SIZE, gs.facing + GameScreen.PLAYER_ROT);
+            batch.setColor(Color.WHITE);
         }
 
         drawTargetAcquiredText(gs);
