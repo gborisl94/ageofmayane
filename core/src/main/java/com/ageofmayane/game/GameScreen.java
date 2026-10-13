@@ -92,13 +92,13 @@ public class GameScreen extends ScreenAdapter {
     static final int CHARGE_DMG_LVL3 = 3;
     static final int TOTAL_FLOORS = 3;
     static final float ELEVATOR_INTERACT_DIST = 120f;
-    static final float TRANSITION_TIME = 1.2f;static final float GLITCH_COOLDOWN = 5f;
+    static final float TRANSITION_TIME = 1.2f;
+    static final float GLITCH_COOLDOWN = 5f;
     static final float GLITCH_DISTANCE = 220f;
     static final float GLITCH_INVULN = 0.5f;
     static final float GLITCH_BTN_SIZE = 110f;
     static final float GLITCH_BTN_X = W - GLITCH_BTN_SIZE - 30f;
     static final float GLITCH_BTN_Y = H - 460f - GLITCH_BTN_SIZE * 2 - 40f;
-
 
     private final Game game;
     private GameRenderer renderer;
@@ -164,90 +164,88 @@ public class GameScreen extends ScreenAdapter {
     private ShapeRenderer uiShapes;
     private SpriteBatch uiBatch;
     private BitmapFont uiFont;
-    private boolean floorTransitionPending = false;float glitchCooldown = 0f;
-float glitchEffectTimer = 0f;
+    private boolean floorTransitionPending = false;
+    float glitchCooldown = 0f;
+    float glitchEffectTimer = 0f;
     private float transitionTimer = 0f;
 
     public GameScreen() { this(null); }
     public GameScreen(Game game) { this.game = game; }
+@Override
+public void show() {
+    disposeResources();
+    renderer = new GameRenderer();
+    renderer.create();
+    zoom = new ZoomController(W, H);
+    xpSystem = new XpSystem();
+    uiShapes = new ShapeRenderer();
+    uiBatch = new SpriteBatch();
+    uiFont = new BitmapFont();
+    uiFont.setColor(Color.WHITE);
+    uiFont.getData().setScale(1.4f);
+    elevatorButton = new ElevatorButton(W - 280f, 40f, 240f, 80f);
+    restart();
+}
 
-    @Override
-    public void show() {
-        disposeResources();
-        renderer = new GameRenderer();
-        renderer.create();
-        zoom = new ZoomController(W, H);
-        xpSystem = new XpSystem();
+private void restart() {
+    dungeon.generate();
+    playerPos.set(W / 2f, H / 2f);
+    fleches.clear();
+    ennemis.clear();
+    weaponDrops.clear();
+    damage.clear();
+    particles.clear();
+    moveStick.end();
+    aimStick.end();
+    for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
+    facing = 0f;
+    setLives(5);
+    setScore(0);
+    fireTimer = 0f;
+    invulnerable = 0f;
+    hitFlash = 0f;
+    playerRecoil = 0f;
+    bossFleeMessageTimer = 0f;
+    bossPhaseMessageTimer = 0f;
+    bossPhaseMessage = 0;
+    shakeTime = 0f;
+    shakeOffsetX = 0f;
+    shakeOffsetY = 0f;
+    stunTimer = 0f;
+    stunCooldown = 0f;
+    dizzyTime = 0f;
+    bossFledThisRun = false;
+    endTimer = 0f;
+    gameOver = false;
+    victory = false;
+    equippedWeapon = WeaponDatabase.woodBow();
+    attention = ATTENTION_MAX;
+    autoTarget = null;
+    aimStability = 0f;
+    aimTrembleSeed = 0f;
+    aimTrembleX = 0f;
+    aimTrembleY = 0f;
+    chargeLevel = CHARGE_LEVEL_1;
+    autoAimActive = false;
+    autoAimTimer = 0f;
+    autoAimCooldown = 0f;
+    targetAcquiredTimer = 0f;
+    lastAutoTarget = null;
+    currentFloor = 1;
+    floorBannerTimer = 0f;
+    Vector2 chestPos = findRandomFloorPos(40f, 200f);
+    chest = new Chest(chestPos.x, chestPos.y);
+    vengeance.clear();
+    floorTransitionPending = false;
+    transitionTimer = 0f;
+    if (elevatorButton != null) elevatorButton.hide();
+    Vector2 elevPos = findRandomFloorPos(60f, 250f);
+    elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
+    Room cur = dungeon.getCurrent();
+    if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
+}
 
-        uiShapes = new ShapeRenderer();
-        uiBatch = new SpriteBatch();
-        uiFont = new BitmapFont();
-        uiFont.setColor(Color.WHITE);
-        uiFont.getData().setScale(1.4f);
-        elevatorButton = new ElevatorButton(W - 280f, 40f, 240f, 80f);
-
-        restart();
-    }
-
-    private void restart() {
-        dungeon.generate();
-        playerPos.set(W / 2f, H / 2f);
-        fleches.clear();
-        ennemis.clear();
-        weaponDrops.clear();
-        damage.clear();
-        particles.clear();
-        moveStick.end();
-        aimStick.end();
-        for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
-        facing = 0f;
-        setLives(5);
-        setScore(0);
-        fireTimer = 0f;
-        invulnerable = 0f;
-        hitFlash = 0f;
-        playerRecoil = 0f;
-        bossFleeMessageTimer = 0f;
-        bossPhaseMessageTimer = 0f;
-        bossPhaseMessage = 0;
-        shakeTime = 0f;
-        shakeOffsetX = 0f;
-        shakeOffsetY = 0f;
-        stunTimer = 0f;
-        stunCooldown = 0f;
-        dizzyTime = 0f;
-        bossFledThisRun = false;
-        endTimer = 0f;
-        gameOver = false;
-        victory = false;
-        equippedWeapon = WeaponDatabase.woodBow();
-        attention = ATTENTION_MAX;
-        autoTarget = null;
-        aimStability = 0f;
-        aimTrembleSeed = 0f;
-        aimTrembleX = 0f;
-        aimTrembleY = 0f;
-        chargeLevel = CHARGE_LEVEL_1;
-        autoAimActive = false;
-        autoAimTimer = 0f;
-        autoAimCooldown = 0f;
-        targetAcquiredTimer = 0f;
-        lastAutoTarget = null;
-        currentFloor = 1;
-        floorBannerTimer = 0f;
-        Vector2 chestPos = findRandomFloorPos(40f, 200f);
-chest = new Chest(chestPos.x, chestPos.y);
-
-        vengeance.clear();
-        floorTransitionPending = false;
-        transitionTimer = 0f;
-        if (elevatorButton != null) elevatorButton.hide();
-        Vector2 elevPos = findRandomFloorPos(60f, 250f);
-elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
-
-        Room cur = dungeon.getCurrent();
-        if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
-    }private void setScore(int s) { score = s; scoreText = "Score : " + s; }
+private void setScore(int s) { score = s; scoreText = "Score : " + s; }
 private void setLives(int l) { lives = l; livesText = "Vies : " + l; }
 
 private void triggerShake() { shakeTime = SHAKE_DURATION; }
@@ -274,20 +272,16 @@ private void openChest() {
 
 private int getEnemyHp() { return ENEMY_HP + (currentFloor - 1); }
 private int getBossHp() { return BOSS_HP + (currentFloor - 1) * 10; }
-
 private void nextFloor() {
     if (bossFledThisRun) vengeance.registerFlee();
     vengeance.consumePending();
-
     currentFloor++;
     floorBannerTimer = 3f;
-
     if (currentFloor > TOTAL_FLOORS) {
         victory = true;
         endTimer = 0f;
         return;
     }
-
     dungeon.generate();
     playerPos.set(W / 2f, H / 2f);
     fleches.clear();
@@ -324,14 +318,12 @@ private void nextFloor() {
     autoAimTimer = 0f;
     autoAimCooldown = 0f;
     Vector2 chestPos = findRandomFloorPos(40f, 200f);
-chest = new Chest(chestPos.x, chestPos.y);
-    
+    chest = new Chest(chestPos.x, chestPos.y);
     Vector2 elevPos = findRandomFloorPos(60f, 250f);
-elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
+    elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
     if (elevatorButton != null) elevatorButton.hide();
     floorTransitionPending = false;
     transitionTimer = 0f;
-
     Room cur = dungeon.getCurrent();
     if (cur != null && !cur.cleared) spawnRoomEnemies(cur);
     triggerShake();
@@ -358,6 +350,7 @@ private void activateStunAbility() {
     }
     triggerShake();
 }
+
 private void activateGlitchDash() {
     if (glitchCooldown > 0f) return;
     glitchCooldown = GLITCH_COOLDOWN;
@@ -373,6 +366,7 @@ private void activateGlitchDash() {
     glitchEffectTimer = 0.4f;
     particles.spawnLightning(playerPos.x, playerPos.y, facing + 180f, 10);
 }
+
 private void activateAutoAimPower() {
     if (autoAimCooldown > 0f) return;
     if (autoAimActive) return;
@@ -442,14 +436,14 @@ private int getChargeDamage() {
     if (chargeLevel == CHARGE_LEVEL_3) return CHARGE_DMG_LVL3;
     if (chargeLevel == CHARGE_LEVEL_2) return CHARGE_DMG_LVL2;
     return CHARGE_DMG_LVL1;
-}@Override
+}
+@Override
 public void render(float delta) {
     if (renderer == null || zoom == null) return;
     if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
     update(delta);
     renderer.draw(this);
     drawBossArrow();
-
     if (elevator != null && !floorTransitionPending && elevator.isUnlocked()) {
         uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
         uiShapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -458,7 +452,6 @@ public void render(float delta) {
             elevatorButton.renderShape(uiShapes);
         }
         uiShapes.end();
-
         if (elevatorButton != null && elevatorButton.isVisible()) {
             uiBatch.setProjectionMatrix(renderer.uiCamera.combined);
             uiBatch.begin();
@@ -469,7 +462,6 @@ public void render(float delta) {
             uiBatch.end();
         }
     }
-
     if (floorTransitionPending) {
         float t = transitionTimer / TRANSITION_TIME;
         float alpha = (t < 0.5f) ? (t * 2f) : (1f - (t - 0.5f) * 2f);
@@ -494,24 +486,20 @@ private void update(float delta) {
         }
         return;
     }
-
     pollTouches();
     zoom.update(delta);
     damage.update(delta);
     particles.update(delta);
-
     if (shakeTime > 0f) {
         shakeTime -= delta;
         float intensity = SHAKE_INTENSITY * (shakeTime / SHAKE_DURATION);
         shakeOffsetX = MathUtils.random(-intensity, intensity);
         shakeOffsetY = MathUtils.random(-intensity, intensity);
     } else { shakeOffsetX = 0f; shakeOffsetY = 0f; }
-
     if (stunTimer > 0f) { stunTimer -= delta; dizzyTime += delta; }
     if (stunCooldown > 0f) stunCooldown -= delta;
     if (glitchCooldown > 0f) glitchCooldown -= delta;
-if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
-
+    if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
     if (autoAimActive) {
         autoAimTimer -= delta;
         if (autoAimTimer <= 0f) {
@@ -523,13 +511,11 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
         autoAimCooldown -= delta;
         if (autoAimCooldown < 0f) autoAimCooldown = 0f;
     }
-
     if (gameOver || victory) {
         endTimer += delta;
         if (endTimer > 0.6f && newTouch) restart();
         return;
     }
-
     if (invulnerable > 0f) invulnerable -= delta;
     if (hitFlash > 0f) hitFlash -= delta;
     if (playerRecoil > 0f) playerRecoil -= delta;
@@ -537,12 +523,9 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
     if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
     if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
     if (floorBannerTimer > 0f) floorBannerTimer -= delta;
-
     boolean stunned = isStunned();
-
     if (aimStick.dir.len() > DEAD_ZONE) facing = aimStick.dir.angleDeg();
     else if (moveStick.dir.len() > DEAD_ZONE) facing = moveStick.dir.angleDeg();
-
     if (moveStick.dir.len() > DEAD_ZONE) {
         float speedFactor = stunned ? STUN_SPEED_FACTOR : 1f;
         playerPos.x += moveStick.dir.x * PLAYER_SPEED * speedFactor * delta;
@@ -551,24 +534,19 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
     dungeon.collide(playerPos, PLAYER_RADIUS);
     playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
     playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
-
     int exitDir = dungeon.checkDoorExit(playerPos);
     if (exitDir >= 0) {
         Room next = dungeon.moveThrough(exitDir, playerPos);
         if (next != null) enterRoom(next);
     }
-
     fireTimer -= delta;
     autoTarget = findNearestEnemy();
-
     if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget)
         targetAcquiredTimer = 1.5f;
     lastAutoTarget = autoTarget;
-
     boolean useManual = aimStick.dir.len() > DEAD_ZONE;
     boolean autoAimUsable = autoAimActive && !useManual && attention > 0f
             && autoTarget != null && !stunned;
-
     if (!stunned && fireTimer <= 0f) {
         if (useManual) {
             fireAt(aimStick.dir.angleDeg(), CHARGE_DMG_LVL1);
@@ -585,7 +563,6 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
             }
         }
     }
-
     if (autoAimUsable && fireTimer > 0f) {
         attention -= ATTENTION_DRAIN * delta;
         if (attention < 0f) attention = 0f;
@@ -593,7 +570,6 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
         attention += ATTENTION_REGEN * delta;
         if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
     }
-
     boolean moving = moveStick.dir.len() > DEAD_ZONE;
     if (moving || !autoAimActive) aimStability = 0f;
     else if (autoTarget != null && !stunned) {
@@ -603,11 +579,9 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
         aimStability -= delta * 0.5f;
         if (aimStability < 0f) aimStability = 0f;
     }
-
     if (aimStability >= 0.66f) chargeLevel = CHARGE_LEVEL_3;
     else if (aimStability >= 0.33f) chargeLevel = CHARGE_LEVEL_2;
     else chargeLevel = CHARGE_LEVEL_1;
-
     aimTrembleSeed += delta * 25f;
     float trembleAmt = (1f - aimStability) * AIM_TREMBLE_MAX;
     if (trembleAmt > 0.5f && autoAimActive) {
@@ -616,31 +590,30 @@ if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
         aimTrembleY = MathUtils.cos(aimTrembleSeed * 1.7f) * trembleAmt
                     + MathUtils.cos(aimTrembleSeed * 3.1f) * trembleAmt * 0.5f;
     } else { aimTrembleX = 0f; aimTrembleY = 0f; }
-
     updateArrows(delta);
     updateEnemies(delta);
     updateWeaponDrops(delta);
-    updateChest(delta);if (chest != null && !chest.opened) {
-    particles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 1f));
-}
-for (int i = 0; i < weaponDrops.size; i++) {
-    WeaponDrop wd = weaponDrops.get(i);
-    Color dropColor = wd.weapon.rarity.colorWithAlpha(1f);
-    particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
+    updateChest(delta);
+    if (chest != null && !chest.opened) {
+        particles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 1f));
     }
-
+    for (int i = 0; i < weaponDrops.size; i++) {
+        WeaponDrop wd = weaponDrops.get(i);
+        Color dropColor = wd.weapon.rarity.colorWithAlpha(1f);
+        particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
+    }
     boolean unlocked = bossFledThisRun || lives <= 0;
     if (elevator != null) {
         elevator.update(delta, unlocked);
         updateElevatorButton(delta);
     }
-
     Room cur = dungeon.getCurrent();
     if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
         dungeon.markCleared();
         xpSystem.addXp(XP_PER_ROOM);
     }
 }
+
 private Vector2 findRandomFloorPos(float radius, float minDistFromPlayer) {
     Vector2 out = new Vector2();
     for (int i = 0; i < 60; i++) {
@@ -653,64 +626,55 @@ private Vector2 findRandomFloorPos(float radius, float minDistFromPlayer) {
     }
     out.set(W / 2f, H / 2f);
     return out;
-    }
+}
+
 private void drawBossArrow() {
-        Vector2 target = null;
-        boolean isBoss = false;
-
-        for (int i = 0; i < ennemis.size; i++) {
-            Ennemi e = ennemis.get(i);
-            if (e.boss && e.hp > 0 && !e.fleeing) {
-                target = e.pos;
-                isBoss = true;
-                break;
-            }
+    Vector2 target = null;
+    boolean isBoss = false;
+    for (int i = 0; i < ennemis.size; i++) {
+        Ennemi e = ennemis.get(i);
+        if (e.boss && e.hp > 0 && !e.fleeing) {
+            target = e.pos;
+            isBoss = true;
+            break;
         }
-
-        if (target == null) {
-            Room cur = dungeon.getCurrent();
-            if (cur != null) {
-                float bestD = Float.MAX_VALUE;
-                for (int dir = 0; dir < 4; dir++) {
-                    if (!cur.hasDoor(dir)) continue;
-                    com.badlogic.gdx.math.Rectangle r = new com.badlogic.gdx.math.Rectangle();
-cur.getDoorRect(dir, r);
-                    if (r == null) continue;
-                    float cx = r.x + r.width / 2f;
-                    float cy = r.y + r.height / 2f;
-                    float d = Vector2.dst2(playerPos.x, playerPos.y, cx, cy);
-                    if (d < bestD) { bestD = d; target = new Vector2(cx, cy); }
-                }
-            }
-        }
-
-        if (target == null) return;
-
-        float cx = W / 2f;
-        float cy = 110f;
-        float size = 42f;
-        float angle = MathUtils.atan2(target.y - playerPos.y, target.x - playerPos.x);
-
-        float tipX = cx + MathUtils.cos(angle) * size;
-        float tipY = cy + MathUtils.sin(angle) * size;
-        float lx = cx + MathUtils.cos(angle + 2.4f) * size * 0.75f;
-        float ly = cy + MathUtils.sin(angle + 2.4f) * size * 0.75f;
-        float rx = cx + MathUtils.cos(angle - 2.4f) * size * 0.75f;
-        float ry = cy + MathUtils.sin(angle - 2.4f) * size * 0.75f;
-
-        uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
-        uiShapes.begin(ShapeRenderer.ShapeType.Filled);
-
-        uiShapes.setColor(0f, 0f, 0f, 0.55f);
-        uiShapes.circle(cx, cy, size + 6f, 24);
-
-        if (isBoss) uiShapes.setColor(1f, 0.15f, 0.15f, 1f);
-        else uiShapes.setColor(1f, 0.9f, 0.2f, 1f);
-
-        uiShapes.triangle(tipX, tipY, lx, ly, rx, ry);
-        uiShapes.end();
     }
-    
+    if (target == null) {
+        Room cur = dungeon.getCurrent();
+        if (cur != null) {
+            float bestD = Float.MAX_VALUE;
+            for (int dir = 0; dir < 4; dir++) {
+                if (!cur.hasDoor(dir)) continue;
+                com.badlogic.gdx.math.Rectangle r = new com.badlogic.gdx.math.Rectangle();
+                cur.getDoorRect(dir, r);
+                if (r == null) continue;
+                float cx = r.x + r.width / 2f;
+                float cy = r.y + r.height / 2f;
+                float d = Vector2.dst2(playerPos.x, playerPos.y, cx, cy);
+                if (d < bestD) { bestD = d; target = new Vector2(cx, cy); }
+            }
+        }
+    }
+    if (target == null) return;
+    float cx = W / 2f;
+    float cy = 110f;
+    float size = 42f;
+    float angle = MathUtils.atan2(target.y - playerPos.y, target.x - playerPos.x);
+    float tipX = cx + MathUtils.cos(angle) * size;
+    float tipY = cy + MathUtils.sin(angle) * size;
+    float lx = cx + MathUtils.cos(angle + 2.4f) * size * 0.75f;
+    float ly = cy + MathUtils.sin(angle + 2.4f) * size * 0.75f;
+    float rx = cx + MathUtils.cos(angle - 2.4f) * size * 0.75f;
+    float ry = cy + MathUtils.sin(angle - 2.4f) * size * 0.75f;
+    uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
+    uiShapes.begin(ShapeRenderer.ShapeType.Filled);
+    uiShapes.setColor(0f, 0f, 0f, 0.55f);
+    uiShapes.circle(cx, cy, size + 6f, 24);
+    if (isBoss) uiShapes.setColor(1f, 0.15f, 0.15f, 1f);
+    else uiShapes.setColor(1f, 0.9f, 0.2f, 1f);
+    uiShapes.triangle(tipX, tipY, lx, ly, rx, ry);
+    uiShapes.end();
+}
 private void updateElevatorButton(float delta) {
     if (elevator == null || elevatorButton == null) return;
     elevatorButton.update(delta);
@@ -895,20 +859,80 @@ private void updateEnemies(float delta) {
         }
 
         if (!frozen) {
-            tmp.set(playerPos).sub(e.pos);
-            if (tmp.len2() > 0.001f) {
-                e.angle = tmp.angleDeg();
+            float ddx = playerPos.x - e.pos.x;
+            float ddy = playerPos.y - e.pos.y;
+            float ddist = (float) Math.sqrt(ddx * ddx + ddy * ddy);
+            float detectRange = e.boss ? 600f : 350f;
+            if (ddist <= detectRange) {
+                if (e.hp > 0 && e.hp <= e.maxHp * 0.3f && !e.boss) e.aiState = 2;
+                else e.aiState = 1;
+            } else {
+                e.aiState = 0;
+            }
+
+            if (e.aiState == 2) {
+                float fx = -ddx / ddist;
+                float fy = -ddy / ddist;
+                float fsp = normalSpeed * 0.8f;
+                float sx = fx * fsp * delta;
+                float sy = fy * fsp * delta;
+                if (!dungeon.circleHitsWall(e.pos.x + sx, e.pos.y + sy, e.radius)) {
+                    e.pos.x += sx;
+                    e.pos.y += sy;
+                }
+                e.angle = (float) Math.toDegrees(Math.atan2(-ddy, -ddx));
+            } else if (e.aiState == 1) {
+                float nx = ddx / ddist;
+                float ny = ddy / ddist;
+                e.angle = (float) Math.toDegrees(Math.atan2(ddy, ddx));
                 float spd;
                 if (e.boss) {
                     if (e.phase == 1) spd = BOSS_SPEED_PHASE_1;
                     else if (e.phase == 2) spd = BOSS_SPEED_PHASE_2;
                     else spd = BOSS_SPEED_PHASE_3;
                     if (e.berserker && e.hp <= e.maxHp * 0.5f) spd *= 1.3f;
-                } else {
-                    spd = normalSpeed;
+                } else spd = normalSpeed;
+                float sx = nx * spd * delta;
+                float sy = ny * spd * delta;
+                boolean moved = false;
+                if (!dungeon.circleHitsWall(e.pos.x + sx, e.pos.y, e.radius)) {
+                    e.pos.x += sx;
+                    moved = true;
                 }
-                tmp.nor().scl(spd * delta);
-                e.pos.add(tmp);
+                if (!dungeon.circleHitsWall(e.pos.x, e.pos.y + sy, e.radius)) {
+                    e.pos.y += sy;
+                    moved = true;
+                }
+                if (!moved) {
+                    float px = -ny * spd * delta;
+                    float py = nx * spd * delta;
+                    if (!dungeon.circleHitsWall(e.pos.x + px, e.pos.y + py, e.radius)) {
+                        e.pos.x += px;
+                        e.pos.y += py;
+                    } else if (!dungeon.circleHitsWall(e.pos.x - px, e.pos.y - py, e.radius)) {
+                        e.pos.x -= px;
+                        e.pos.y -= py;
+                    }
+                }
+                dungeon.collide(e.pos, e.radius);
+            } else {
+                e.patrolTimer -= delta;
+                if (e.patrolTimer <= 0f) {
+                    e.patrolTimer = MathUtils.random(1.5f, 3f);
+                    float a = MathUtils.random(0f, 360f);
+                    e.patrolDirX = MathUtils.cosDeg(a);
+                    e.patrolDirY = MathUtils.sinDeg(a);
+                }
+                float psp = normalSpeed * 0.4f;
+                float sx = e.patrolDirX * psp * delta;
+                float sy = e.patrolDirY * psp * delta;
+                if (!dungeon.circleHitsWall(e.pos.x + sx, e.pos.y + sy, e.radius)) {
+                    e.pos.x += sx;
+                    e.pos.y += sy;
+                } else {
+                    e.patrolTimer = 0f;
+                }
+                e.angle = (float) Math.toDegrees(Math.atan2(e.patrolDirY, e.patrolDirX));
             }
         }
 
@@ -919,258 +943,248 @@ private void updateEnemies(float delta) {
             if (fleches.get(j).pos.dst2(e.pos) < rr * rr) {
                 int arrowDmg = fleches.get(j).damage;
                 fleches.removeIndex(j);
-
                 if (e.shieldCharges > 0) {
                     e.shieldCharges--;
                     damage.add(e.pos.x, e.pos.y + e.size / 2f, "BLOQUE", false);
                     particles.spawnLightning(e.pos.x, e.pos.y, 0f, 3);
                     continue;
                 }
-
                 e.hp -= arrowDmg;
                 e.hitPulse = ENEMY_HIT_PULSE_DURATION;
                 damage.add(e.pos.x, e.pos.y + e.size / 2f, "-" + arrowDmg, false);
                 if (e.hp <= 0) { mort = true; break; }
             }
-        }            if (mort) {
-                if (e.boss && e.vengeanceBonuses != null
-                        && e.vengeanceBonuses.contains(VengeanceBonus.EXPLOSIVE, true)) {
-                    for (Ennemi other : ennemis) {
-                        if (other == e) continue;
-                        if (other.pos.dst2(e.pos) < 200f * 200f) {
-                            other.hp -= (int)(e.maxHp * 0.5f);
-                        }
+        }
+
+        if (mort) {
+            if (e.boss && e.vengeanceBonuses != null
+                    && e.vengeanceBonuses.contains(VengeanceBonus.EXPLOSIVE, true)) {
+                for (Ennemi other : ennemis) {
+                    if (other == e) continue;
+                    if (other.pos.dst2(e.pos) < 200f * 200f) {
+                        other.hp -= (int)(e.maxHp * 0.5f);
                     }
-                    particles.spawnBossExplosion(e.pos.x, e.pos.y, new Color(1f, 0.3f, 0.1f, 1f));
                 }
-
-                Color pcolor = e.boss ? new Color(0.9f, 0.2f, 0.2f, 1f)
-                                      : new Color(0.2f, 0.9f, 0.9f, 1f);
-                if (e.boss) {
-                    particles.spawnBossExplosion(e.pos.x, e.pos.y, pcolor);
-                    particles.spawnBlood(e.pos.x, e.pos.y, 30);
-                    particles.spawnSmoke(e.pos.x, e.pos.y, 20);
-                    triggerShake();
+                particles.spawnBossExplosion(e.pos.x, e.pos.y, new Color(1f, 0.3f, 0.1f, 1f));
+            }
+            Color pcolor = e.boss ? new Color(0.9f, 0.2f, 0.2f, 1f)
+                                  : new Color(0.2f, 0.9f, 0.9f, 1f);
+            if (e.boss) {
+                particles.spawnBossExplosion(e.pos.x, e.pos.y, pcolor);
+                particles.spawnBlood(e.pos.x, e.pos.y, 30);
+                particles.spawnSmoke(e.pos.x, e.pos.y, 20);
+                triggerShake();
+            } else {
+                particles.spawnEnemyExplosion(e.pos.x, e.pos.y, pcolor);
+                particles.spawnBlood(e.pos.x, e.pos.y, 12);
+                particles.spawnSmoke(e.pos.x, e.pos.y, 5);
+            }
+            ennemis.removeIndex(i);
+            setScore(score + (e.boss ? BOSS_SCORE : 1));
+            xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
+            if (e.boss) {
+                vengeance.clear();
+                if (currentFloor < TOTAL_FLOORS) {
+                    nextFloor();
+                    return;
                 } else {
-                    particles.spawnEnemyExplosion(e.pos.x, e.pos.y, pcolor);
-                    particles.spawnBlood(e.pos.x, e.pos.y, 12);
-                    particles.spawnSmoke(e.pos.x, e.pos.y, 5);
+                    victory = true;
+                    endTimer = 0f;
                 }
+            }
+            continue;
+        }
 
+        float prr = e.radius + PLAYER_RADIUS;
+        if (!frozen && e.pos.dst2(playerPos) < prr * prr) {
+            e.attackPulse = ENEMY_ATTACK_PULSE_DURATION;
+            if (e.boss) {
+                if (invulnerable <= 0f) hurtPlayer();
+                if (e.vengeanceBonuses != null
+                        && e.vengeanceBonuses.contains(VengeanceBonus.VAMPIRIC, true)) {
+                    e.hp = (int) Math.min(e.maxHp, e.hp + 3f);
+                }
+                if (e.vengeanceBonuses != null
+                        && e.vengeanceBonuses.contains(VengeanceBonus.FROZEN, true)) {
+                    stunTimer = Math.max(stunTimer, 1.0f);
+                }
+                tmp.set(e.pos).sub(playerPos);
+                if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
+                tmp.nor().scl(BOSS_KNOCKBACK);
+                e.pos.add(tmp);
+                e.pos.x = MathUtils.clamp(e.pos.x, Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
+                e.pos.y = MathUtils.clamp(e.pos.y, Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
+            } else {
                 ennemis.removeIndex(i);
-                setScore(score + (e.boss ? BOSS_SCORE : 1));
-                xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
-
-                if (e.boss) {
-                    vengeance.clear();
-                    if (currentFloor < TOTAL_FLOORS) {
-                        nextFloor();
-                        return;
-                    } else {
-                        victory = true;
-                        endTimer = 0f;
-                    }
-                }
-                continue;
-            }
-
-            float pr = e.radius + PLAYER_RADIUS;
-            if (!frozen && e.pos.dst2(playerPos) < pr * pr) {
-                e.attackPulse = ENEMY_ATTACK_PULSE_DURATION;
-                if (e.boss) {
-                    if (invulnerable <= 0f) hurtPlayer();
-                    if (e.vengeanceBonuses != null
-                            && e.vengeanceBonuses.contains(VengeanceBonus.VAMPIRIC, true)) {
-                        e.hp = (int) Math.min(e.maxHp, e.hp + 3f);
-                    }
-                    if (e.vengeanceBonuses != null
-                            && e.vengeanceBonuses.contains(VengeanceBonus.FROZEN, true)) {
-                        stunTimer = Math.max(stunTimer, 1.0f);
-                    }
-                    tmp.set(e.pos).sub(playerPos);
-                    if (tmp.len2() < 0.001f) tmp.set(1f, 0f);
-                    tmp.nor().scl(BOSS_KNOCKBACK);
-                    e.pos.add(tmp);
-                    e.pos.x = MathUtils.clamp(e.pos.x, Room.WALL_T + e.radius, W - Room.WALL_T - e.radius);
-                    e.pos.y = MathUtils.clamp(e.pos.y, Room.WALL_T + e.radius, H - Room.WALL_T - e.radius);
-                } else {
-                    ennemis.removeIndex(i);
-                    if (invulnerable <= 0f) hurtPlayer();
-                }
+                if (invulnerable <= 0f) hurtPlayer();
             }
         }
     }
+}
+private void spawnBossProjectile(float x, float y, float angleDeg) {
+    Fleche p = new Fleche();
+    p.pos.set(x, y);
+    p.vel.set(MathUtils.cosDeg(angleDeg) * BOSS_PROJECTILE_SPEED,
+              MathUtils.sinDeg(angleDeg) * BOSS_PROJECTILE_SPEED);
+    p.angle = angleDeg;
+    p.fromEnemy = true;
+    p.life = 3f;
+    p.damage = 1;
+    fleches.add(p);
+    particles.spawnFire(x, y, 2);
+}
 
-    private void spawnBossProjectile(float x, float y, float angleDeg) {
-        Fleche p = new Fleche();
-        p.pos.set(x, y);
-        p.vel.set(MathUtils.cosDeg(angleDeg) * BOSS_PROJECTILE_SPEED,
-                  MathUtils.sinDeg(angleDeg) * BOSS_PROJECTILE_SPEED);
-        p.angle = angleDeg;
-        p.fromEnemy = true;
-        p.life = 3f;
-        p.damage = 1;
-        fleches.add(p);
-        particles.spawnFire(x, y, 2);
-    }
-
-    private void spawnRoomEnemies(Room room) {
-        if (room.boss) {
-            Ennemi b = new Ennemi();
-            b.boss = true;
-
-            float mult = vengeance.getStatMultiplier();
-            b.hp    = (int)(getBossHp() * mult);
-            b.maxHp = b.hp;
-            b.radius = BOSS_RADIUS;
-            b.size = BOSS_SIZE;
-            b.phase = 1;
-            b.attackCooldown = BOSS_ATTACK_COOLDOWN_PHASE_2;
-            b.spawnCooldown = BOSS_SPAWN_COOLDOWN;
-            b.pos.set(W / 2f, H / 2f);
-
-            if (vengeance.getLevel() > 0) {
-                b.vengeanceLevel = vengeance.getLevel();
-                b.vengeanceBonuses = new Array<VengeanceBonus>(vengeance.getBonuses());
-                if (vengeance.has(VengeanceBonus.SHIELDED)) b.shieldCharges = 3;
-                if (vengeance.has(VengeanceBonus.BERSERKER)) b.berserker = true;
-            }
-            ennemis.add(b);
+private void spawnRoomEnemies(Room room) {
+    if (room.boss) {
+        Ennemi b = new Ennemi();
+        b.boss = true;
+        float mult = vengeance.getStatMultiplier();
+        b.hp    = (int)(getBossHp() * mult);
+        b.maxHp = b.hp;
+        b.radius = BOSS_RADIUS;
+        b.size = BOSS_SIZE;
+        b.phase = 1;
+        b.attackCooldown = BOSS_ATTACK_COOLDOWN_PHASE_2;
+        b.spawnCooldown = BOSS_SPAWN_COOLDOWN;
+        b.pos.set(W / 2f, H / 2f);
+        if (vengeance.getLevel() > 0) {
+            b.vengeanceLevel = vengeance.getLevel();
+            b.vengeanceBonuses = new Array<VengeanceBonus>(vengeance.getBonuses());
+            if (vengeance.has(VengeanceBonus.SHIELDED)) b.shieldCharges = 3;
+            if (vengeance.has(VengeanceBonus.BERSERKER)) b.berserker = true;
         }
-        for (int i = 0; i < room.enemyCount; i++) {
-            Ennemi e = new Ennemi();
-            e.hp = getEnemyHp();
-            e.maxHp = getEnemyHp();
-            findSpawnPoint(e.pos, ENEMY_RADIUS);
-            ennemis.add(e);
-        }
-        if (ennemis.size == 0) dungeon.markCleared();
+        ennemis.add(b);
     }
-
-    private void findSpawnPoint(Vector2 out, float radius) {
-        for (int i = 0; i < 40; i++) {
-            float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
-            float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
-            out.set(x, y);
-            if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
-            if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
-            return;
-        }
-        out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
-                MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
+    for (int i = 0; i < room.enemyCount; i++) {
+        Ennemi e = new Ennemi();
+        e.hp = getEnemyHp();
+        e.maxHp = getEnemyHp();
+        findSpawnPoint(e.pos, ENEMY_RADIUS);
+        ennemis.add(e);
     }
+    if (ennemis.size == 0) dungeon.markCleared();
+}
 
-    
-    private void hurtPlayer() {
-        setLives(lives - 1);
-        invulnerable = 1f;
-        hitFlash = HIT_FLASH_DURATION;
-        triggerShake();
-        triggerStun();
-        damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
-        particles.spawnHitSpark(playerPos.x, playerPos.y, new Color(1f, 0.3f, 0.3f, 1f));
-        if (lives <= 0) {
-            gameOver = true;
-            endTimer = 0f;
-            if (elevator != null) elevator.forceUnlock();
-        }
+private void findSpawnPoint(Vector2 out, float radius) {
+    for (int i = 0; i < 40; i++) {
+        float x = MathUtils.random(Room.WALL_T + 50f, W - Room.WALL_T - 50f);
+        float y = MathUtils.random(Room.WALL_T + 50f, H - Room.WALL_T - 50f);
+        out.set(x, y);
+        if (out.dst2(playerPos) < SPAWN_MIN_DIST * SPAWN_MIN_DIST) continue;
+        if (dungeon.circleHitsWall(x, y, radius + 10f)) continue;
+        return;
     }
+    out.set(MathUtils.clamp(W - playerPos.x, 80f, W - 80f),
+            MathUtils.clamp(H - playerPos.y, 80f, H - 80f));
+}
 
-    private void enterRoom(Room room) {
-        fleches.clear();
-        ennemis.clear();
-        damage.clear();
-        if (!room.cleared) spawnRoomEnemies(room);
+private void hurtPlayer() {
+    setLives(lives - 1);
+    invulnerable = 1f;
+    hitFlash = HIT_FLASH_DURATION;
+    triggerShake();
+    triggerStun();
+    damage.add(playerPos.x, playerPos.y + 30f, "-1", true);
+    particles.spawnHitSpark(playerPos.x, playerPos.y, new Color(1f, 0.3f, 0.3f, 1f));
+    if (lives <= 0) {
+        gameOver = true;
+        endTimer = 0f;
+        if (elevator != null) elevator.forceUnlock();
     }
+}
 
-    private void updateWeaponDrops(float delta) {
-        for (int i = weaponDrops.size - 1; i >= 0; i--) {
-            WeaponDrop wd = weaponDrops.get(i);
-            wd.update(delta);
-            if (wd.pos.dst2(playerPos) < 60f * 60f) {
-                equippedWeapon = wd.weapon;
-                weaponDrops.removeIndex(i);
-                particles.spawnLightning(playerPos.x, playerPos.y, 0f, 4);
-            }
+private void enterRoom(Room room) {
+    fleches.clear();
+    ennemis.clear();
+    damage.clear();
+    if (!room.cleared) spawnRoomEnemies(room);
+}
+
+private void updateWeaponDrops(float delta) {
+    for (int i = weaponDrops.size - 1; i >= 0; i--) {
+        WeaponDrop wd = weaponDrops.get(i);
+        wd.update(delta);
+        if (wd.pos.dst2(playerPos) < 60f * 60f) {
+            equippedWeapon = wd.weapon;
+            weaponDrops.removeIndex(i);
+            particles.spawnLightning(playerPos.x, playerPos.y, 0f, 4);
         }
     }
+}
 
-    private void updateChest(float delta) {
-        if (chest != null) chest.update(delta);
-    }
+private void updateChest(float delta) {
+    if (chest != null) chest.update(delta);
+}
 
-    private void pollTouches() {
-        zoom.resetFrame();
-        newTouch = false;
-        for (int i = 0; i < MAX_POINTERS; i++) {
-            if (!Gdx.input.isTouched(i)) {
-                if (moveStick.pointer == i) moveStick.end();
-                if (aimStick.pointer == i) aimStick.end();
-                owner[i] = OWNER_NONE;
-                continue;
-            }
-            tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
-            renderer.uiViewport.unproject(tmp);
-            float x = tmp.x;
-            float y = tmp.y;
-
-            if (owner[i] == OWNER_NONE) {
-                if (elevatorButton != null && elevatorButton.isVisible()
-                        && elevatorButton.getBounds().contains(x, y)) {
-                    if (elevatorButton.handleClick(x, y)) {
-                        tryUseElevator();
-                        newTouch = true;
-                        owner[i] = OWNER_IGNORED;
-                        continue;
-                    }
-                }
-
-                if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
-                        && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
-                    if (autoAimActive) deactivateAutoAimPower();
-                    else if (isAutoAimReady()) activateAutoAimPower();
+private void pollTouches() {
+    zoom.resetFrame();
+    newTouch = false;
+    for (int i = 0; i < MAX_POINTERS; i++) {
+        if (!Gdx.input.isTouched(i)) {
+            if (moveStick.pointer == i) moveStick.end();
+            if (aimStick.pointer == i) aimStick.end();
+            owner[i] = OWNER_NONE;
+            continue;
+        }
+        tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
+        renderer.uiViewport.unproject(tmp);
+        float x = tmp.x;
+        float y = tmp.y;
+        if (owner[i] == OWNER_NONE) {
+            if (elevatorButton != null && elevatorButton.isVisible()
+                    && elevatorButton.getBounds().contains(x, y)) {
+                if (elevatorButton.handleClick(x, y)) {
+                    tryUseElevator();
                     newTouch = true;
                     owner[i] = OWNER_IGNORED;
-                } else if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
-        && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
-    if (isStunReady()) activateStunAbility();
-    newTouch = true;
-    owner[i] = OWNER_IGNORED;
-} else if (x >= GLITCH_BTN_X && x <= GLITCH_BTN_X + GLITCH_BTN_SIZE
-        && y >= GLITCH_BTN_Y && y <= GLITCH_BTN_Y + GLITCH_BTN_SIZE) {
-    if (glitchCooldown <= 0f) activateGlitchDash();
-    newTouch = true;
-    owner[i] = OWNER_IGNORED;
-} else if (canInteractWithChest() && x >= OPEN_BTN_X
-                        && x <= OPEN_BTN_X + OPEN_BTN_W
-                        && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
-                    openChest();
-                    newTouch = true;
-                    owner[i] = OWNER_IGNORED;
-                } else if (zoom.handleTouch(x, y)) {
-                    owner[i] = OWNER_ZOOM;
-                } else {
-                    newTouch = true;
-                    if (x < W / 2f && !moveStick.active()) {
-                        owner[i] = OWNER_MOVE;
-                        moveStick.begin(i, x, y);
-                    } else if (x >= W / 2f && !aimStick.active()) {
-                        owner[i] = OWNER_AIM;
-                        aimStick.begin(i, x, y);
-                    } else {
-                        owner[i] = OWNER_IGNORED;
-                    }
+                    continue;
                 }
-            } else if (owner[i] == OWNER_ZOOM) {
-                zoom.handleTouch(x, y);
-            } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
-                moveStick.move(x, y);
-            } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
-                aimStick.move(x, y);
             }
+            if (x >= AIM_BTN_X && x <= AIM_BTN_X + AIM_BTN_SIZE
+                    && y >= AIM_BTN_Y && y <= AIM_BTN_Y + AIM_BTN_SIZE) {
+                if (autoAimActive) deactivateAutoAimPower();
+                else if (isAutoAimReady()) activateAutoAimPower();
+                newTouch = true;
+                owner[i] = OWNER_IGNORED;
+            } else if (x >= STUN_BTN_X && x <= STUN_BTN_X + STUN_BTN_SIZE
+                    && y >= STUN_BTN_Y && y <= STUN_BTN_Y + STUN_BTN_SIZE) {
+                if (isStunReady()) activateStunAbility();
+                newTouch = true;
+                owner[i] = OWNER_IGNORED;
+            } else if (x >= GLITCH_BTN_X && x <= GLITCH_BTN_X + GLITCH_BTN_SIZE
+                    && y >= GLITCH_BTN_Y && y <= GLITCH_BTN_Y + GLITCH_BTN_SIZE) {
+                if (glitchCooldown <= 0f) activateGlitchDash();
+                newTouch = true;
+                owner[i] = OWNER_IGNORED;
+            } else if (canInteractWithChest() && x >= OPEN_BTN_X
+                    && x <= OPEN_BTN_X + OPEN_BTN_W
+                    && y >= OPEN_BTN_Y && y <= OPEN_BTN_Y + OPEN_BTN_H) {
+                openChest();
+                newTouch = true;
+                owner[i] = OWNER_IGNORED;
+            } else if (zoom.handleTouch(x, y)) {
+                owner[i] = OWNER_ZOOM;
+            } else {
+                newTouch = true;
+                if (x < W / 2f && !moveStick.active()) {
+                    owner[i] = OWNER_MOVE;
+                    moveStick.begin(i, x, y);
+                } else if (x >= W / 2f && !aimStick.active()) {
+                    owner[i] = OWNER_AIM;
+                    aimStick.begin(i, x, y);
+                } else {
+                    owner[i] = OWNER_IGNORED;
+                }
+            }
+        } else if (owner[i] == OWNER_ZOOM) {
+            zoom.handleTouch(x, y);
+        } else if (owner[i] == OWNER_MOVE && moveStick.pointer == i) {
+            moveStick.move(x, y);
+        } else if (owner[i] == OWNER_AIM && aimStick.pointer == i) {
+            aimStick.move(x, y);
         }
     }
-
+}
     private void disposeResources() {
         if (renderer != null) {
             renderer.dispose();
