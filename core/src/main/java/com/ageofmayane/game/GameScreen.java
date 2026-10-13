@@ -996,6 +996,8 @@ private void updateEnemies(float delta) {
             }
             ennemis.removeIndex(i);
             setScore(score + (e.boss ? BOSS_SCORE : 1));
+            currentFloor++;
+        floorBannerTimer = 3f;
             xpSystem.addXp(e.boss ? XP_PER_BOSS : XP_PER_ENEMY);
             if (e.boss) {
                 vengeance.clear();
