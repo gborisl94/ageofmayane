@@ -38,4 +38,10 @@ class Ennemi {
     Array<VengeanceBonus> vengeanceBonuses = null;
     float   teleportTimer    = 0f;
     float   summonTimer      = 0f;
+
+    // --- AJOUTS POUR L'IA ---
+    public int aiState = 0;
+    public float patrolTimer = 0f;
+    public float patrolDirX = 0f;
+    public float patrolDirY = 0f;
 }
