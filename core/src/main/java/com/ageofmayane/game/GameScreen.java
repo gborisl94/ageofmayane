@@ -114,6 +114,11 @@ public class GameScreen extends ScreenAdapter {
 int nbFleches = 50;
 static final int NB_FLECHES_MAX = 50;
 static final float RAMASSAGE_DIST = 60f;
+final Objectifs objectifs = new Objectifs();
+    final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
+int nbFleches = 50;
+static final int NB_FLECHES_MAX = 50;
+static final float RAMASSAGE_DIST = 60f;
     final DamageNumbers damage = new DamageNumbers();
     final ParticleSystem particles = new ParticleSystem();
     final Stick moveStick = new Stick();
