@@ -7,14 +7,11 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 
-/** Etat global du donjon : salle courante, portes, collisions, mini-carte. */
 public class DungeonManager {
 
-    /** Distance du bord ou le joueur apparait apres avoir franchi une porte. */
     public static final float ARRIVAL_MARGIN = 55f;
-
-    static final float MM_CELL = 20f;   // pas de la mini-carte
-    static final float MM_DRAW = 18f;   // taille dessinee d'une cellule
+    static final float MM_CELL = 20f;
+    static final float MM_DRAW = 18f;
 
     private final DungeonGenerator generator = new DungeonGenerator();
 
@@ -27,11 +24,6 @@ public class DungeonManager {
     private final Array<Rectangle> solids = new Array<Rectangle>();
     private final Rectangle doorTmp = new Rectangle();
 
-    // ---------------------------------------------------------------
-    // Generation
-    // ---------------------------------------------------------------
-
-    /** Genere un nouveau donjon (jamais d'exception vers l'exterieur). */
     public void generate() {
         DungeonGenerator.Result res = null;
         try {
@@ -50,6 +42,16 @@ public class DungeonManager {
         bossRoom = res.boss;
         current = start;
         start.visited = true;
+
+        long seed = System.nanoTime();
+        for (int i = 0; i < rooms.size; i++) {
+            Room r = rooms.get(i);
+            boolean isBoss = (r == bossRoom);
+            boolean isStart = (r == start);
+            r.generateInternalWalls(seed + r.gx * 73856093L + r.gy * 19349663L,
+                                    isBoss, isStart);
+        }
+
         rebuildSolids();
     }
 
@@ -57,10 +59,6 @@ public class DungeonManager {
         return r != null && r.grid != null && r.start != null && r.boss != null
                 && r.boss != r.start && r.rooms.size >= 2;
     }
-
-    // ---------------------------------------------------------------
-    // Acces
-    // ---------------------------------------------------------------
 
     public Room getCurrent() { return current; }
     public Room getStart() { return start; }
@@ -76,27 +74,16 @@ public class DungeonManager {
         return grid[gx][gy];
     }
 
-    // ---------------------------------------------------------------
-    // Portes / progression
-    // ---------------------------------------------------------------
-
-    /** Reconstruit la liste des solides (a appeler quand l'etat des portes change). */
     public void rebuildSolids() {
         solids.clear();
         if (current != null) current.collectSolids(solids, !current.cleared);
     }
 
-    /** La salle est nettoyee : les portes s'ouvrent. */
     public void markCleared() {
         if (current == null) return;
         current.cleared = true;
         rebuildSolids();
     }
-
-    /**
-     * Renvoie la direction de la porte que le joueur est en train de franchir,
-     * ou -1. Une porte n'est franchissable que si la salle est nettoyee.
-     */
     public int checkDoorExit(Vector2 p) {
         if (current == null || !current.cleared) return -1;
         float half = Room.DOOR_LEN * 0.5f;
@@ -115,10 +102,6 @@ public class DungeonManager {
         return -1;
     }
 
-    /**
-     * Passe dans la salle voisine et replace le joueur pres de la porte
-     * d'arrivee. Renvoie la nouvelle salle (ou null si impossible).
-     */
     public Room moveThrough(int dir, Vector2 playerPos) {
         if (current == null || !current.hasDoor(dir)) return null;
         Room next = getRoomAt(current.gx + Room.DX[dir], current.gy + Room.DY[dir]);
@@ -139,11 +122,6 @@ public class DungeonManager {
         return next;
     }
 
-    // ---------------------------------------------------------------
-    // Collisions
-    // ---------------------------------------------------------------
-
-    /** Repousse un cercle hors de tous les solides (murs, portes fermees, obstacles). */
     public void collide(Vector2 pos, float r) {
         for (int pass = 0; pass < 3; pass++) {
             boolean any = false;
@@ -168,7 +146,6 @@ public class DungeonManager {
             c.x += dx / d * push;
             c.y += dy / d * push;
         } else {
-            // Centre dans le rectangle : sortir par le bord le plus proche
             float left = c.x - rect.x;
             float right = rect.x + rect.width - c.x;
             float bottom = c.y - rect.y;
@@ -182,7 +159,6 @@ public class DungeonManager {
         return true;
     }
 
-    /** Vrai si un cercle (x, y, r) touche un solide. */
     public boolean circleHitsWall(float x, float y, float r) {
         for (int i = 0; i < solids.size; i++) {
             Rectangle s = solids.get(i);
@@ -195,26 +171,17 @@ public class DungeonManager {
         return false;
     }
 
-    // ---------------------------------------------------------------
-    // Dessin (le ShapeRenderer doit etre en mode Filled)
-    // ---------------------------------------------------------------
-
-    /** Sol, murs, obstacles et portes de la salle courante. */
     public void drawRoom(ShapeRenderer shapes) {
         if (current == null) return;
-
-        // Sol
         shapes.setColor(0.11f, 0.11f, 0.16f, 1f);
         shapes.rect(0f, 0f, Room.ROOM_W, Room.ROOM_H);
 
-        // Murs + obstacles (+ portes fermees, recouvertes ensuite en rouge)
         shapes.setColor(0.25f, 0.25f, 0.3f, 1f);
         for (int i = 0; i < solids.size; i++) {
             Rectangle s = solids.get(i);
             shapes.rect(s.x, s.y, s.width, s.height);
         }
 
-        // Portes
         boolean open = current.cleared;
         for (int d = 0; d < 4; d++) {
             if (!current.hasDoor(d)) continue;
@@ -225,7 +192,6 @@ public class DungeonManager {
         }
     }
 
-    /** Mini-carte 5x5 ; (x, y) = coin bas-gauche de la grille (espace UI). */
     public void drawMiniMap(ShapeRenderer shapes, float x, float y) {
         for (int gx = 0; gx < DungeonGenerator.GRID; gx++) {
             for (int gy = 0; gy < DungeonGenerator.GRID; gy++) {
@@ -238,7 +204,6 @@ public class DungeonManager {
             }
         }
 
-        // Petits traits entre les salles reliees
         shapes.setColor(0.5f, 0.5f, 0.55f, 1f);
         float gap = MM_CELL - MM_DRAW;
         float off = (MM_DRAW - 4f) * 0.5f;
@@ -252,15 +217,11 @@ public class DungeonManager {
             }
         }
     }
-    // ---------------------------------------------------------------
-    // Acces pour l'affichage avec textures (GameRenderer)
-    // ---------------------------------------------------------------
 
     public Array<Rectangle> getSolids() {
         return solids;
     }
 
-    /** Rectangle de la porte 'dir' de la salle courante, ou null s'il n'y en a pas. */
     public Rectangle doorRectOrNull(int dir, Rectangle out) {
         if (current == null || !current.hasDoor(dir)) return null;
         return current.getDoorRect(dir, out);
