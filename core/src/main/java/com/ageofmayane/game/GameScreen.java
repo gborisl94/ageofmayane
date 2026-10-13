@@ -420,6 +420,9 @@ private Ennemi findNearestEnemy() {
 }
 
 private void fireAt(float angleDeg, int dmg) {
+    if (nbFleches <= 0) return;
+nbFleches--;
+    
     Fleche f = new Fleche();
     f.pos.set(playerPos);
     f.vel.set(MathUtils.cosDeg(angleDeg) * ARROW_SPEED,
