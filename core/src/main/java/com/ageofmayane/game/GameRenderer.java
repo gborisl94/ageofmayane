@@ -580,4 +580,128 @@ void draw(GameScreen gs) {
 
     if (texSol != null) {
         batch.begin();
-        batch.setColor(Color.WH
+                batch.setColor(Color.WHITE);
+            drawTiled(texSol, 0f, 0f, W, H, FLOOR_TILE);
+            batch.end();
+        }
+
+        if (gs.chest != null) drawChest(gs.chest);
+
+        batch.begin();
+        batch.setColor(Color.WHITE);
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            Ennemi e = gs.ennemis.get(i);
+            Texture t = (e.boss && texBoss != null) ? texBoss : texEnemy;
+            if (t == null) continue;
+            float scale = 1f;
+            if (e.boss) {
+                if (e.phase == 1) batch.setColor(bossTint);
+                else if (e.phase == 2) batch.setColor(bossTintPhase2);
+                else batch.setColor(bossTintPhase3);
+            } else batch.setColor(Color.WHITE);
+            if (e.fleeing) batch.setColor(1f, 1f, 1f, Math.max(0f, 1f - e.fleeTimer / 2.5f));
+            if (e.hitPulse > 0f) {
+                float pulsePct = e.hitPulse / GameScreen.ENEMY_HIT_PULSE_DURATION;
+                scale *= 1f + 0.6f * pulsePct;
+                int colorIndex = ((int) (e.hitPulse * 40f)) % 6;
+                batch.setColor(rainbow[colorIndex]);
+            }
+            drawSprite(t, e.pos.x, e.pos.y, e.size * scale,
+                    e.angle + GameScreen.ENEMY_ROT);
+        }
+        batch.setColor(Color.WHITE);
+
+        for (int i = 0; i < gs.fleches.size; i++) {
+            Fleche f = gs.fleches.get(i);
+            if (f.fromEnemy) {
+                batch.end();
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(enemyProjectileColor);
+                shapes.circle(f.pos.x, f.pos.y, 9f, 16);
+                shapes.end();
+                batch.begin();
+            } else if (texArrow != null) {
+                drawSprite(texArrow, f.pos.x, f.pos.y, GameScreen.ARROW_SIZE,
+                        f.angle + GameScreen.ARROW_ROT);
+            }
+        }
+
+        if (texPlayer != null && playerVisible) {
+            if (gs.invulnerable > 0f) {
+                int colorIndex = ((int) (gs.invulnerable * 15f)) % 6;
+                batch.setColor(rainbow[colorIndex]);
+            } else {
+                batch.setColor(Color.WHITE);
+            }
+            drawSprite(texPlayer, gs.playerPos.x, gs.playerPos.y,
+                    GameScreen.PLAYER_SIZE, gs.facing + GameScreen.PLAYER_ROT);
+            batch.setColor(Color.WHITE);
+        }
+
+        drawTargetAcquiredText(gs);
+        gs.damage.draw(batch, font);
+        batch.end();
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
+        gs.particles.draw(shapes);
+        drawDizzyStars(gs);
+        drawAutoAimVisual(gs);
+        shapes.end();
+
+        for (int i = 0; i < gs.weaponDrops.size; i++) {
+            WeaponDrop d = gs.weaponDrops.get(i);
+            Texture t = loadDropTexture(d.weapon.spriteName);
+            if (t != null) {
+                batch.begin();
+                batch.setColor(Color.WHITE);
+                batch.draw(t, d.pos.x - 16f, d.pos.y - 8f, 32f, 16f);
+                batch.end();
+            }
+        }
+
+        uiViewport.apply();
+        shapes.setProjectionMatrix(uiCamera.combined);
+        batch.setProjectionMatrix(uiCamera.combined);
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
+        drawStick(gs.moveStick, 1f, 1f, 1f);
+        drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
+        shapes.end();
+
+        gs.zoom.draw(shapes, batch, font);
+        drawOpenButton(gs);
+        drawStunButton(gs);
+        drawGlitchButton(gs);
+        drawAutoAimButton(gs);
+        drawXpBar(gs);
+        drawAttentionGauge(gs);
+
+        batch.begin();
+        font.setColor(Color.WHITE);
+        font.draw(batch, gs.scoreText, 20, H - 20);
+        font.draw(batch, gs.livesText, W - 160, H - 20);
+        font.getData().setScale(1.5f);
+        font.setColor(1f, 0.75f, 0.3f, 1f);
+        font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
+                W / 2f - 80f, H - 20);
+        font.getData().setScale(2f);
+        font.setColor(Color.WHITE);
+        batch.end();
+
+        drawGlitchEffect(gs);
+
+        if (gs.hitFlash > 0f) {
+            float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0f, 0f, alpha);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+        }
+    }
+}
