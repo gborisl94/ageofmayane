@@ -277,6 +277,7 @@ boolean canInteractWithChest() {
 private void openChest() {
     if (chest == null || chest.opened) return;
     chest.open();
+    objectifs.incrCoffre();
     Weapon loot = WeaponDatabase.randomChestLoot();
     weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
 }
