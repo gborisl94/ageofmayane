@@ -119,6 +119,7 @@ final Objectifs objectifs = new Objectifs();
 int nbFleches = 50;
 static final int NB_FLECHES_MAX = 50;
 static final float RAMASSAGE_DIST = 60f;
+final Objectifs objectifs = new Objectifs();
     final DamageNumbers damage = new DamageNumbers();
     final ParticleSystem particles = new ParticleSystem();
     final Stick moveStick = new Stick();
