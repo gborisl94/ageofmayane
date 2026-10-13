@@ -106,39 +106,101 @@ private static void verticalWall(Array<Rectangle> out, float x, boolean gap) {
         if (isBoss || isStart) return;
 
         java.util.Random rng = new java.util.Random(seed);
-        final int cols = 3;
-        final int rows = 3;
-        final float cellW = ROOM_W / cols;
-        final float cellH = ROOM_H / rows;
-        final float wallThick = WALL_T * 1.5f;
-        final float margin = WALL_T + 60f;
 
-        for (int cx = 1; cx < cols; cx++) {
-            float x = cx * cellW - wallThick * 0.5f;
-            for (int cy = 0; cy < rows; cy++) {
-                float cyTop = cy * cellH;
-                float cyBot = (cy + 1) * cellH;
-                if (rng.nextFloat() < 0.4f) continue;
-                float yStart = Math.max(cyTop + margin, margin);
-                float yEnd = Math.min(cyBot - margin, ROOM_H - margin);
-                float h = yEnd - yStart;
-                if (h > 60f) {
-                    obstacles.add(new Rectangle(x, yStart, wallThick, h));
+        final float outerMargin = WALL_T + 40f;
+        final float minRoomW = 220f;
+        final float maxRoomW = 400f;
+        final float minRoomH = 180f;
+        final float maxRoomH = 320f;
+        final float wallThick = WALL_T;
+        final float corridorThick = 90f;
+
+        int chamberCount = 3 + rng.nextInt(3);
+        Array<Rectangle> chambers = new Array<Rectangle>();
+
+        for (int attempt = 0; attempt < 100 && chambers.size < chamberCount; attempt++) {
+            float w = minRoomW + rng.nextFloat() * (maxRoomW - minRoomW);
+            float h = minRoomH + rng.nextFloat() * (maxRoomH - minRoomH);
+            float x = outerMargin + rng.nextFloat() * (ROOM_W - w - outerMargin * 2f);
+            float y = outerMargin + rng.nextFloat() * (ROOM_H - h - outerMargin * 2f);
+
+            Rectangle candidate = new Rectangle(x, y, w, h);
+
+            boolean overlap = false;
+            for (int i = 0; i < chambers.size; i++) {
+                Rectangle other = chambers.get(i);
+                Rectangle padded = new Rectangle(
+                        other.x - corridorThick - wallThick,
+                        other.y - corridorThick - wallThick,
+                        other.width + (corridorThick + wallThick) * 2f,
+                        other.height + (corridorThick + wallThick) * 2f);
+                if (candidate.overlaps(padded)) {
+                    overlap = true;
+                    break;
                 }
             }
+            if (!overlap) chambers.add(candidate);
         }
 
-        for (int cy = 1; cy < rows; cy++) {
-            float y = cy * cellH - wallThick * 0.5f;
-            for (int cx = 0; cx < cols; cx++) {
-                float cxL = cx * cellW;
-                float cxR = (cx + 1) * cellW;
-                if (rng.nextFloat() < 0.4f) continue;
-                float xStart = Math.max(cxL + margin, margin);
-                float xEnd = Math.min(cxR - margin, ROOM_W - margin);
-                float w = xEnd - xStart;
-                if (w > 60f) {
-                    obstacles.add(new Rectangle(xStart, y, w, wallThick));
+        if (chambers.size < 2) return;
+
+        for (int i = 0; i < chambers.size; i++) {
+            Rectangle c = chambers.get(i);
+            obstacles.add(new Rectangle(c.x - wallThick, c.y - wallThick,
+                    c.width + wallThick * 2f, wallThick));
+            obstacles.add(new Rectangle(c.x - wallThick, c.y + c.height,
+                    c.width + wallThick * 2f, wallThick));
+            obstacles.add(new Rectangle(c.x - wallThick, c.y,
+                    wallThick, c.height));
+            obstacles.add(new Rectangle(c.x + c.width, c.y,
+                    wallThick, c.height));
+        }
+
+        for (int i = 0; i < chambers.size - 1; i++) {
+            Rectangle a = chambers.get(i);
+            Rectangle b = chambers.get(i + 1);
+            float ax = a.x + a.width * 0.5f;
+            float ay = a.y + a.height * 0.5f;
+            float bx = b.x + b.width * 0.5f;
+            float by = b.y + b.height * 0.5f;
+
+            Rectangle hCorridor = new Rectangle(
+                    Math.min(ax, bx), ay - corridorThick * 0.5f,
+                    Math.abs(bx - ax), corridorThick);
+            Rectangle vCorridor = new Rectangle(
+                    bx - corridorThick * 0.5f, Math.min(ay, by),
+                    corridorThick, Math.abs(by - ay));
+
+            carveCorridor(hCorridor);
+            carveCorridor(vCorridor);
+        }
+    }
+
+    private void carveCorridor(Rectangle corridor) {
+        for (int i = obstacles.size - 1; i >= 0; i--) {
+            Rectangle o = obstacles.get(i);
+            if (o.overlaps(corridor)) {
+                obstacles.removeIndex(i);
+                if (o.width > o.height) {
+                    if (corridor.x > o.x) {
+                        float cut = Math.min(corridor.x - o.x, o.width);
+                        if (cut > 1f) obstacles.add(new Rectangle(o.x, o.y, cut, o.height));
+                    }
+                    if (corridor.x + corridor.width < o.x + o.width) {
+                        float cutX = corridor.x + corridor.width;
+                        float cutW = o.x + o.width - cutX;
+                        if (cutW > 1f) obstacles.add(new Rectangle(cutX, o.y, cutW, o.height));
+                    }
+                } else {
+                    if (corridor.y > o.y) {
+                        float cut = Math.min(corridor.y - o.y, o.height);
+                        if (cut > 1f) obstacles.add(new Rectangle(o.x, o.y, o.width, cut));
+                    }
+                    if (corridor.y + corridor.height < o.y + o.height) {
+                        float cutY = corridor.y + corridor.height;
+                        float cutH = o.y + o.height - cutY;
+                        if (cutH > 1f) obstacles.add(new Rectangle(o.x, cutY, o.width, cutH));
+                    }
                 }
             }
         }
