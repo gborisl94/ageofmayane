@@ -27,7 +27,7 @@ class FlecheSol {
 }
 
 class Ennemi {
-    final Vector2 pos = new Vector2();mmm
+    final Vector2 pos = new Vector2();
     float angle = 0f;
     boolean boss = false;
     int hp = 1;
