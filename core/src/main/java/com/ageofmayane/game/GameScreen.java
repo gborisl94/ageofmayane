@@ -498,7 +498,6 @@ private void update(float delta) {
         if (uiShapes != null) { uiShapes.dispose(); uiShapes = null; }
         if (uiBatch != null) { uiBatch.dispose(); uiBatch = null; }
         if (uiFont != null) { uiFont.dispose(); uiFont = null; }
-    }
 }
 void tryUseElevator() { GameFloor.tryUseElevator(this); }
 void activateStunAbility() { GameAbilities.activateStunAbility(this); }
