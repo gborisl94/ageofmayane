@@ -673,6 +673,9 @@ private void drawGlitchEffect(GameScreen gs) {
         drawDizzyStars(gs);
         drawAutoAimVisual(gs);
         shapes.end();
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+drawArcAim(gs);
+shapes.end();
         drawFlechesSol(gs);
           
      for (int i = 0; i < gs.weaponDrops.size; i++) {
