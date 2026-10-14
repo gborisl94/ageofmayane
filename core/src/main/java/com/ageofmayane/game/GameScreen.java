@@ -410,6 +410,23 @@ private void update(float delta) {
         if (next != null) GameFloor.enterRoom(this, next);
     }
     fireTimer -= delta;
+    boolean aimActiveNow = aimStick.active();
+if (aimActiveNow && !aimStickWasActive) {
+    arcTendu = true;
+    arcAngle = facing;
+}
+if (arcTendu && aimStick.dir.len() > DEAD_ZONE) {
+    arcAngle = aimStick.dir.angleDeg();
+    facing = arcAngle;
+}
+if (!aimActiveNow && aimStickWasActive && arcTendu) {
+    if (nbFleches > 0) {
+        GameCombat.fireAt(this, arcAngle, getChargeDamage());
+        playerRecoil = PLAYER_RECOIL_DURATION;
+    }
+    arcTendu = false;
+}
+aimStickWasActive = aimActiveNow;
     autoTarget = GameCombat.findNearestEnemy(this);
     if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget)
         targetAcquiredTimer = 1.5f;
