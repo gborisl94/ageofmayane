@@ -98,7 +98,8 @@ public class GameScreen extends ScreenAdapter {
     static final float GLITCH_INVULN = 0.5f;
     static final float GLITCH_BTN_SIZE = 110f;
     static final float GLITCH_BTN_X = W - GLITCH_BTN_SIZE - 30f;
-    static final float GLITCH_BTN_Y =static final float LUNE_COOLDOWN = 4f;
+    static final float GLITCH_BTN_Y = H - 460f - GLITCH_BTN_SIZE * 2 - 40f;
+static final float LUNE_COOLDOWN = 4f;
 static final float LUNE_SPEED = 480f;
 static final float LUNE_BTN_SIZE = 110f;
 static final float LUNE_BTN_X = W - LUNE_BTN_SIZE - 30f;
