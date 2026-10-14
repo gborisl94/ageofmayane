@@ -196,21 +196,28 @@ class GameRenderer {
     }
     private void drawArcAim(GameScreen gs) {
     if (!gs.arcTendu) return;
+    com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+    com.badlogic.gdx.Gdx.gl.glBlendFunc(
+        com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+        com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+    shapes.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
     float cx = gs.playerPos.x;
     float cy = gs.playerPos.y;
     float radius = 200f;
-    shapes.setColor(0.3f, 0.7f, 1f, 0.02f);
+    shapes.setColor(0.3f, 0.7f, 1f, 0.03f);
     shapes.circle(cx, cy, radius, 48);
-    shapes.setColor(0.3f, 0.7f, 1f, 0.20f);
+    shapes.setColor(0.3f, 0.7f, 1f, 0.25f);
     shapes.circle(cx, cy, radius, 48);
     float rad = gs.arcAngle * MathUtils.degRad;
     float ox = cx + MathUtils.cos(rad) * radius;
     float oy = cy + MathUtils.sin(rad) * radius;
-    shapes.setColor(0.3f, 0.7f, 1f, 0.0f);   // remplissage TOTALEMENT invisible
-    shapes.circle(cx, cy, radius, 48);
-    shapes.setColor(0.3f, 0.7f, 1f, 0.15f);  // contour très léger
-    shapes.circle(cx, cy, radius, 48);
-    }
+    shapes.setColor(0.6f, 1f, 1f, 0.9f);
+    shapes.circle(ox, oy, 12f, 16);
+    shapes.setColor(1f, 1f, 1f, 1f);
+    shapes.circle(ox, oy, 5f, 12);
+    shapes.end();
+    com.badlogic.gdx.Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+}
 
     private void drawFlechesSol(GameScreen gs) {
     if (gs.flechesSol == null || gs.flechesSol.size == 0) return;
