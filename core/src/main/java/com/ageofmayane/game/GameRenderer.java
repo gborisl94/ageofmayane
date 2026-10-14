@@ -196,11 +196,6 @@ class GameRenderer {
     }
     private void drawArcAim(GameScreen gs) {
     if (!gs.arcTendu) return;
-    com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
-    com.badlogic.gdx.Gdx.gl.glBlendFunc(
-        com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
-        com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
-    shapes.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
     float cx = gs.playerPos.x;
     float cy = gs.playerPos.y;
     float radius = 200f;
@@ -215,8 +210,6 @@ class GameRenderer {
     shapes.circle(ox, oy, 12f, 16);
     shapes.setColor(1f, 1f, 1f, 1f);
     shapes.circle(ox, oy, 5f, 12);
-    shapes.end();
-    com.badlogic.gdx.Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
 }
 
     private void drawFlechesSol(GameScreen gs) {
