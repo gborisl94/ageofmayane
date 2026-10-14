@@ -371,6 +371,11 @@ private void update(float delta) {
     if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
     if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
     if (floorBannerTimer > 0f) floorBannerTimer -= delta;
+    regenFlechesTimer += delta;
+    if (regenFlechesTimer >= 2f && nbFleches < 50) {
+    nbFleches++;
+    regenFlechesTimer = 0f;
+}
     boolean stunned = isStunned();
     if (aimStick.dir.len() > DEAD_ZONE) facing = aimStick.dir.angleDeg();
     else if (moveStick.dir.len() > DEAD_ZONE) facing = moveStick.dir.angleDeg();
