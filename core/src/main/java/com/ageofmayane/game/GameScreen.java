@@ -175,6 +175,9 @@ final Objectifs objectifs = new Objectifs();
     private BitmapFont uiFont;
     private boolean floorTransitionPending = false;
     float glitchCooldown = 0f;
+    float luneCooldown = 0f;
+int luneLevel = 1;
+int luneKills = 0;
     float glitchEffectTimer = 0f;
     private float transitionTimer = 0f;
 
