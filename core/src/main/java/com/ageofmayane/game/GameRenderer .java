@@ -196,20 +196,24 @@ class GameRenderer {
     }
     private void drawFlechesSol(GameScreen gs) {
     if (gs.flechesSol == null || gs.flechesSol.size == 0) return;
-    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    if (texArrow == null) return;
+    float size = 32f;
+    float w = size;
+    float h = size * texArrow.getHeight() / (float) texArrow.getWidth();
+    batch.begin();
+    batch.setColor(Color.WHITE);
     for (int i = 0; i < gs.flechesSol.size; i++) {
         FlecheSol fs = gs.flechesSol.get(i);
-        float cx = fs.pos.x;
-        float cy = fs.pos.y;
-        shapes.setColor(1f, 0.9f, 0.3f, 0.35f);
-        shapes.circle(cx, cy, 14f, 12);
-        shapes.setColor(1f, 0.85f, 0.2f, 1f);
-        float rad = fs.angle * MathUtils.degRad;
-        float dx = MathUtils.cos(rad) * 10f;
-        float dy = MathUtils.sin(rad) * 10f;
-        shapes.rectLine(cx - dx, cy - dy, cx + dx, cy + dy, 3f);
+        batch.draw(texArrow,
+            fs.pos.x - w / 2f, fs.pos.y - h / 2f,
+            w / 2f, h / 2f, w, h,
+            1f, 1f, fs.angle,
+            0, 0, texArrow.getWidth(), texArrow.getHeight(),
+            false, false);
     }
-    shapes.end();
+    batch.setColor(Color.WHITE);
+    batch.end();
+}
     }
              
     private void drawChest(Chest c) {
