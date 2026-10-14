@@ -365,7 +365,47 @@ private void activateStunAbility() {
     }
     triggerShake();
 }
+private void fireCrescent() {
+    if (luneCooldown > 0f) return;
+    Ennemi target = findNearestEnemy();
+    if (target == null) return;
+    luneCooldown = LUNE_COOLDOWN;
+    tmp.set(target.pos).sub(playerPos);
+    float angle = tmp.angleDeg();
+    Fleche f = new Fleche();
+    f.pos.set(playerPos);
+    f.vel.set(MathUtils.cosDeg(angle) * LUNE_SPEED,
+              MathUtils.sinDeg(angle) * LUNE_SPEED);
+    f.angle = angle;
+    f.fromEnemy = false;
+    f.damage = 3;
+    f.croissant = true;
+    f.generation = 0;
+    f.life = 3f;
+    fleches.add(f);
+    particles.spawnWaterJet(playerPos.x, playerPos.y, angle, 4);
+}
 
+private void splitCrescent(Fleche parent) {
+    int nbFill = Math.min(2 + luneLevel, 6);
+    float baseAngle = parent.angle;
+    for (int i = 0; i < nbFill; i++) {
+        float spread = -30f + (60f / Math.max(1, nbFill - 1)) * i;
+        float a = baseAngle + spread;
+        Fleche f = new Fleche();
+        f.pos.set(parent.pos);
+        f.vel.set(MathUtils.cosDeg(a) * LUNE_SPEED * 0.85f,
+                  MathUtils.sinDeg(a) * LUNE_SPEED * 0.85f);
+        f.angle = a;
+        f.fromEnemy = false;
+        f.damage = Math.max(1, parent.damage - 1);
+        f.croissant = true;
+        f.generation = parent.generation + 1;
+        f.life = 1.5f;
+        fleches.add(f);
+    }
+    particles.spawnWater(parent.pos.x, parent.pos.y, 8);
+}
 private void activateGlitchDash() {
     if (glitchCooldown > 0f) return;
     glitchCooldown = GLITCH_COOLDOWN;
