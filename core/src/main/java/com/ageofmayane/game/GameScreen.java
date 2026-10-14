@@ -421,7 +421,7 @@ if (arcTendu && aimStick.dir.len() > DEAD_ZONE) {
 }
 if (!aimActiveNow && aimStickWasActive && arcTendu) {
     if (nbFleches > 0) {
-        GameCombat.fireAt(this, arcAngle, getChargeDamage());
+        GameCombat.fireAt(this, arcAngle, GameCombat.getChargeDamage(this));
         playerRecoil = PLAYER_RECOIL_DURATION;
     }
     arcTendu = false;
