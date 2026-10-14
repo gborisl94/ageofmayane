@@ -104,81 +104,82 @@ public class GameScreen extends ScreenAdapter {
     static final float LUNE_BTN_SIZE = 110f;
     static final float LUNE_BTN_X = W - LUNE_BTN_SIZE - 30f;
     static final float LUNE_BTN_Y = H - 460f - LUNE_BTN_SIZE * 3 - 60f;
+private final Game game;
+GameRenderer renderer;
 
-    private final Game game;
-    GameRenderer renderer;
+ZoomController zoom;
+XpSystem xpSystem;
+final DungeonManager dungeon = new DungeonManager();
+final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
+final Array<Fleche> fleches = new Array<Fleche>();
+final Array<Ennemi> ennemis = new Array<Ennemi>();
+final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
+final DamageNumbers damage = new DamageNumbers();
+final ParticleSystem particles = new ParticleSystem();
+final Stick moveStick = new Stick();
+final Stick aimStick = new Stick();
+Weapon equippedWeapon;
+Chest chest;
+int nbFleches = 50;
+final Objectifs objectifs = new Objectifs();
+float facing = 0f;
+float invulnerable;
+float hitFlash = 0f;
+float playerRecoil = 0f;
+float bossFleeMessageTimer = 0f;
+float bossPhaseMessageTimer = 0f;
+int bossPhaseMessage = 0;
+float shakeTime = 0f;
+float shakeOffsetX = 0f;
+float shakeOffsetY = 0f;
+float stunTimer = 0f;
+float stunCooldown = 0f;
+float dizzyTime = 0f;
+boolean bossFledThisRun = false;
+boolean gameOver;
+boolean victory;
+String scoreText = "";
+String livesText = "";
+float attention = ATTENTION_MAX;
+Ennemi autoTarget = null;
+float aimStability = 0f;
+float aimTrembleSeed = 0f;
+float aimTrembleX = 0f;
+float aimTrembleY = 0f;
+int chargeLevel = 1;
+boolean autoAimActive = false;
+float autoAimTimer = 0f;
+float autoAimCooldown = 0f;
+float targetAcquiredTimer = 0f;
+Ennemi lastAutoTarget = null;
+int currentFloor = 1;
+float floorBannerTimer = 0f;
 
-    ZoomController zoom;
-    XpSystem xpSystem;
-    final DungeonManager dungeon = new DungeonManager();
-    final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
-    final Array<Fleche> fleches = new Array<Fleche>();
-    final Array<Ennemi> ennemis = new Array<Ennemi>();
-    final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
-    final DamageNumbers damage = new DamageNumbers();
-    final ParticleSystem particles = new ParticleSystem();
-    final Stick moveStick = new Stick();
-    final Stick aimStick = new Stick();
-    Weapon equippedWeapon;
-    Chest chest;
-    float facing = 0f;
-    float invulnerable;
-    float hitFlash = 0f;
-    float playerRecoil = 0f;
-    float bossFleeMessageTimer = 0f;
-    float bossPhaseMessageTimer = 0f;
-    int bossPhaseMessage = 0;
-    float shakeTime = 0f;
-    float shakeOffsetX = 0f;
-    float shakeOffsetY = 0f;
-    float stunTimer = 0f;
-    float stunCooldown = 0f;
-    float dizzyTime = 0f;
-    boolean bossFledThisRun = false;
-    boolean gameOver;
-    boolean victory;
-    String scoreText = "";
-    String livesText = "";
-    float attention = ATTENTION_MAX;
-    Ennemi autoTarget = null;
-    float aimStability = 0f;
-    float aimTrembleSeed = 0f;
-    float aimTrembleX = 0f;
-    float aimTrembleY = 0f;
-    int chargeLevel = 1;
-    boolean autoAimActive = false;
-    float autoAimTimer = 0f;
-    float autoAimCooldown = 0f;
-    float targetAcquiredTimer = 0f;
-    Ennemi lastAutoTarget = null;
-    int currentFloor = 1;
-    float floorBannerTimer = 0f;
+final Vector2 tmp = new Vector2();
+final int[] owner = new int[MAX_POINTERS];
+boolean newTouch;
 
-    final Vector2 tmp = new Vector2();
-    final int[] owner = new int[MAX_POINTERS];
-    boolean newTouch;
+int lives;
+int score;
+float fireTimer;
+float endTimer;
 
-    int lives;
-    int score;
-    float fireTimer;
-    float endTimer;
+final VengeanceManager vengeance = VengeanceManager.get();
+Elevator elevator;
+ElevatorButton elevatorButton;
+ShapeRenderer uiShapes;
+SpriteBatch uiBatch;
+BitmapFont uiFont;
+boolean floorTransitionPending = false;
+float glitchCooldown = 0f;
+float luneCooldown = 0f;
+int luneLevel = 1;
+int luneKills = 0;
+float glitchEffectTimer = 0f;
+float transitionTimer = 0f;
 
-    final VengeanceManager vengeance = VengeanceManager.get();
-    Elevator elevator;
-    ElevatorButton elevatorButton;
-    ShapeRenderer uiShapes;
-    SpriteBatch uiBatch;
-    BitmapFont uiFont;
-    boolean floorTransitionPending = false;
-    float glitchCooldown = 0f;
-    float luneCooldown = 0f;
-    int luneLevel = 1;
-    int luneKills = 0;
-    float glitchEffectTimer = 0f;
-    float transitionTimer = 0f;
-
-    public GameScreen() { this(null); }
-    public GameScreen(Game game) { this.game = game; }
+public GameScreen() { this(null); }
+public GameScreen(Game game) { this.game = game; }
 @Override
 public void show() {
     disposeResources();
@@ -243,6 +244,7 @@ private void restart() {
     floorBannerTimer = 0f;
     Vector2 chestPos = GameFloor.findRandomFloorPos(this, 40f, 200f);
     chest = new Chest(chestPos.x, chestPos.y);
+    nbFleches = 50;
     vengeance.clear();
     floorTransitionPending = false;
     transitionTimer = 0f;
@@ -276,6 +278,7 @@ boolean canInteractWithChest() {
 void openChest() {
     if (chest == null || chest.opened) return;
     chest.open();
+    objectifs.incrCoffre();
     Weapon loot = WeaponDatabase.randomChestLoot();
     weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
 }
@@ -456,15 +459,6 @@ private void update(float delta) {
         xpSystem.addXp(XP_PER_ROOM);
     }
 }
-
-void tryUseElevator() { GameFloor.tryUseElevator(this); }
-void activateStunAbility() { GameAbilities.activateStunAbility(this); }
-void activateGlitchDash() { GameAbilities.activateGlitchDash(this); }
-void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
-void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
-boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
-float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
-float getAutoAimCooldownRatio() { return GameAbilities.getAutoAimCooldownRatio(this); }
     private void updateWeaponDrops(float delta) {
         for (int i = weaponDrops.size - 1; i >= 0; i--) {
             WeaponDrop wd = weaponDrops.get(i);
@@ -501,3 +495,11 @@ float getAutoAimCooldownRatio() { return GameAbilities.getAutoAimCooldownRatio(t
         if (uiFont != null) { uiFont.dispose(); uiFont = null; }
     }
 }
+void tryUseElevator() { GameFloor.tryUseElevator(this); }
+void activateStunAbility() { GameAbilities.activateStunAbility(this); }
+void activateGlitchDash() { GameAbilities.activateGlitchDash(this); }
+void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
+void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
+boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
+float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
+float getAutoAimCooldownRatio() { return GameAbilities.getAutoAimCooldownRatio(this); }
