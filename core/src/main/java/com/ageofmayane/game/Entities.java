@@ -19,15 +19,7 @@ class FlecheSol {
         pos.set(x, y);
         angle = a;
     }
-}
-class FlecheSol {
-    final Vector2 pos = new Vector2();
-    float angle = 0f;
 
-    FlecheSol(float x, float y, float a) {
-        pos.set(x, y);
-        angle = a;
-    }
 }
 
 class Ennemi {
