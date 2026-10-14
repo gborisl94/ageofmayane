@@ -202,7 +202,7 @@ class GameRenderer {
     shapes.setColor(0.3f, 0.7f, 1f, 0.25f);
     shapes.circle(cx, cy, radius, 48);
     shapes.setColor(0.3f, 0.7f, 1f, 0.8f);
-    shapes.circle(cx, cy, radius, 48, 2f);
+    shapes.circle(cx, cy, radius, 48);
     float rad = gs.arcAngle * MathUtils.degRad;
     float ox = cx + MathUtils.cos(rad) * radius;
     float oy = cy + MathUtils.sin(rad) * radius;
