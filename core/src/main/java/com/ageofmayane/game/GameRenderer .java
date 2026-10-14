@@ -194,7 +194,24 @@ class GameRenderer {
         shapes.setColor(r, g, b, 0.45f);
         shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
-
+    private void drawFlechesSol(GameScreen gs) {
+    if (gs.flechesSol == null || gs.flechesSol.size == 0) return;
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    for (int i = 0; i < gs.flechesSol.size; i++) {
+        FlecheSol fs = gs.flechesSol.get(i);
+        float cx = fs.pos.x;
+        float cy = fs.pos.y;
+        shapes.setColor(1f, 0.9f, 0.3f, 0.35f);
+        shapes.circle(cx, cy, 14f, 12);
+        shapes.setColor(1f, 0.85f, 0.2f, 1f);
+        float rad = fs.angle * MathUtils.degRad;
+        float dx = MathUtils.cos(rad) * 10f;
+        float dy = MathUtils.sin(rad) * 10f;
+        shapes.rectLine(cx - dx, cy - dy, cx + dx, cy + dy, 3f);
+    }
+    shapes.end();
+    }
+    
     private void drawChest(Chest c) {
         Texture t = c.opened ? texChestOpen : texChestClosed;
         if (t != null) {
