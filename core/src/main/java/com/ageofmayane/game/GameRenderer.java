@@ -199,7 +199,7 @@ class GameRenderer {
     float cx = gs.playerPos.x;
     float cy = gs.playerPos.y;
     float radius = 200f;
-    shapes.setColor(0.3f, 0.7f, 1f, 0.08f);
+    shapes.setColor(0.3f, 0.7f, 1f, 0.0f);
     shapes.circle(cx, cy, radius, 48);
     shapes.setColor(0.3f, 0.7f, 1f, 0.35f);
     shapes.circle(cx, cy, radius, 48);
