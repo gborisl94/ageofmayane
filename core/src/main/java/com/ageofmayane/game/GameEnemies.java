@@ -272,6 +272,20 @@ class GameEnemies {
                 gs.ennemis.removeIndex(i);
                 gs.setScore(gs.getScore() + (e.boss ? GameScreen.BOSS_SCORE : 1));
                 gs.xpSystem.addXp(e.boss ? GameScreen.XP_PER_BOSS : GameScreen.XP_PER_ENEMY);
+                {
+    int dropCount = e.boss ? 5 + (int)(Math.random() * 4) : 2 + (int)(Math.random() * 2);
+    for (int k = 0; k < dropCount; k++) {
+        float dx = MathUtils.random(-40f, 40f);
+        float dy = MathUtils.random(-40f, 40f);
+        float fx = MathUtils.clamp(e.pos.x + dx, 20f, GameScreen.W - 20f);
+        float fy = MathUtils.clamp(e.pos.y + dy, 20f, GameScreen.H - 20f);
+        if (!gs.dungeon.circleHitsWall(fx, fy, 5f)) {
+            gs.flechesSol.add(new FlecheSol(fx, fy, MathUtils.random(0f, 360f)));
+        }
+    }
+    gs.particles.spawnLightning(e.pos.x, e.pos.y, 0f, e.boss ? 8 : 3);
+    gs.particles.spawnSmoke(e.pos.x, e.pos.y, e.boss ? 10 : 3);
+                }
                 if (e.boss) {
                     gs.vengeance.clear();
                     if (gs.currentFloor < GameScreen.TOTAL_FLOORS) {
