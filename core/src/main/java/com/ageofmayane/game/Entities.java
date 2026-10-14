@@ -3,14 +3,18 @@ package com.ageofmayane.game;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 
-class Fleche {
+ class Fleche {
     final Vector2 pos = new Vector2();
     final Vector2 vel = new Vector2();
     float angle = 0f;
     float life = 1.5f;
     boolean fromEnemy = false;
     int damage = 1;
-}
+
+    // --- CROISSANT DE LUNE ---
+    boolean croissant = false;
+    int generation = 0;
+ }
 class FlecheSol {
     final Vector2 pos = new Vector2();
     float angle = 0f;
