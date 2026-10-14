@@ -122,6 +122,7 @@ final Stick aimStick = new Stick();
 Weapon equippedWeapon;
 Chest chest;
 int nbFleches = 50;
+float regenFlechesTimer = 0f;
 final Objectifs objectifs = new Objectifs();
 float facing = 0f;
 float invulnerable;
