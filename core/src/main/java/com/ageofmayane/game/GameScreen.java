@@ -434,7 +434,7 @@ aimStickWasActive = aimActiveNow;
     boolean useManual = aimStick.dir.len() > DEAD_ZONE;
     boolean autoAimUsable = autoAimActive && !useManual && attention > 0f
             && autoTarget != null && !stunned;
-    if (!stunned && fireTimer <= 0f) {
+    if (!stunned && fireTimer <= 0f && !arcTendu) {
         if (useManual) {
             GameCombat.fireAt(this, aimStick.dir.angleDeg(), CHARGE_DMG_LVL1);
             fireTimer = FIRE_DELAY;
