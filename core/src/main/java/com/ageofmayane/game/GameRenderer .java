@@ -652,8 +652,9 @@ private void drawGlitchEffect(GameScreen gs) {
         drawDizzyStars(gs);
         drawAutoAimVisual(gs);
         shapes.end();
-
-        for (int i = 0; i < gs.weaponDrops.size; i++) {
+        drawFlechesSol(gs);
+          
+     for (int i = 0; i < gs.weaponDrops.size; i++) {
             WeaponDrop d = gs.weaponDrops.get(i);
             Texture t = loadDropTexture(d.weapon.spriteName);
             if (t != null) {
