@@ -122,6 +122,7 @@ final Stick aimStick = new Stick();
 Weapon equippedWeapon;
 Chest chest;
 int nbFleches = 50;
+final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
 float regenFlechesTimer = 0f;
 final Objectifs objectifs = new Objectifs();
 float facing = 0f;
@@ -376,6 +377,16 @@ private void update(float delta) {
     nbFleches++;
     regenFlechesTimer = 0f;
 }
+    for (int i = flechesSol.size - 1; i >= 0; i--) {
+    FlecheSol fs = flechesSol.get(i);
+    if (fs.pos.dst2(playerPos) < 60f * 60f) {
+        if (nbFleches < 50) {
+            nbFleches++;
+            particles.spawnLightning(fs.pos.x, fs.pos.y, 0f, 2);
+        }
+        flechesSol.removeIndex(i);
+    }
+    }
     boolean stunned = isStunned();
     if (aimStick.dir.len() > DEAD_ZONE) facing = aimStick.dir.angleDeg();
     else if (moveStick.dir.len() > DEAD_ZONE) facing = moveStick.dir.angleDeg();
