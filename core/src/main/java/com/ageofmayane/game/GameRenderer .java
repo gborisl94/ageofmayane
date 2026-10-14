@@ -211,7 +211,7 @@ class GameRenderer {
     }
     shapes.end();
     }
-    
+             
     private void drawChest(Chest c) {
         Texture t = c.opened ? texChestOpen : texChestClosed;
         if (t != null) {
