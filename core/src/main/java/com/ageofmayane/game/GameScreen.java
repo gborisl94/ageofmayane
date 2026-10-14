@@ -507,3 +507,4 @@ void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
 boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
 float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
 float getAutoAimCooldownRatio() { return GameAbilities.getAutoAimCooldownRatio(this); }
+}
