@@ -214,7 +214,6 @@ class GameRenderer {
     batch.setColor(Color.WHITE);
     batch.end();
 }
-    }
              
     private void drawChest(Chest c) {
         Texture t = c.opened ? texChestOpen : texChestClosed;
