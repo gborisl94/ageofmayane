@@ -85,9 +85,12 @@ class GameInput {
                         gs.owner[i] = GameScreen.OWNER_MOVE;
                         gs.moveStick.begin(i, x, y);
                     } else if (x >= GameScreen.W / 2f && !gs.aimStick.active()) {
-                        gs.owner[i] = GameScreen.OWNER_AIM;
-                        gs.aimStick.begin(i, x, y);
-                    } else {
+    gs.owner[i] = GameScreen.OWNER_AIM;
+    gs.aimStick.begin(i, x, y);
+    gs.arcBtnActive = true;
+    gs.arcBtnTimer = 0f;
+    gs.arcBtnPointer = i;
+} else {
                         gs.owner[i] = GameScreen.OWNER_IGNORED;
                     }
                 }
