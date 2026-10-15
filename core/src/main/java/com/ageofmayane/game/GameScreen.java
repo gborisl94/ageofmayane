@@ -63,6 +63,9 @@ public class GameScreen extends ScreenAdapter {
     static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
     static final float ARC_BTN_X = 20f;
     static final float ARC_BTN_Y = 350f;
+    static final float ARC_BTN_SIZE = 110f;
+    static final float ARC_BTN_X = 20f;
+    static final float ARC_BTN_Y = 350f;
     static final float AUTO_AIM_DURATION = 8f;
     static final float AUTO_AIM_COOLDOWN = 12f;
     static final int MAX_POINTERS = 5;
