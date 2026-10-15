@@ -10,6 +10,19 @@ class GameInput {
         for (int i = 0; i < GameScreen.MAX_POINTERS; i++) {
             if (!Gdx.input.isTouched(i)) {
                 if (gs.moveStick.pointer == i) gs.moveStick.end();
+                if (gs.arcBtnPointer == i && gs.arcBtnActive) {
+    float fireAngle = gs.facing;
+    if (gs.aimStick.dir.len() > GameScreen.DEAD_ZONE) {
+        fireAngle = gs.aimStick.dir.angleDeg();
+    }
+    if (gs.arcBtnNiveau > 0) {
+        GameCombat.tirerCharge(gs, fireAngle, gs.arcBtnNiveau);
+    }
+    gs.arcBtnActive = false;
+    gs.arcBtnTimer = 0f;
+    gs.arcBtnNiveau = 0;
+    gs.arcBtnPointer = -1;
+                }
                 if (gs.aimStick.pointer == i) gs.aimStick.end();
                 gs.owner[i] = GameScreen.OWNER_NONE;
                 if (x >= GameScreen.ARC_BTN_X
