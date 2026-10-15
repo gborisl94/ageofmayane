@@ -506,7 +506,35 @@ private void drawTargetAcquiredText(GameScreen gs) {
     font.setColor(Color.WHITE);
 }
 
+
 private void drawXpBar(GameScreen gs) {
+private void drawHpBar(GameScreen gs) {
+    float bx = 20f;
+    float by = H - 145f;
+    float bw = 260f;
+    float bh = 22f;
+    float ratio = Math.max(0f, Math.min(1f, gs.hp / (float) GameScreen.MAX_HP));
+
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, bh + 4f);
+    if (ratio > 0.6f) shapes.setColor(0.2f, 0.9f, 0.3f, 1f);
+    else if (ratio > 0.3f) shapes.setColor(1f, 0.7f, 0.1f, 1f);
+    else shapes.setColor(0.9f, 0.2f, 0.2f, 1f);
+    shapes.rect(bx, by, bw * ratio, bh);
+    shapes.setColor(0.4f, 0.4f, 0.5f, 1f);
+    shapes.rect(bx - 2f, by - 2f, bw + 4f, 2f);
+    shapes.rect(bx - 2f, by + bh, bw + 4f, 2f);
+    shapes.end();
+
+    batch.begin();
+    font.getData().setScale(1.2f);
+    font.setColor(1f, 1f, 1f, 1f);
+    font.draw(batch, "PV " + gs.hp + " / " + GameScreen.MAX_HP,
+            bx + 6f, by + bh - 5f);
+    font.getData().setScale(2f);
+    batch.end();
+}
 private void drawHpBar(GameScreen gs) {
     float bx = 20f;
     float by = H - 145f;
