@@ -10,22 +10,8 @@ class GameInput {
         for (int i = 0; i < GameScreen.MAX_POINTERS; i++) {
             if (!Gdx.input.isTouched(i)) {
                 if (gs.moveStick.pointer == i) gs.moveStick.end();
-                if (gs.arcBtnPointer == i && gs.arcBtnActive) {
-    float fireAngle = gs.facing;
-    if (gs.aimStick.dir.len() > GameScreen.DEAD_ZONE) {
-        fireAngle = gs.aimStick.dir.angleDeg();
-    }
-    if (gs.arcBtnNiveau > 0) {
-        GameCombat.tirerCharge(gs, fireAngle, gs.arcBtnNiveau);
-    }
-    gs.arcBtnActive = false;
-    gs.arcBtnTimer = 0f;
-    gs.arcBtnNiveau = 0;
-    gs.arcBtnPointer = -1;
-                }
                 if (gs.aimStick.pointer == i) gs.aimStick.end();
                 gs.owner[i] = GameScreen.OWNER_NONE;
-              
                 continue;
             }
             gs.tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
@@ -43,17 +29,6 @@ class GameInput {
                         continue;
                     }
                 }
-                if (x >= GameScreen.ARC_BTN_X
-        && x <= GameScreen.ARC_BTN_X + GameScreen.ARC_BTN_SIZE
-        && y >= GameScreen.ARC_BTN_Y
-        && y <= GameScreen.ARC_BTN_Y + GameScreen.ARC_BTN_SIZE) {
-    gs.arcBtnActive = true;
-    gs.arcBtnTimer = 0f;
-    gs.arcBtnPointer = i;
-    gs.newTouch = true;
-    gs.owner[i] = GameScreen.OWNER_IGNORED;
-    continue;
-}
 
                 if (x >= GameScreen.AIM_BTN_X && x <= GameScreen.AIM_BTN_X + GameScreen.AIM_BTN_SIZE
                         && y >= GameScreen.AIM_BTN_Y && y <= GameScreen.AIM_BTN_Y + GameScreen.AIM_BTN_SIZE) {
@@ -85,12 +60,9 @@ class GameInput {
                         gs.owner[i] = GameScreen.OWNER_MOVE;
                         gs.moveStick.begin(i, x, y);
                     } else if (x >= GameScreen.W / 2f && !gs.aimStick.active()) {
-    gs.owner[i] = GameScreen.OWNER_AIM;
-    gs.aimStick.begin(i, x, y);
-    gs.arcBtnActive = true;
-    gs.arcBtnTimer = 0f;
-    gs.arcBtnPointer = i;
-} else {
+                        gs.owner[i] = GameScreen.OWNER_AIM;
+                        gs.aimStick.begin(i, x, y);
+                    } else {
                         gs.owner[i] = GameScreen.OWNER_IGNORED;
                     }
                 }
