@@ -25,17 +25,7 @@ class GameInput {
                 }
                 if (gs.aimStick.pointer == i) gs.aimStick.end();
                 gs.owner[i] = GameScreen.OWNER_NONE;
-                if (x >= GameScreen.ARC_BTN_X
-        && x <= GameScreen.ARC_BTN_X + GameScreen.ARC_BTN_SIZE
-        && y >= GameScreen.ARC_BTN_Y
-        && y <= GameScreen.ARC_BTN_Y + GameScreen.ARC_BTN_SIZE) {
-    gs.arcBtnActive = true;
-    gs.arcBtnTimer = 0f;
-    gs.arcBtnPointer = i;
-    gs.newTouch = true;
-    gs.owner[i] = GameScreen.OWNER_IGNORED;
-    continue;
-                }
+              
                 continue;
             }
             gs.tmp.set(Gdx.input.getX(i), Gdx.input.getY(i));
