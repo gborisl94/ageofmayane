@@ -179,6 +179,10 @@ final int[] owner = new int[MAX_POINTERS];
 boolean newTouch;
 
 int lives;
+int lives;
+int hp = 100;
+static final int MAX_HP = 100;
+int score;
 int score;
 float fireTimer;
 float endTimer;
