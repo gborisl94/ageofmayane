@@ -61,9 +61,6 @@ public class GameScreen extends ScreenAdapter {
     static final float AIM_BTN_SIZE = 110f;
     static final float AIM_BTN_X = W - AIM_BTN_SIZE - 30f;
     static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
-    static final float ARC_BTN_X = 20f;
-    static final float ARC_BTN_Y = 350f;
-    static final float ARC_BTN_SIZE = 110f;
     static final float AUTO_AIM_DURATION = 8f;
     static final float AUTO_AIM_COOLDOWN = 12f;
     static final int MAX_POINTERS = 5;
@@ -97,437 +94,413 @@ public class GameScreen extends ScreenAdapter {
     static final float ELEVATOR_INTERACT_DIST = 120f;
     static final float TRANSITION_TIME = 1.2f;
     static final float GLITCH_COOLDOWN = 5f;
-static final float GLITCH_DISTANCE = 220f;
-static final float GLITCH_INVULN = 0.5f;
-static final float GLITCH_BTN_SIZE = 110f;
-static final float GLITCH_BTN_X = W - GLITCH_BTN_SIZE - 30f;
-static final float GLITCH_BTN_Y = H - 460f - GLITCH_BTN_SIZE * 2 - 40f;
-static final float LUNE_COOLDOWN = 4f;
-static final float LUNE_SPEED = 480f;
-static final float LUNE_BTN_SIZE = 110f;
-static final float LUNE_BTN_X = W - LUNE_BTN_SIZE - 30f;
-static final float LUNE_BTN_Y = H - 460f - LUNE_BTN_SIZE * 3 - 60f;
+    static final float GLITCH_DISTANCE = 220f;
+    static final float GLITCH_INVULN = 0.5f;
+    static final float GLITCH_BTN_SIZE = 110f;
+    static final float GLITCH_BTN_X = W - GLITCH_BTN_SIZE - 30f;
+    static final float GLITCH_BTN_Y = H - 460f - GLITCH_BTN_SIZE * 2 - 40f;
+    static final float LUNE_COOLDOWN = 4f;
+    static final float LUNE_SPEED = 480f;
+    static final float LUNE_BTN_SIZE = 110f;
+    static final float LUNE_BTN_X = W - LUNE_BTN_SIZE - 30f;
+    static final float LUNE_BTN_Y = H - 460f - LUNE_BTN_SIZE * 3 - 60f;
+    static final int MAX_HP = 100;
+    static final int NB_FLECHES_MAX = 50;
 
-private final Game game;
-GameRenderer renderer;
+    private final Game game;
+    GameRenderer renderer;
 
-ZoomController zoom;
-XpSystem xpSystem;
-final DungeonManager dungeon = new DungeonManager();
-final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
-final Array<Fleche> fleches = new Array<Fleche>();
-final Array<Ennemi> ennemis = new Array<Ennemi>();
-final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
-final Array<FlecheDrop> flecheDrops = new Array<FlecheDrop>();
-final DamageNumbers damage = new DamageNumbers();
-final ParticleSystem particles = new ParticleSystem();
-final Stick moveStick = new Stick();
-final Stick aimStick = new Stick();
-Weapon equippedWeapon;
-Chest chest;
-int nbFleches = 50;
-boolean arcBtnActive = false;
-float arcBtnTimer = 0f;
-int arcBurstCount = 0;
-float arcBurstAngle = 0f;
-float arcBurstTimer = 0f;
-int arcBtnNiveau = 0;
-int arcBtnPointer = -1;
-boolean arcTendu = false;
-float arcAngle = 0f;
-static final int NB_FLECHES_MAX = 50;
+    ZoomController zoom;
+    XpSystem xpSystem;
+    final DungeonManager dungeon = new DungeonManager();
+    final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
+    final Array<Fleche> fleches = new Array<Fleche>();
+    final Array<Ennemi> ennemis = new Array<Ennemi>();
+    final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
+    final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
+    final Array<FlecheDrop> flecheDrops = new Array<FlecheDrop>();
+    final DamageNumbers damage = new DamageNumbers();
+    final ParticleSystem particles = new ParticleSystem();
+    final Stick moveStick = new Stick();
+    final Stick aimStick = new Stick();
+    Weapon equippedWeapon;
+    Chest chest;
+    float facing = 0f;
+    float invulnerable;
+    float hitFlash = 0f;
+    float playerRecoil = 0f;
+    float bossFleeMessageTimer = 0f;
+    float bossPhaseMessageTimer = 0f;
+    int bossPhaseMessage = 0;
+    float shakeTime = 0f;
+    float shakeOffsetX = 0f;
+    float shakeOffsetY = 0f;
+    float stunTimer = 0f;
+    float stunCooldown = 0f;
+    float dizzyTime = 0f;
+    boolean bossFledThisRun = false;
+    boolean gameOver;
+    boolean victory;
+    String scoreText = "";
+    String livesText = "";
+    float attention = ATTENTION_MAX;
+    Ennemi autoTarget = null;
+    float aimStability = 0f;
+    float aimTrembleSeed = 0f;
+    float aimTrembleX = 0f;
+    float aimTrembleY = 0f;
+    int chargeLevel = 1;
+    boolean autoAimActive = false;
+    float autoAimTimer = 0f;
+    float autoAimCooldown = 0f;
+    float targetAcquiredTimer = 0f;
+    Ennemi lastAutoTarget = null;
+    int currentFloor = 1;
+    float floorBannerTimer = 0f;
 
-final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
-float regenFlechesTimer = 0f;
-final Objectifs objectifs = new Objectifs();
-float facing = 0f;
-boolean aimStickWasActive = false;
-float invulnerable;
-float hitFlash = 0f;
-float playerRecoil = 0f;
-float bossFleeMessageTimer = 0f;
-float bossPhaseMessageTimer = 0f;
-int bossPhaseMessage = 0;
-float shakeTime = 0f;
-float shakeOffsetX = 0f;
-float shakeOffsetY = 0f;
-float stunTimer = 0f;
-float stunCooldown = 0f;
-float dizzyTime = 0f;
-boolean bossFledThisRun = false;
-boolean gameOver;
-boolean victory;
-String scoreText = "";
-String livesText = "";
-float attention = ATTENTION_MAX;
-Ennemi autoTarget = null;
-float aimStability = 0f;
-float aimTrembleSeed = 0f;
-float aimTrembleX = 0f;
-float aimTrembleY = 0f;
-int chargeLevel = 1;
-boolean autoAimActive = false;
-float autoAimTimer = 0f;
-float autoAimCooldown = 0f;
-float targetAcquiredTimer = 0f;
-Ennemi lastAutoTarget = null;
-int currentFloor = 1;
-float floorBannerTimer = 0f;
+    final Vector2 tmp = new Vector2();
+    final int[] owner = new int[MAX_POINTERS];
+    boolean newTouch;
 
-final Vector2 tmp = new Vector2();
-final int[] owner = new int[MAX_POINTERS];
-boolean newTouch;
+    int lives;
+    int hp = MAX_HP;
+    int score;
+    int nbFleches = 10;
+    float fireTimer;
+    float endTimer;
 
-int lives;
-int hp = 100;
-static final int MAX_HP = 100;
-int score;
-float fireTimer;
-float endTimer;
+    boolean arcTendu = false;
+    float arcAngle = 0f;
+    boolean arcBtnActive = false;
+    float arcBtnTimer = 0f;
+    int arcBtnNiveau = 0;
+    int arcBtnPointer = -1;
+    boolean aimStickWasActive = false;
+    int arcBurstCount = 0;
+    float arcBurstAngle = 0f;
+    float arcBurstTimer = 0f;
 
-final VengeanceManager vengeance = VengeanceManager.get();
-Elevator elevator;
-ElevatorButton elevatorButton;
-ShapeRenderer uiShapes;
-SpriteBatch uiBatch;
-BitmapFont uiFont;
-boolean floorTransitionPending = false;
-float glitchCooldown = 0f;
-float luneCooldown = 0f;
-int luneLevel = 1;
-int luneKills = 0;
-float glitchEffectTimer = 0f;
-float transitionTimer = 0f;
+    final VengeanceManager vengeance = VengeanceManager.get();
+    Elevator elevator;
+    ElevatorButton elevatorButton;
+    ShapeRenderer uiShapes;
+    SpriteBatch uiBatch;
+    BitmapFont uiFont;
+    boolean floorTransitionPending = false;
+    float glitchCooldown = 0f;
+    float luneCooldown = 0f;
+    int luneLevel = 1;
+    int luneKills = 0;
+    float glitchEffectTimer = 0f;
+    float transitionTimer = 0f;
 
-public GameScreen() { this(null); }
-public GameScreen(Game game) { this.game = game; }
-@Override
-public void show() {
-    disposeResources();
-    renderer = new GameRenderer();
-    renderer.create();
-    zoom = new ZoomController(W, H);
-    xpSystem = new XpSystem();
-    uiShapes = new ShapeRenderer();
-    uiBatch = new SpriteBatch();
-    uiFont = new BitmapFont();
-    uiFont.setColor(Color.WHITE);
-    uiFont.getData().setScale(1.4f);
-    elevatorButton = new ElevatorButton(W - 280f, 40f, 240f, 80f);
-    restart();
-}
+    public GameScreen() { this(null); }
+    public GameScreen(Game game) { this.game = game; }
 
-private void restart() {
-    dungeon.generate();
-    playerPos.set(W / 2f, H / 2f);
-    fleches.clear();
-    flecheDrops.clear();
-    ennemis.clear();
-    weaponDrops.clear();
-    damage.clear();
-    particles.clear();
-    moveStick.end();
-    aimStick.end();
-    for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
-    facing = 0f;
-arcTendu = false;
-arcAngle = 0f;
-aimStickWasActive = false;
-    setLives(5);
-    hp = MAX_HP;
-    setScore(0);
-    fireTimer = 0f;
-    invulnerable = 0f;
-    hitFlash = 0f;
-    playerRecoil = 0f;
-    bossFleeMessageTimer = 0f;
-    bossPhaseMessageTimer = 0f;
-    bossPhaseMessage = 0;
-    shakeTime = 0f;
-    shakeOffsetX = 0f;
-    shakeOffsetY = 0f;
-    stunTimer = 0f;
-    stunCooldown = 0f;
-    dizzyTime = 0f;
-    bossFledThisRun = false;
-    endTimer = 0f;
-    gameOver = false;
-    victory = false;
-    equippedWeapon = WeaponDatabase.woodBow();
-    attention = ATTENTION_MAX;
-    autoTarget = null;
-    aimStability = 0f;
-    aimTrembleSeed = 0f;
-    aimTrembleX = 0f;
-    aimTrembleY = 0f;
-    chargeLevel = CHARGE_LEVEL_1;
-    autoAimActive = false;
-    autoAimTimer = 0f;
-    autoAimCooldown = 0f;
-    targetAcquiredTimer = 0f;
-    lastAutoTarget = null;
-    currentFloor = 1;
-    floorBannerTimer = 0f;
-    Vector2 chestPos = GameFloor.findRandomFloorPos(this, 40f, 200f);
-    chest = new Chest(chestPos.x, chestPos.y);
-    nbFleches = 50;
-    vengeance.clear();
-    floorTransitionPending = false;
-    transitionTimer = 0f;
-    if (elevatorButton != null) elevatorButton.hide();
-    Vector2 elevPos = GameFloor.findRandomFloorPos(this, 60f, 250f);
-    elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
-    Room cur = dungeon.getCurrent();
-    if (cur != null && !cur.cleared) GameEnemies.spawnRoomEnemies(this, cur);
-}
-
-void setScore(int s) { score = s; scoreText = "Score : " + s; }
-void setLives(int l) { lives = l; livesText = "Vies : " + l; }
-int getLives() { return lives; }
-int getScore() { return score; }
-
-void triggerShake() { shakeTime = SHAKE_DURATION; }
-void triggerStun() { stunTimer = STUN_DURATION; }
-boolean isStunned() { return stunTimer > 0f; }
-boolean isStunReady() { return stunCooldown <= 0f; }
-
-float getStunCooldownRatio() {
-    if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
-    return Math.max(0f, Math.min(1f, stunCooldown / STUN_ABILITY_COOLDOWN));
-}
-
-boolean canInteractWithChest() {
-    if (chest == null || chest.opened) return false;
-    return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
-}
-
-void openChest() {
-    if (chest == null || chest.opened) return;
-    chest.open();
-    objectifs.incrCoffre();
-    Weapon loot = WeaponDatabase.randomChestLoot();
-    weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
-}
-@Override
-public void render(float delta) {
-    if (renderer == null || zoom == null) return;
-    if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
-    update(delta);
-    renderer.draw(this);
-    GameFloor.drawBossArrow(this);
-    if (elevator != null && !floorTransitionPending && elevator.isUnlocked()) {
-        uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
-        uiShapes.begin(ShapeRenderer.ShapeType.Filled);
-        elevator.render(uiShapes);
-        if (elevatorButton != null && elevatorButton.isVisible()) {
-            elevatorButton.renderShape(uiShapes);
-        }
-        uiShapes.end();
-        if (elevatorButton != null && elevatorButton.isVisible()) {
-            uiBatch.setProjectionMatrix(renderer.uiCamera.combined);
-            uiBatch.begin();
-            uiFont.setColor(Color.WHITE);
-            uiFont.draw(uiBatch, elevatorButton.getLabel(),
-                elevatorButton.getBounds().x + 60f,
-                elevatorButton.getBounds().y + 50f);
-            uiBatch.end();
-        }
+    @Override
+    public void show() {
+        disposeResources();
+        renderer = new GameRenderer();
+        renderer.create();
+        zoom = new ZoomController(W, H);
+        xpSystem = new XpSystem();
+        uiShapes = new ShapeRenderer();
+        uiBatch = new SpriteBatch();
+        uiFont = new BitmapFont();
+        uiFont.setColor(Color.WHITE);
+        uiFont.getData().setScale(1.4f);
+        elevatorButton = new ElevatorButton(W - 280f, 40f, 240f, 80f);
+        restart();
     }
-    if (floorTransitionPending) {
-        float t = transitionTimer / TRANSITION_TIME;
-        float alpha = (t < 0.5f) ? (t * 2f) : (1f - (t - 0.5f) * 2f);
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
-        uiShapes.begin(ShapeRenderer.ShapeType.Filled);
-        uiShapes.setColor(0f, 0f, 0f, alpha);
-        uiShapes.rect(0, 0, W, H);
-        uiShapes.end();
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-    }
-}
 
-private void update(float delta) {
-    if (floorTransitionPending) {
-        transitionTimer += delta;
-        if (transitionTimer >= TRANSITION_TIME) {
-            floorTransitionPending = false;
-            transitionTimer = 0f;
-            GameFloor.nextFloor(this);
-        }
-        return;
-    }
-    GameInput.pollTouches(this);
-    if (arcBtnActive) {
-    arcBtnTimer += delta;
-    if (arcBtnTimer >= 1.5f) arcBtnNiveau = 3;
-    else if (arcBtnTimer >= 0.7f) arcBtnNiveau = 2;
-    else arcBtnNiveau = 1;
-} else {
-    arcBtnNiveau = 0;
-    }
-    zoom.update(delta);
-    damage.update(delta);
-    particles.update(delta);
-    if (shakeTime > 0f) {
-        shakeTime -= delta;
-        float intensity = SHAKE_INTENSITY * (shakeTime / SHAKE_DURATION);
-        shakeOffsetX = MathUtils.random(-intensity, intensity);
-        shakeOffsetY = MathUtils.random(-intensity, intensity);
-    } else { shakeOffsetX = 0f; shakeOffsetY = 0f; }
-    if (stunTimer > 0f) { stunTimer -= delta; dizzyTime += delta; }
-    if (stunCooldown > 0f) stunCooldown -= delta;
-    if (glitchCooldown > 0f) glitchCooldown -= delta;
-    if (luneCooldown > 0f) luneCooldown -= delta;
-    if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
-    if (autoAimActive) {
-        autoAimTimer -= delta;
-        if (autoAimTimer <= 0f) {
-            autoAimActive = false;
-            autoAimTimer = 0f;
-            autoAimCooldown = AUTO_AIM_COOLDOWN;
-        }
-    } else if (autoAimCooldown > 0f) {
-        autoAimCooldown -= delta;
-        if (autoAimCooldown < 0f) autoAimCooldown = 0f;
-    }
-    if (gameOver || victory) {
-        endTimer += delta;
-        if (endTimer > 0.6f && newTouch) restart();
-        return;
-    }
-    if (invulnerable > 0f) invulnerable -= delta;
-    if (hitFlash > 0f) hitFlash -= delta;
-    if (playerRecoil > 0f) playerRecoil -= delta;
-    if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
-    if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
-    if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
-    if (floorBannerTimer > 0f) floorBannerTimer -= delta;
-    if (arcBurstCount > 0) {
-    arcBurstTimer += delta;
-    if (arcBurstTimer >= 0.1f) {
+    private void restart() {
+        dungeon.generate();
+        playerPos.set(W / 2f, H / 2f);
+        fleches.clear();
+        flecheDrops.clear();
+        flechesSol.clear();
+        ennemis.clear();
+        weaponDrops.clear();
+        damage.clear();
+        particles.clear();
+        moveStick.end();
+        aimStick.end();
+        for (int i = 0; i < MAX_POINTERS; i++) owner[i] = OWNER_NONE;
+        facing = 0f;
+        arcTendu = false;
+        arcAngle = 0f;
+        aimStickWasActive = false;
+        setLives(5);
+        hp = MAX_HP;
+        nbFleches = 10;
+        arcBurstCount = 0;
         arcBurstTimer = 0f;
-        arcBurstCount--;
-        GameCombat.fireAt(this, arcBurstAngle, 2);
+        setScore(0);
+        fireTimer = 0f;
+        invulnerable = 0f;
+        hitFlash = 0f;
+        playerRecoil = 0f;
+        bossFleeMessageTimer = 0f;
+        bossPhaseMessageTimer = 0f;
+        bossPhaseMessage = 0;
+        shakeTime = 0f;
+        shakeOffsetX = 0f;
+        shakeOffsetY = 0f;
+        stunTimer = 0f;
+        stunCooldown = 0f;
+        dizzyTime = 0f;
+        bossFledThisRun = false;
+        endTimer = 0f;
+        gameOver = false;
+        victory = false;
+        equippedWeapon = WeaponDatabase.woodBow();
+        attention = ATTENTION_MAX;
+        autoTarget = null;
+        aimStability = 0f;
+        aimTrembleSeed = 0f;
+        aimTrembleX = 0f;
+        aimTrembleY = 0f;
+        chargeLevel = CHARGE_LEVEL_1;
+        autoAimActive = false;
+        autoAimTimer = 0f;
+        autoAimCooldown = 0f;
+        targetAcquiredTimer = 0f;
+        lastAutoTarget = null;
+        currentFloor = 1;
+        floorBannerTimer = 0f;
+        Vector2 chestPos = GameFloor.findRandomFloorPos(this, 40f, 200f);
+        chest = new Chest(chestPos.x, chestPos.y);
+        vengeance.clear();
+        floorTransitionPending = false;
+        transitionTimer = 0f;
+        if (elevatorButton != null) elevatorButton.hide();
+        Vector2 elevPos = GameFloor.findRandomFloorPos(this, 60f, 250f);
+        elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
+        Room cur = dungeon.getCurrent();
+        if (cur != null && !cur.cleared) GameEnemies.spawnRoomEnemies(this, cur);
     }
+
+    void setScore(int s) { score = s; scoreText = "Score : " + s; }
+    void setLives(int l) { lives = l; livesText = "Vies : " + l; }
+    int getLives() { return lives; }
+    int getScore() { return score; }
+
+    void triggerShake() { shakeTime = SHAKE_DURATION; }
+    void triggerStun() { stunTimer = STUN_DURATION; }
+    boolean isStunned() { return stunTimer > 0f; }
+    boolean isStunReady() { return stunCooldown <= 0f; }
+
+    float getStunCooldownRatio() {
+        if (STUN_ABILITY_COOLDOWN <= 0f) return 0f;
+        return Math.max(0f, Math.min(1f, stunCooldown / STUN_ABILITY_COOLDOWN));
     }
-    for (int i = flechesSol.size - 1; i >= 0; i--) {
-    FlecheSol fs = flechesSol.get(i);
-    if (fs.pos.dst2(playerPos) < 60f * 60f) {
-        if (nbFleches < 50) {
-            nbFleches++;
-            particles.spawnLightning(fs.pos.x, fs.pos.y, 0f, 2);
-        }
-        flechesSol.removeIndex(i);
+
+    boolean canInteractWithChest() {
+        if (chest == null || chest.opened) return false;
+        return chest.pos.dst2(playerPos) < CHEST_INTERACT_DIST * CHEST_INTERACT_DIST;
     }
+
+    void openChest() {
+        if (chest == null || chest.opened) return;
+        chest.open();
+        Weapon loot = WeaponDatabase.randomChestLoot();
+        weaponDrops.add(new WeaponDrop(chest.pos.x, chest.pos.y + 50f, loot));
     }
-    boolean stunned = isStunned();
-    if (aimStick.dir.len() > DEAD_ZONE) facing = aimStick.dir.angleDeg();
-    else if (moveStick.dir.len() > DEAD_ZONE) facing = moveStick.dir.angleDeg();
-    if (moveStick.dir.len() > DEAD_ZONE) {
-        float speedFactor = stunned ? STUN_SPEED_FACTOR : 1f;
-        playerPos.x += moveStick.dir.x * PLAYER_SPEED * speedFactor * delta;
-        playerPos.y += moveStick.dir.y * PLAYER_SPEED * speedFactor * delta;
-    }
-    dungeon.collide(playerPos, PLAYER_RADIUS);
-    playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
-    playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
-    int exitDir = dungeon.checkDoorExit(playerPos);
-    if (exitDir >= 0) {
-        Room next = dungeon.moveThrough(exitDir, playerPos);
-        if (next != null) GameFloor.enterRoom(this, next);
-    }
-    fireTimer -= delta;
-    boolean aimActiveNow = aimStick.active();
-if (aimActiveNow && !aimStickWasActive) {
-    arcTendu = true;
-    arcAngle = facing;
-}
-if (arcTendu && aimStick.dir.len() > DEAD_ZONE) {
-    arcAngle = aimStick.dir.angleDeg();
-    facing = arcAngle;
-}
-if (!aimActiveNow && aimStickWasActive && arcTendu) {
-    if (nbFleches > 0) {
-        GameCombat.fireAt(this, arcAngle, GameCombat.getChargeDamage(this));
-        playerRecoil = PLAYER_RECOIL_DURATION;
-    }
-    arcTendu = false;
-}
-aimStickWasActive = aimActiveNow;
-    autoTarget = GameCombat.findNearestEnemy(this);
-    if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget)
-        targetAcquiredTimer = 1.5f;
-    lastAutoTarget = autoTarget;
-    boolean useManual = aimStick.dir.len() > DEAD_ZONE;
-    boolean autoAimUsable = autoAimActive && !useManual && attention > 0f
-            && autoTarget != null && !stunned;
-    if (!stunned && fireTimer <= 0f && !arcTendu) {
-        if (useManual) {
-            GameCombat.fireAt(this, aimStick.dir.angleDeg(), CHARGE_DMG_LVL1);
-            fireTimer = FIRE_DELAY;
-            playerRecoil = PLAYER_RECOIL_DURATION;
-        } else if (autoAimUsable) {
-            tmp.set(autoTarget.pos).sub(playerPos);
-            if (tmp.len2() > 0.001f) {
-                float fireAngle = tmp.angleDeg();
-                facing = fireAngle;
-                GameCombat.fireAt(this, fireAngle, GameCombat.getChargeDamage(this));
-                fireTimer = FIRE_DELAY;
-                playerRecoil = PLAYER_RECOIL_DURATION;
+
+    @Override
+    public void render(float delta) {
+        if (renderer == null || zoom == null) return;
+        if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
+        update(delta);
+        renderer.draw(this);
+        GameFloor.drawBossArrow(this);
+        if (elevator != null && !floorTransitionPending && elevator.isUnlocked()) {
+            uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
+            uiShapes.begin(ShapeRenderer.ShapeType.Filled);
+            elevator.render(uiShapes);
+            if (elevatorButton != null && elevatorButton.isVisible()) {
+                elevatorButton.renderShape(uiShapes);
+            }
+            uiShapes.end();
+            if (elevatorButton != null && elevatorButton.isVisible()) {
+                uiBatch.setProjectionMatrix(renderer.uiCamera.combined);
+                uiBatch.begin();
+                uiFont.setColor(Color.WHITE);
+                uiFont.draw(uiBatch, elevatorButton.getLabel(),
+                        elevatorButton.getBounds().x + 60f,
+                        elevatorButton.getBounds().y + 50f);
+                uiBatch.end();
             }
         }
+        if (floorTransitionPending) {
+            float t = transitionTimer / TRANSITION_TIME;
+            float alpha = (t < 0.5f) ? (t * 2f) : (1f - (t - 0.5f) * 2f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
+            uiShapes.begin(ShapeRenderer.ShapeType.Filled);
+            uiShapes.setColor(0f, 0f, 0f, alpha);
+            uiShapes.rect(0, 0, W, H);
+            uiShapes.end();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
     }
-    if (autoAimUsable && fireTimer > 0f) {
-        attention -= ATTENTION_DRAIN * delta;
-        if (attention < 0f) attention = 0f;
-    } else if (autoAimActive && !useManual && moveStick.dir.len() < DEAD_ZONE) {
-        attention += ATTENTION_REGEN * delta;
-        if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
-    }
-    boolean moving = moveStick.dir.len() > DEAD_ZONE;
-    if (moving || !autoAimActive) aimStability = 0f;
-    else if (autoTarget != null && !stunned) {
-        aimStability += delta / AIM_STABILITY_TIME;
-        if (aimStability > 1f) aimStability = 1f;
-    } else {
-        aimStability -= delta * 0.5f;
-        if (aimStability < 0f) aimStability = 0f;
-    }
-    if (aimStability >= 0.66f) chargeLevel = CHARGE_LEVEL_3;
-    else if (aimStability >= 0.33f) chargeLevel = CHARGE_LEVEL_2;
-    else chargeLevel = CHARGE_LEVEL_1;
-    aimTrembleSeed += delta * 25f;
-    float trembleAmt = (1f - aimStability) * AIM_TREMBLE_MAX;
-    if (trembleAmt > 0.5f && autoAimActive) {
-        aimTrembleX = MathUtils.sin(aimTrembleSeed * 1.3f) * trembleAmt
+
+    private void update(float delta) {
+        if (floorTransitionPending) {
+            transitionTimer += delta;
+            if (transitionTimer >= TRANSITION_TIME) {
+                floorTransitionPending = false;
+                transitionTimer = 0f;
+                GameFloor.nextFloor(this);
+            }
+            return;
+        }
+        GameInput.pollTouches(this);
+        zoom.update(delta);
+        damage.update(delta);
+        particles.update(delta);
+        if (shakeTime > 0f) {
+            shakeTime -= delta;
+            float intensity = SHAKE_INTENSITY * (shakeTime / SHAKE_DURATION);
+            shakeOffsetX = MathUtils.random(-intensity, intensity);
+            shakeOffsetY = MathUtils.random(-intensity, intensity);
+        } else { shakeOffsetX = 0f; shakeOffsetY = 0f; }
+        if (stunTimer > 0f) { stunTimer -= delta; dizzyTime += delta; }
+        if (stunCooldown > 0f) stunCooldown -= delta;
+        if (glitchCooldown > 0f) glitchCooldown -= delta;
+        if (luneCooldown > 0f) luneCooldown -= delta;
+        if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
+        if (autoAimActive) {
+            autoAimTimer -= delta;
+            if (autoAimTimer <= 0f) {
+                autoAimActive = false;
+                autoAimTimer = 0f;
+                autoAimCooldown = AUTO_AIM_COOLDOWN;
+            }
+        } else if (autoAimCooldown > 0f) {
+            autoAimCooldown -= delta;
+            if (autoAimCooldown < 0f) autoAimCooldown = 0f;
+        }
+        if (arcBurstCount > 0) {
+            arcBurstTimer += delta;
+            if (arcBurstTimer >= 0.1f) {
+                arcBurstTimer = 0f;
+                arcBurstCount--;
+                GameCombat.fireAt(this, arcBurstAngle, 2);
+            }
+        }
+        if (gameOver || victory) {
+            endTimer += delta;
+            if (endTimer > 0.6f && newTouch) restart();
+            return;
+        }
+        if (invulnerable > 0f) invulnerable -= delta;
+        if (hitFlash > 0f) hitFlash -= delta;
+        if (playerRecoil > 0f) playerRecoil -= delta;
+        if (bossFleeMessageTimer > 0f) bossFleeMessageTimer -= delta;
+        if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
+        if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
+        if (floorBannerTimer > 0f) floorBannerTimer -= delta;
+        boolean stunned = isStunned();
+        if (aimStick.dir.len() > DEAD_ZONE) facing = aimStick.dir.angleDeg();
+        else if (moveStick.dir.len() > DEAD_ZONE) facing = moveStick.dir.angleDeg();
+        if (moveStick.dir.len() > DEAD_ZONE) {
+            float speedFactor = stunned ? STUN_SPEED_FACTOR : 1f;
+            playerPos.x += moveStick.dir.x * PLAYER_SPEED * speedFactor * delta;
+            playerPos.y += moveStick.dir.y * PLAYER_SPEED * speedFactor * delta;
+        }
+        dungeon.collide(playerPos, PLAYER_RADIUS);
+        playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
+        playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
+        int exitDir = dungeon.checkDoorExit(playerPos);
+        if (exitDir >= 0) {
+            Room next = dungeon.moveThrough(exitDir, playerPos);
+            if (next != null) GameFloor.enterRoom(this, next);
+        }
+        fireTimer -= delta;
+        autoTarget = GameCombat.findNearestEnemy(this);
+        if (autoAimActive && autoTarget != null && autoTarget != lastAutoTarget)
+            targetAcquiredTimer = 1.5f;
+        lastAutoTarget = autoTarget;
+        boolean useManual = aimStick.dir.len() > DEAD_ZONE;
+        boolean autoAimUsable = autoAimActive && !useManual && attention > 0f
+                && autoTarget != null && !stunned;
+        if (!stunned && fireTimer <= 0f) {
+            if (useManual) {
+                GameCombat.fireAt(this, aimStick.dir.angleDeg(), CHARGE_DMG_LVL1);
+                fireTimer = FIRE_DELAY;
+                playerRecoil = PLAYER_RECOIL_DURATION;
+            } else if (autoAimUsable) {
+                tmp.set(autoTarget.pos).sub(playerPos);
+                if (tmp.len2() > 0.001f) {
+                    float fireAngle = tmp.angleDeg();
+                    facing = fireAngle;
+                    GameCombat.fireAt(this, fireAngle, GameCombat.getChargeDamage(this));
+                    fireTimer = FIRE_DELAY;
+                    playerRecoil = PLAYER_RECOIL_DURATION;
+                }
+            }
+        }
+        if (autoAimUsable && fireTimer > 0f) {
+            attention -= ATTENTION_DRAIN * delta;
+            if (attention < 0f) attention = 0f;
+        } else if (autoAimActive && !useManual && moveStick.dir.len() < DEAD_ZONE) {
+            attention += ATTENTION_REGEN * delta;
+            if (attention > ATTENTION_MAX) attention = ATTENTION_MAX;
+        }
+        boolean moving = moveStick.dir.len() > DEAD_ZONE;
+        if (moving || !autoAimActive) aimStability = 0f;
+        else if (autoTarget != null && !stunned) {
+            aimStability += delta / AIM_STABILITY_TIME;
+            if (aimStability > 1f) aimStability = 1f;
+        } else {
+            aimStability -= delta * 0.5f;
+            if (aimStability < 0f) aimStability = 0f;
+        }
+        if (aimStability >= 0.66f) chargeLevel = CHARGE_LEVEL_3;
+        else if (aimStability >= 0.33f) chargeLevel = CHARGE_LEVEL_2;
+        else chargeLevel = CHARGE_LEVEL_1;
+        aimTrembleSeed += delta * 25f;
+        float trembleAmt = (1f - aimStability) * AIM_TREMBLE_MAX;
+        if (trembleAmt > 0.5f && autoAimActive) {
+            aimTrembleX = MathUtils.sin(aimTrembleSeed * 1.3f) * trembleAmt
                     + MathUtils.sin(aimTrembleSeed * 2.7f) * trembleAmt * 0.5f;
-        aimTrembleY = MathUtils.cos(aimTrembleSeed * 1.7f) * trembleAmt
+            aimTrembleY = MathUtils.cos(aimTrembleSeed * 1.7f) * trembleAmt
                     + MathUtils.cos(aimTrembleSeed * 3.1f) * trembleAmt * 0.5f;
-    } else { aimTrembleX = 0f; aimTrembleY = 0f; }
-    GameCombat.updateArrows(this, delta);
-    GameEnemies.updateEnemies(this, delta);
-    updateWeaponDrops(delta);
-    updateChest(delta);
-    if (chest != null && !chest.opened) {
-        particles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 0.3f));
+        } else { aimTrembleX = 0f; aimTrembleY = 0f; }
+        GameCombat.updateArrows(this, delta);
+        GameEnemies.updateEnemies(this, delta);
+        updateWeaponDrops(delta);
+        updateChest(delta);
+        if (chest != null && !chest.opened) {
+            particles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 1f));
+        }
+        for (int i = 0; i < weaponDrops.size; i++) {
+            WeaponDrop wd = weaponDrops.get(i);
+            Color dropColor = wd.weapon.rarity.colorWithAlpha(1f);
+            particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
+        }
+        boolean unlocked = bossFledThisRun || lives <= 0;
+        if (elevator != null) {
+            elevator.update(delta, unlocked);
+            GameFloor.updateElevatorButton(this, delta);
+        }
+        Room cur = dungeon.getCurrent();
+        if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
+            dungeon.markCleared();
+            xpSystem.addXp(XP_PER_ROOM);
+        }
     }
-    for (int i = 0; i < weaponDrops.size; i++) {
-        WeaponDrop wd = weaponDrops.get(i);
-        Color dropColor = wd.weapon.rarity.colorWithAlpha(0.4f);
-        particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
-    }
-    boolean unlocked = bossFledThisRun || lives <= 0;
-    if (elevator != null) {
-        elevator.update(delta, unlocked);
-        GameFloor.updateElevatorButton(this, delta);
-    }
-    Room cur = dungeon.getCurrent();
-    if (!victory && !gameOver && cur != null && !cur.cleared && ennemis.size == 0) {
-        dungeon.markCleared();
-        xpSystem.addXp(XP_PER_ROOM);
-    }
-}
+
+    void tryUseElevator() { GameFloor.tryUseElevator(this); }
+    void activateStunAbility() { GameAbilities.activateStunAbility(this); }
+    void activateGlitchDash() { GameAbilities.activateGlitchDa    void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
+    void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
+    boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
+    float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
+    float getAutoAimCooldownRatio() { return GameAbilities.getAutoAimCooldownRatio(this); }
+
     private void updateWeaponDrops(float delta) {
         for (int i = weaponDrops.size - 1; i >= 0; i--) {
             WeaponDrop wd = weaponDrops.get(i);
@@ -562,13 +535,5 @@ aimStickWasActive = aimActiveNow;
         if (uiShapes != null) { uiShapes.dispose(); uiShapes = null; }
         if (uiBatch != null) { uiBatch.dispose(); uiBatch = null; }
         if (uiFont != null) { uiFont.dispose(); uiFont = null; }
-}
-void tryUseElevator() { GameFloor.tryUseElevator(this); }
-void activateStunAbility() { GameAbilities.activateStunAbility(this); }
-void activateGlitchDash() { GameAbilities.activateGlitchDash(this); }
-void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
-void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
-boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
-float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
-float getAutoAimCooldownRatio() { return GameAbilities.getAutoAimCooldownRatio(this); }
+    }
 }
