@@ -482,7 +482,7 @@ aimStickWasActive = aimActiveNow;
     updateWeaponDrops(delta);
     updateChest(delta);
     if (chest != null && !chest.opened) {
-        pparticles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 0.3f));
+        particles.spawnHalo(chest.pos.x, chest.pos.y, 45f, new Color(1f, 0.85f, 0.2f, 0.3f));
     }
     for (int i = 0; i < weaponDrops.size; i++) {
         WeaponDrop wd = weaponDrops.get(i);
