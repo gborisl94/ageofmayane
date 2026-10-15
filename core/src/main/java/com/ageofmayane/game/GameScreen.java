@@ -498,7 +498,7 @@ public class GameScreen extends ScreenAdapter {
 
     void tryUseElevator() { GameFloor.tryUseElevator(this); }
     void activateStunAbility() { GameAbilities.activateStunAbility(this); }
-    void activateGlitchDash() { GameAbilities.activateGlitchDa    
+    void activateGlitchDash() { GameAbilities.activateGlitchDash(this); }    
     void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
     void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
     boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
