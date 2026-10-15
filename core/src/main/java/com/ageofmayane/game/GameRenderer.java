@@ -194,12 +194,25 @@ class GameRenderer {
         shapes.setColor(r, g, b, 0.45f);
         shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
-    private void drawArcAim(GameScreen gs) {
-    if (!gs.arcTendu) return;
-    float cx = gs.playerPos.x;
-    ...
-    shapes.setColor(0.3f, 0.7f, 1f, 0.03f);
-    ...
+        private void drawArcAim(GameScreen gs) {
+        if (!gs.arcTendu) return;
+        try {
+            float cx = gs.playerPos.x;
+            float cy = gs.playerPos.y;
+            float radius = 200f;
+            shapes.setColor(0.3f, 0.7f, 1f, 0.012f);
+            shapes.circle(cx, cy, radius, 48);
+            shapes.setColor(0.3f, 0.7f, 1f, 0.08f);
+            shapes.circle(cx, cy, radius, 48);
+            float rad = gs.arcAngle * MathUtils.degRad;
+            float ox = cx + MathUtils.cos(rad) * radius;
+            float oy = cy + MathUtils.sin(rad) * radius;
+            shapes.setColor(0.6f, 1f, 1f, 0.9f);
+            shapes.circle(ox, oy, 12f, 16);
+            shapes.setColor(1f, 1f, 1f, 1f);
+            shapes.circle(ox, oy, 5f, 12);
+        } catch (Exception e) {
+        }
     }
 
     private void drawFlechesSol(GameScreen gs) {
