@@ -715,8 +715,8 @@ shapes.end();
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
-        drawStick(gs.moveStick, 1f, 1f, 1f, 1f);
-        drawStick(gs.aimStick, 1f, 0.5f, 0.5f, 0.35f);
+        drawStick(gs.moveStick, 1f, 1f, 1f);
+        drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
         shapes.end();
 
         gs.zoom.draw(shapes, batch, font);
