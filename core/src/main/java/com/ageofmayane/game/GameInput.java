@@ -43,6 +43,17 @@ class GameInput {
                         continue;
                     }
                 }
+                if (x >= GameScreen.ARC_BTN_X
+        && x <= GameScreen.ARC_BTN_X + GameScreen.ARC_BTN_SIZE
+        && y >= GameScreen.ARC_BTN_Y
+        && y <= GameScreen.ARC_BTN_Y + GameScreen.ARC_BTN_SIZE) {
+    gs.arcBtnActive = true;
+    gs.arcBtnTimer = 0f;
+    gs.arcBtnPointer = i;
+    gs.newTouch = true;
+    gs.owner[i] = GameScreen.OWNER_IGNORED;
+    continue;
+}
 
                 if (x >= GameScreen.AIM_BTN_X && x <= GameScreen.AIM_BTN_X + GameScreen.AIM_BTN_SIZE
                         && y >= GameScreen.AIM_BTN_Y && y <= GameScreen.AIM_BTN_Y + GameScreen.AIM_BTN_SIZE) {
