@@ -535,7 +535,7 @@ private void drawHpBar(GameScreen gs) {
     font.getData().setScale(2f);
     batch.end();
 }
-private void drawHpBar(GameScreen gs) {
+private void drawXpBar(GameScreen gs) {
 
     if (gs.xpSystem == null) return;
     float bx = XP_BAR_X;
