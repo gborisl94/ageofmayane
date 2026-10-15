@@ -746,6 +746,7 @@ shapes.end();
         gs.zoom.draw(shapes, batch, font);
         drawOpenButton(gs);
         drawStunButton(gs);
+        drawArcTensionButton(gs);
         drawGlitchButton(gs);
         drawAutoAimButton(gs);
         drawXpBar(gs);
