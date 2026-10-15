@@ -61,6 +61,8 @@ public class GameScreen extends ScreenAdapter {
     static final float AIM_BTN_SIZE = 110f;
     static final float AIM_BTN_X = W - AIM_BTN_SIZE - 30f;
     static final float AIM_BTN_Y = H - 460f - AIM_BTN_SIZE - 20f;
+    static final float ARC_BTN_X = 20f;
+    static final float ARC_BTN_Y = 350f;
     static final float AUTO_AIM_DURATION = 8f;
     static final float AUTO_AIM_COOLDOWN = 12f;
     static final int MAX_POINTERS = 5;
@@ -123,6 +125,12 @@ final Stick aimStick = new Stick();
 Weapon equippedWeapon;
 Chest chest;
 int nbFleches = 50;
+boolean arcBtnActive = false;
+float arcBtnTimer = 0f;
+int arcBtnNiveau = 0;
+int arcBtnPointer = -1;
+boolean arcTendu = false;
+float arcAngle = 0f;
 static final int NB_FLECHES_MAX = 50;
 
 final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
