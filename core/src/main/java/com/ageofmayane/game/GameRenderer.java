@@ -215,7 +215,7 @@ class GameRenderer {
     float bs = GameScreen.ARC_BTN_SIZE;
     boolean actif = gs.arcBtnActive;
     int niveau = gs.arcBtnNiveau;
-
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
     shapes.setColor(0.05f, 0.05f, 0.1f, 0.9f);
     shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
 
