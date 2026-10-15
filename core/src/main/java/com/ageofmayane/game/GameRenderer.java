@@ -600,6 +600,8 @@ private void drawGlitchEffect(GameScreen gs) {
 }
       void draw(GameScreen gs) {
         Gdx.gl.glEnable(GL20.GL_BLEND);
+Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glEnable(GL20.GL_BLEND);
