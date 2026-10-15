@@ -806,6 +806,7 @@ shapes.end();
         drawAutoAimButton(gs);
         drawArcTensionText(gs);
         drawXpBar(gs);
+        drawHpBar(gs);
         drawAttentionGauge(gs);
 
         batch.begin();
