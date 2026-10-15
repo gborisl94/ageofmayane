@@ -115,6 +115,7 @@ final Vector2 playerPos = new Vector2(W / 2f, H / 2f);
 final Array<Fleche> fleches = new Array<Fleche>();
 final Array<Ennemi> ennemis = new Array<Ennemi>();
 final Array<WeaponDrop> weaponDrops = new Array<WeaponDrop>();
+final Array<FlecheDrop> flecheDrops = new Array<FlecheDrop>();
 final DamageNumbers damage = new DamageNumbers();
 final ParticleSystem particles = new ParticleSystem();
 final Stick moveStick = new Stick();
