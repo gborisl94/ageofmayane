@@ -294,6 +294,10 @@ public class ParticleSystem {
     }
 
     public void draw(ShapeRenderer shapes) {
+      com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+      com.badlogic.gdx.Gdx.gl.glBlendFunc(
+      com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+      com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
         for (int i = 0; i < particles.size; i++) {
             Particle p = particles.get(i);
             float alpha = Math.max(0f, p.life / p.maxLife);
