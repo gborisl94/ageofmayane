@@ -105,7 +105,7 @@ class GameCombat {
         if (gs.hp <= 0) {
     gs.hp = GameScreen.MAX_HP / 2;
     gs.setLives(gs.getLives() - 1);
-    gs.damage.add(gs.playerPos.x, gs.playerPos.y + 50f, "VIE PERDUE", DamageNumbers.PLAYER);
+    gs.damage.add(gs.playerPos.x, gs.playerPos.y + 50f, "VIE PERDUE", true);
 }
 if (gs.getLives() <= 0) {
             gs.gameOver = true;
