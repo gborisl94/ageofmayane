@@ -380,11 +380,7 @@ private void update(float delta) {
     if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
     if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
     if (floorBannerTimer > 0f) floorBannerTimer -= delta;
-    regenFlechesTimer += delta;
-    if (regenFlechesTimer >= 2f && nbFleches < 50) {
-    nbFleches++;
-    regenFlechesTimer = 0f;
-}
+    
     for (int i = flechesSol.size - 1; i >= 0; i--) {
     FlecheSol fs = flechesSol.get(i);
     if (fs.pos.dst2(playerPos) < 60f * 60f) {
