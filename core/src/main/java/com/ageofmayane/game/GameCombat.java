@@ -79,16 +79,6 @@ class GameCombat {
             }
         }
     }
-    static void tirerCharge(GameScreen gs, float angleDeg, int niveau) {
-    if (niveau <= 0) return;
-    int nbFlechesATirer = Math.min(niveau, gs.nbFleches);
-    if (nbFlechesATirer <= 0) return;
-    // Toutes les flèches partent dans la MÊME direction,
-    // mais décalées dans le temps via un timer
-    gs.arcBurstCount = nbFlechesATirer;
-    gs.arcBurstAngle = angleDeg;
-    gs.arcBurstTimer = 0f;
-    }
 
     static void spawnBossProjectile(GameScreen gs, float x, float y, float angleDeg) {
         Fleche p = new Fleche();
@@ -104,7 +94,7 @@ class GameCombat {
     }
 
     static void hurtPlayer(GameScreen gs) {
-        gs.setLives(gs.getLives() - 1);
+        gs.hp -= 15;
         gs.invulnerable = 1f;
         gs.hitFlash = GameScreen.HIT_FLASH_DURATION;
         gs.triggerShake();
@@ -112,7 +102,12 @@ class GameCombat {
         gs.damage.add(gs.playerPos.x, gs.playerPos.y + 30f, "-1", true);
         gs.particles.spawnHitSpark(gs.playerPos.x, gs.playerPos.y,
                 new com.badlogic.gdx.graphics.Color(1f, 0.3f, 0.3f, 1f));
-        if (gs.getLives() <= 0) {
+        if (gs.hp <= 0) {
+    gs.hp = GameScreen.MAX_HP / 2;
+    gs.setLives(gs.getLives() - 1);
+    gs.damage.add(gs.playerPos.x, gs.playerPos.y + 50f, "VIE PERDUE", DamageNumbers.PLAYER);
+}
+if (gs.getLives() <= 0) {
             gs.gameOver = true;
             gs.endTimer = 0f;
             if (gs.elevator != null) gs.elevator.forceUnlock();
