@@ -194,6 +194,30 @@ class GameRenderer {
       shapes.setColor(r, g, b, 0.20f);
       shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
+        private void drawArcTensionButton(GameScreen gs) {
+    float bx = GameScreen.ARC_BTN_X;
+    float by = GameScreen.ARC_BTN_Y;
+    float bs = GameScreen.ARC_BTN_SIZE;
+    boolean actif = gs.arcBtnActive;
+    int niveau = gs.arcBtnNiveau;
+
+    shapes.setColor(0.05f, 0.05f, 0.1f, 0.9f);
+    shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
+
+    if (actif) {
+        if (niveau == 3) shapes.setColor(1f, 0.3f, 0.1f, 0.95f);
+        else if (niveau == 2) shapes.setColor(1f, 0.7f, 0.1f, 0.95f);
+        else shapes.setColor(1f, 0.9f, 0.2f, 0.95f);
+    } else {
+        shapes.setColor(0.3f, 0.3f, 0.4f, 0.9f);
+    }
+    shapes.rect(bx, by, bs, bs);
+
+    shapes.setColor(0.1f, 0.1f, 0.15f, 0.5f);
+    shapes.rect(bx + bs * 0.2f, by + bs * 0.4f, bs * 0.6f, 4f);
+    shapes.rect(bx + bs * 0.45f, by + bs * 0.2f, 4f, bs * 0.6f);
+}
+
         private void drawArcAim(GameScreen gs) {
         if (!gs.arcTendu) return;
         try {
