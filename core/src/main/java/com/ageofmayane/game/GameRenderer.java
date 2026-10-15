@@ -507,7 +507,6 @@ private void drawTargetAcquiredText(GameScreen gs) {
 }
 
 
-private void drawXpBar(GameScreen gs) {
 private void drawHpBar(GameScreen gs) {
     float bx = 20f;
     float by = H - 145f;
