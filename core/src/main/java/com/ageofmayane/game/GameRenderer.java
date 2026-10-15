@@ -203,11 +203,19 @@ class GameRenderer {
     }
 
     private void drawStick(Stick s, float r, float g, float b) {
-      if (!s.active()) return;
-      shapes.setColor(r, g, b, 0.08f);
-      shapes.circle(s.origin.x, s.origin.y, GameScreen.STICK_RADIUS, 32);
-      shapes.setColor(r, g, b, 0.20f);
-      shapes.circle(s.current.x, s.current.y, 45f, 24);
+    if (!s.active()) return;
+    com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+    com.badlogic.gdx.Gdx.gl.glBlendFunc(
+        com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+        com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+    shapes.setColor(r, g, b, 0.08f);
+    shapes.circle(s.origin.x, s.origin.y, GameScreen.STICK_RADIUS, 32);
+    com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+    com.badlogic.gdx.Gdx.gl.glBlendFunc(
+        com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+        com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+    shapes.setColor(r, g, b, 0.20f);
+    shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
         private void drawArcTensionButton(GameScreen gs) {
     float bx = GameScreen.ARC_BTN_X;
