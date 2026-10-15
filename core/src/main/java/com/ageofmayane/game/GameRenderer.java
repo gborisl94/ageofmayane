@@ -231,6 +231,7 @@ class GameRenderer {
     shapes.setColor(0.1f, 0.1f, 0.15f, 0.5f);
     shapes.rect(bx + bs * 0.2f, by + bs * 0.4f, bs * 0.6f, 4f);
     shapes.rect(bx + bs * 0.45f, by + bs * 0.2f, 4f, bs * 0.6f);
+    shapes.end();
 }
 
         private void drawArcAim(GameScreen gs) {
