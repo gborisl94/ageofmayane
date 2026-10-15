@@ -684,7 +684,20 @@ private void drawGlitchEffect(GameScreen gs) {
 drawArcAim(gs);
 shapes.end();
         drawFlechesSol(gs);
-          
+     for (int i = 0; i < gs.flecheDrops.size; i++) {
+    FlecheDrop fd = gs.flecheDrops.get(i);
+    float pulse = 0.7f + 0.3f * MathUtils.sin(fd.life * 6f);
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    shapes.setColor(1f, 0.9f, 0.3f, 0.6f * pulse);
+    shapes.circle(fd.pos.x, fd.pos.y, 14f, 16);
+    shapes.setColor(1f, 0.85f, 0.2f, 0.9f);
+    shapes.rect(fd.pos.x - 3f, fd.pos.y - 10f, 6f, 20f);
+    shapes.triangle(
+        fd.pos.x - 6f, fd.pos.y + 10f,
+        fd.pos.x + 6f, fd.pos.y + 10f,
+        fd.pos.x, fd.pos.y + 16f);
+    shapes.end();
+     }
      for (int i = 0; i < gs.weaponDrops.size; i++) {
             WeaponDrop d = gs.weaponDrops.get(i);
             Texture t = loadDropTexture(d.weapon.spriteName);
