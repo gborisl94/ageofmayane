@@ -79,6 +79,19 @@ class GameCombat {
             }
         }
     }
+    static void tirerCharge(GameScreen gs, float angleDeg, int niveau) {
+    if (niveau <= 0) return;
+    int nbFlechesATirer = Math.min(niveau, gs.nbFleches);
+    if (nbFlechesATirer <= 0) return;
+    float spread = (niveau == 3) ? 15f : (niveau == 2) ? 8f : 0f;
+    for (int i = 0; i < nbFlechesATirer; i++) {
+        float offset = 0f;
+        if (nbFlechesATirer > 1) {
+            offset = -spread + (2f * spread * i / (nbFlechesATirer - 1));
+        }
+        fireAt(gs, angleDeg + offset, 2);
+    }
+}
 
     static void spawnBossProjectile(GameScreen gs, float x, float y, float angleDeg) {
         Fleche p = new Fleche();
