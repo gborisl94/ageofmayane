@@ -486,7 +486,7 @@ aimStickWasActive = aimActiveNow;
     }
     for (int i = 0; i < weaponDrops.size; i++) {
         WeaponDrop wd = weaponDrops.get(i);
-        Color dropColor = wd.weapon.rarity.colorWithAlpha(1f);
+        Color dropColor = wd.weapon.rarity.colorWithAlpha(0.4f);
         particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
     }
     boolean unlocked = bossFledThisRun || lives <= 0;
