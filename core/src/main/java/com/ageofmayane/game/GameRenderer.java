@@ -187,11 +187,11 @@ class GameRenderer {
         batch.setColor(Color.WHITE);
     }
 
-    private void drawStick(Stick s, float r, float g, float b) {
+        private void drawStick(Stick s, float r, float g, float b, float mult) {
         if (!s.active()) return;
-        shapes.setColor(r, g, b, 0.15f);
+        shapes.setColor(r, g, b, 0.15f * mult);
         shapes.circle(s.origin.x, s.origin.y, GameScreen.STICK_RADIUS, 32);
-        shapes.setColor(r, g, b, 0.45f);
+        shapes.setColor(r, g, b, 0.45f * mult);
         shapes.circle(s.current.x, s.current.y, 45f, 24);
     }
         private void drawArcAim(GameScreen gs) {
