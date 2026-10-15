@@ -498,7 +498,8 @@ public class GameScreen extends ScreenAdapter {
 
     void tryUseElevator() { GameFloor.tryUseElevator(this); }
     void activateStunAbility() { GameAbilities.activateStunAbility(this); }
-    void activateGlitchDash() { GameAbilities.activateGlitchDa    void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
+    void activateGlitchDash() { GameAbilities.activateGlitchDa    
+    void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
     void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
     boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
     float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
