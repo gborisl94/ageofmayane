@@ -356,6 +356,14 @@ private void update(float delta) {
         return;
     }
     GameInput.pollTouches(this);
+    if (arcBtnActive) {
+    arcBtnTimer += delta;
+    if (arcBtnTimer >= 1.5f) arcBtnNiveau = 3;
+    else if (arcBtnTimer >= 0.7f) arcBtnNiveau = 2;
+    else arcBtnNiveau = 1;
+} else {
+    arcBtnNiveau = 0;
+    }
     zoom.update(delta);
     damage.update(delta);
     particles.update(delta);
