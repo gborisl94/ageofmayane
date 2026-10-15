@@ -749,6 +749,7 @@ shapes.end();
         drawArcTensionButton(gs);
         drawGlitchButton(gs);
         drawAutoAimButton(gs);
+        drawArcTensionText(gs);
         drawXpBar(gs);
         drawAttentionGauge(gs);
 
