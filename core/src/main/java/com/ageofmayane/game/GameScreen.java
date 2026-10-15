@@ -138,8 +138,6 @@ final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
 float regenFlechesTimer = 0f;
 final Objectifs objectifs = new Objectifs();
 float facing = 0f;
-boolean arcTendu = false;
-float arcAngle = 0f;
 boolean aimStickWasActive = false;
 float invulnerable;
 float hitFlash = 0f;
