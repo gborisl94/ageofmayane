@@ -123,6 +123,8 @@ final Stick aimStick = new Stick();
 Weapon equippedWeapon;
 Chest chest;
 int nbFleches = 50;
+static final int NB_FLECHES_MAX = 50;
+
 final Array<FlecheSol> flechesSol = new Array<FlecheSol>();
 float regenFlechesTimer = 0f;
 final Objectifs objectifs = new Objectifs();
