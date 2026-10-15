@@ -104,6 +104,9 @@ public class GameScreen extends ScreenAdapter {
     static final float LUNE_BTN_SIZE = 110f;
     static final float LUNE_BTN_X = W - LUNE_BTN_SIZE - 30f;
     static final float LUNE_BTN_Y = H - 460f - LUNE_BTN_SIZE * 3 - 60f;
+    static final float ARC_BTN_X = 20f;
+    static final float ARC_BTN_Y = H - 460f;
+    static final float ARC_BTN_SIZE = 110f;
     static final int MAX_HP = 100;
     static final int NB_FLECHES_MAX = 50;
 
@@ -495,8 +498,7 @@ public class GameScreen extends ScreenAdapter {
 
     void tryUseElevator() { GameFloor.tryUseElevator(this); }
     void activateStunAbility() { GameAbilities.activateStunAbility(this); }
-    void activateGlitchDash() { GameAbilities.activateGlitchDash(this); }
-void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
+    void activateGlitchDash() { GameAbilities.activateGlitchDa    void activateAutoAimPower() { GameAbilities.activateAutoAimPower(this); }
     void deactivateAutoAimPower() { GameAbilities.deactivateAutoAimPower(this); }
     boolean isAutoAimReady() { return GameAbilities.isAutoAimReady(this); }
     float getAutoAimDurationRatio() { return GameAbilities.getAutoAimDurationRatio(this); }
