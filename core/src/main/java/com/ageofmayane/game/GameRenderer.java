@@ -16,6 +16,21 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import java.util.HashMap;
 
 class GameRenderer {
+    private void drawArcTensionText(GameScreen gs) {
+    if (!gs.arcBtnActive) return;
+    float bx = GameScreen.ARC_BTN_X;
+    float by = GameScreen.ARC_BTN_Y;
+    float bs = GameScreen.ARC_BTN_SIZE;
+    batch.begin();
+    font.getData().setScale(1.3f);
+    font.setColor(1f, 1f, 1f, 1f);
+    String txt = gs.arcBtnNiveau + " / 3";
+    layout.setText(font, txt);
+    font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + bs - 10f);
+    font.getData().setScale(2f);
+    batch.end();
+}
+
 
     static final float W = GameScreen.W;
     static final float H = GameScreen.H;
