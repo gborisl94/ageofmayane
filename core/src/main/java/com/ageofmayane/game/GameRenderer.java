@@ -732,7 +732,7 @@ shapes.end();
         font.draw(batch, gs.scoreText, 20, H - 20);
         font.draw(batch, gs.livesText, W - 160, H - 20);
         font.setColor(1f, 0.9f, 0.3f, 1f);
-        font.draw(batch, "Fleches : " + gs.nbFleches + " / 50", W - 360, H - 50);
+        font.draw(batch, "Fleches : " + gs.nbFleches + " / " + GameScreen.NB_FLECHES_MAX, W - 360, H - 50);
         font.setColor(Color.WHITE);
         font.getData().setScale(1.5f);
         font.setColor(1f, 0.75f, 0.3f, 1f);
