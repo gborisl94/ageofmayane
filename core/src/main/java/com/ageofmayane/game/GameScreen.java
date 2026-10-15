@@ -179,7 +179,6 @@ final int[] owner = new int[MAX_POINTERS];
 boolean newTouch;
 
 int lives;
-int lives;
 int hp = 100;
 static final int MAX_HP = 100;
 int score;
@@ -236,6 +235,7 @@ arcTendu = false;
 arcAngle = 0f;
 aimStickWasActive = false;
     setLives(5);
+    hp = MAX_HP;
     setScore(0);
     fireTimer = 0f;
     invulnerable = 0f;
