@@ -59,3 +59,8 @@ class Ennemi {
     public float patrolDirX = 0f;
     public float patrolDirY = 0f;
 }
+class FlecheDrop {
+    final Vector2 pos = new Vector2();
+    int amount = 3;
+    float life = 15f;
+}
