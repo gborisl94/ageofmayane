@@ -753,11 +753,13 @@ shapes.end();
         shapes.setProjectionMatrix(uiCamera.combined);
         batch.setProjectionMatrix(uiCamera.combined);
 
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
-        drawStick(gs.moveStick, 1f, 1f, 1f);
-        drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
-        shapes.end();
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+shapes.begin(ShapeRenderer.ShapeType.Filled);
+gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
+drawStick(gs.moveStick, 1f, 1f, 1f);
+drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
+shapes.end();
 
         gs.zoom.draw(shapes, batch, font);
         drawOpenButton(gs);
