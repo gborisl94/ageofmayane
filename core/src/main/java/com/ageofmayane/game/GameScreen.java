@@ -400,7 +400,14 @@ private void update(float delta) {
     if (bossPhaseMessageTimer > 0f) bossPhaseMessageTimer -= delta;
     if (targetAcquiredTimer > 0f) targetAcquiredTimer -= delta;
     if (floorBannerTimer > 0f) floorBannerTimer -= delta;
-    
+    if (arcBurstCount > 0) {
+    arcBurstTimer += delta;
+    if (arcBurstTimer >= 0.1f) {
+        arcBurstTimer = 0f;
+        arcBurstCount--;
+        GameCombat.fireAt(this, arcBurstAngle, 2);
+    }
+    }
     for (int i = flechesSol.size - 1; i >= 0; i--) {
     FlecheSol fs = flechesSol.get(i);
     if (fs.pos.dst2(playerPos) < 60f * 60f) {
