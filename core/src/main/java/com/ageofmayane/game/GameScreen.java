@@ -207,6 +207,7 @@ private void restart() {
     dungeon.generate();
     playerPos.set(W / 2f, H / 2f);
     fleches.clear();
+    flecheDrops.clear();
     ennemis.clear();
     weaponDrops.clear();
     damage.clear();
