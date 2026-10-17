@@ -880,8 +880,8 @@ shapes.end();
         font.getData().setScale(2f);
         font.setColor(Color.WHITE);
         batch.end();
-        // --- BARRE DE VIE DU BOSS EN HAUT ---
-// --- BARRE DE VIE DES ENNEMIS ---
+        // // --- BARRE DE VIE DES ENNEMIS ---
+shapes.begin(ShapeRenderer.ShapeType.Filled); // <-- ON OUVRE ICI
 for (int i = 0; i < gs.ennemis.size; i++) {
     Ennemi e = gs.ennemis.get(i);
     if (e.hp > 0) {
@@ -903,7 +903,6 @@ for (int i = 0; i < gs.ennemis.size; i++) {
 // --------------------------------
 
 // --- DESSIN DES TOTEMS ---
-// --- DESSIN DES TOTEMS ---
 for (int t = 0; t < gs.totems.size; t++) {
     gs.totems.get(t).render(shapes);
 }
@@ -912,12 +911,13 @@ for (int t = 0; t < gs.totems.size; t++) {
 gs.particles.draw(shapes);
 drawDizzyStars(gs);
 drawAutoAimVisual(gs);
-shapes.end();
+shapes.end(); // <-- ON FERME ICI (Ligne 915)
 
 shapes.begin(ShapeRenderer.ShapeType.Filled);
 drawArcAim(gs);
 shapes.end();
 
+drawFlechesSol(gs); // Ligne 921
 drawFlechesSol(gs);
 
 for (int i = 0; i < gs.flecheDrops.size; i++) {
