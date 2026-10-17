@@ -438,13 +438,13 @@ if (exitDir >= 0) {
     if (next != null) {
         GameFloor.enterRoom(this, next);
         
-        // On recrée le coffre à une nouvelle position pour cette salle
-        Vector2 newChestPos = GameFloor.findRandomFloorPos(this, 40f, 150f);
-        chest = new Chest(newChestPos.x, newChestPos.y);
-        
-        // On recrée l'ascenseur à une nouvelle position aussi
-        Vector2 newElevPos = GameFloor.findRandomFloorPos(this, 60f, 200f);
-        elevator = new Elevator(newElevPos.x - 40f, newElevPos.y - 60f, 80f, 120f);
+        // On crée l'ascenseur UNIQUEMENT si on entre dans la salle du boss
+        if (next.boss) {
+            Vector2 elevPos = GameFloor.findRandomFloorPos(this, 60f, 200f);
+            elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
+        } else {
+            elevator = null; // Pas d'ascenseur ailleurs
+        }
         if (elevatorButton != null) elevatorButton.hide();
     }
 }
