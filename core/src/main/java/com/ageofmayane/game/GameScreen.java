@@ -197,6 +197,7 @@ SpriteBatch uiBatch;
 BitmapFont uiFont;
 boolean floorTransitionPending = false;
 float glitchCooldown = 0f;
+float totemCooldown = 0f;
 float luneCooldown = 0f;
 int luneLevel = 1;
 int luneKills = 0;
