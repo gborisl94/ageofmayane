@@ -783,7 +783,20 @@ private void drawGlitchEffect(GameScreen gs) {
             shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
         for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
-        // --- BARRE DE VIE DES ENNEMIS ---
+       font.draw(batch, gs.scoreText, 20, H - 20);
+font.setColor(1f, 0.9f, 0.3f, 1f);
+font.draw(batch, "Fleches : " + gs.nbFleches + " / " + GameScreen.NB_FLECHES_MAX, W - 360, H - 50);
+font.setColor(Color.WHITE);
+font.getData().setScale(1.5f);
+font.setColor(1f, 0.75f, 0.3f, 1f);
+font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
+        W / 2f - 80f, H - 20);
+font.getData().setScale(2f);
+font.setColor(Color.WHITE);
+batch.end();
+
+// --- BARRE DE VIE DES ENNEMIS (DESSINÉ SUR LA CAMÉRA DU MONDE) ---
+shapes.begin(ShapeRenderer.ShapeType.Filled); 
 for (int i = 0; i < gs.ennemis.size; i++) {
     Ennemi e = gs.ennemis.get(i);
     if (e.hp > 0) {
@@ -792,86 +805,36 @@ for (int i = 0; i < gs.ennemis.size; i++) {
         float bx = e.pos.x - barW / 2f;
         float by = e.pos.y + e.size / 2f + 10f;
         
-        // Fond noir
         shapes.setColor(0f, 0f, 0f, 0.7f);
         shapes.rect(bx - 1f, by - 1f, barW + 2f, barH + 2f);
         
-        // Barre rouge (ou orange pour le boss)
         float ratio = Math.max(0f, Math.min(1f, e.hp / (float) e.maxHp));
-        if (e.boss) shapes.setColor(1f, 0.5f, 0f, 1f); // Orange pour le boss
-        else shapes.setColor(1f, 0.2f, 0.2f, 1f);      // Rouge pour les ennemis
+        if (e.boss) shapes.setColor(1f, 0.5f, 0f, 1f);
+        else shapes.setColor(1f, 0.2f, 0.2f, 1f);
         
         shapes.rect(bx, by, barW * ratio, barH);
     }
 }
-       for (int i = 0; i < gs.totems.size; i++) {
-    gs.totems.get(i).render(shapes);
-       }
-// --------------------------------
-        gs.particles.draw(shapes);
-        drawDizzyStars(gs);
-        drawAutoAimVisual(gs);
-        shapes.end();
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+// --- DESSIN DES TOTEMS ---
+for (int t = 0; t < gs.totems.size; t++) {
+    gs.totems.get(t).render(shapes);
+}
+
+// --- PARTICULES ET ETOILES ---
+gs.particles.draw(shapes);
+drawDizzyStars(gs);
+drawAutoAimVisual(gs);
+shapes.end();
+// ----------------------------------------------------------------
+
+// --- ARC DE VISÉE ---
+shapes.begin(ShapeRenderer.ShapeType.Filled);
 drawArcAim(gs);
 shapes.end();
-        drawFlechesSol(gs);
-     for (int i = 0; i < gs.flecheDrops.size; i++) {
-    FlecheDrop fd = gs.flecheDrops.get(i);
-    float pulse = 0.7f + 0.3f * MathUtils.sin(fd.life * 6f);
-    shapes.begin(ShapeRenderer.ShapeType.Filled);
-    shapes.setColor(1f, 0.9f, 0.3f, 0.6f * pulse);
-    shapes.circle(fd.pos.x, fd.pos.y, 14f, 16);
-    shapes.setColor(1f, 0.85f, 0.2f, 0.9f);
-    shapes.rect(fd.pos.x - 3f, fd.pos.y - 10f, 6f, 20f);
-    shapes.triangle(
-        fd.pos.x - 6f, fd.pos.y + 10f,
-        fd.pos.x + 6f, fd.pos.y + 10f,
-        fd.pos.x, fd.pos.y + 16f);
-    shapes.end();
-     }
-     for (int i = 0; i < gs.weaponDrops.size; i++) {
-            WeaponDrop d = gs.weaponDrops.get(i);
-            Texture t = loadDropTexture(d.weapon.spriteName);
-            if (t != null) {
-                batch.begin();
-                batch.setColor(Color.WHITE);
-                batch.draw(t, d.pos.x - 16f, d.pos.y - 8f, 32f, 16f);
-                batch.end();
-            }
-        }
 
-        uiViewport.apply();
-        shapes.setProjectionMatrix(uiCamera.combined);
-        batch.setProjectionMatrix(uiCamera.combined);
-
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-shapes.begin(ShapeRenderer.ShapeType.Filled);
-gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
-Gdx.gl.glEnable(GL20.GL_BLEND);
-Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-drawStick(gs.moveStick, 1f, 1f, 1f);
-drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
-shapes.end();
-
-        gs.zoom.draw(shapes, batch, font);
-        drawOpenButton(gs);
-        drawStunButton(gs);
-        drawArcTensionButton(gs);
-        drawGlitchButton(gs);
-        drawTotemButton(gs);
-        drawAutoAimButton(gs);
-        drawArcTensionText(gs);
-        drawXpBar(gs);
-        drawHpBar(gs);
-        drawAttentionGauge(gs);
-
-        batch.begin();
-        font.setColor(Color.WHITE);
-        ratio, barH);
-    }
-}
+// --- FLECHES AU SOL ---
+drawFlechesSol(gs);
 // --------------------------------
 
 // --- DESSIN DES TOTEMS ---
