@@ -104,18 +104,24 @@ class GameCombat {
     }
 
     static void hurtPlayer(GameScreen gs) {
-        gs.setLives(gs.getLives() - 1);
-        gs.invulnerable = 1f;
-        gs.hitFlash = GameScreen.HIT_FLASH_DURATION;
-        gs.triggerShake();
-        gs.triggerStun();
-        gs.damage.add(gs.playerPos.x, gs.playerPos.y + 30f, "-1", true);
-        gs.particles.spawnHitSpark(gs.playerPos.x, gs.playerPos.y,
-                new com.badlogic.gdx.graphics.Color(1f, 0.3f, 0.3f, 1f));
-        if (gs.getLives() <= 0) {
-            gs.gameOver = true;
-            gs.endTimer = 0f;
-            if (gs.elevator != null) gs.elevator.forceUnlock();
-        }
+    // On enlève 20 PV au joueur
+    gs.hp -= 20;
+    
+    // Affichage des dégâts
+    gs.damage.add(gs.playerPos.x, gs.playerPos.y + 30f, "-20", true);
+    gs.triggerStun();
+    gs.invulnerable = 1f;
+    gs.hitFlash = GameScreen.HIT_FLASH_DURATION;
+    gs.triggerShake();
+    gs.particles.spawnHitSpark(gs.playerPos.x, gs.playerPos.y, new com.badlogic.gdx.graphics.Color(1f, 0.3f, 0.3f, 1f));
+
+    // Si on tombe à 0 PV ou moins -> GAME OVER
+    if (gs.hp <= 0) {
+        gs.hp = 0;
+        gs.gameOver = true;
+        gs.endTimer = 0f;
+        gs.particles.spawnBlood(gs.playerPos.x, gs.playerPos.y, 25);
+        if (gs.elevator != null) gs.elevator.forceUnlock();
+    }
     }
 }
