@@ -902,8 +902,9 @@ for (int i = 0; i < gs.ennemis.size; i++) {
 // --------------------------------
 
 // --- DESSIN DES TOTEMS ---
-for (int i = 0; i < gs.totems.size; i++) {
-    gs.totems.get(i).render(shapes);
+// --- DESSIN DES TOTEMS ---
+for (int t = 0; t < gs.totems.size; t++) {
+    gs.totems.get(t).render(shapes);
 }
 // --------------------------------
 
