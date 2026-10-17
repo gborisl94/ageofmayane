@@ -55,8 +55,7 @@ class GameFloor {
         gs.autoAimCooldown = 0f;
         Vector2 chestPos = findRandomFloorPos(gs, 40f, 200f);
         gs.chest = new Chest(chestPos.x, chestPos.y);
-        Vector2 elevPos = findRandomFloorPos(gs, 60f, 250f);
-        gs.elevator = new Elevator(elevPos.x - 40f, elevPos.y - 60f, 80f, 120f);
+        gs.elevator = null;
         if (gs.elevatorButton != null) gs.elevatorButton.hide();
         gs.floorTransitionPending = false;
         gs.transitionTimer = 0f;
