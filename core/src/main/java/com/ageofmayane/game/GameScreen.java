@@ -528,7 +528,7 @@ aimStickWasActive = aimActiveNow;
         Color dropColor = wd.weapon.rarity.colorWithAlpha(0.4f);
         particles.spawnHalo(wd.pos.x, wd.pos.y, 25f, dropColor);
     }
-    boolean unlocked = bossFledThisRun || lives <= 0;
+    boolean unlocked = bossFledThisRun || victory || (dungeon.getCurrent().boss && ennemis.size == 0);
     if (elevator != null) {
         elevator.update(delta, unlocked);
         GameFloor.updateElevatorButton(this, delta);
