@@ -834,11 +834,7 @@ drawArcAim(gs);
 shapes.end();
 
 // --- FLECHES AU SOL ---
-drawFlechesSol(gs);// <-- ON FERME ICI (Ligne 915)
-
-shapes.begin(ShapeRenderer.ShapeType.Filled);
-drawArcAim(gs);
-shapes.end();
+drawFlechesSol(gs);
 
 //drawFlechesSol(gs); // Ligne 921
 drawFlechesSol(gs);
