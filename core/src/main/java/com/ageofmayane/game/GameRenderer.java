@@ -837,12 +837,6 @@ shapes.end();
 drawFlechesSol(gs);
 // --------------------------------
 
-// --- DESSIN DES TOTEMS ---
-for (int t = 0; t < gs.totems.size; t++) {
-    gs.totems.get(t).render(shapes);
-}
-// --------------------------------
-
 gs.particles.draw(shapes);
 drawDizzyStars(gs);
 drawAutoAimVisual(gs);
