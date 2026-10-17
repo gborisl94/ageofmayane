@@ -869,35 +869,7 @@ shapes.end();
 
         batch.begin();
         font.setColor(Color.WHITE);
-        font.draw(batch, gs.scoreText, 20, H - 20);
-        font.setColor(1f, 0.9f, 0.3f, 1f);
-        font.draw(batch, "Fleches : " + gs.nbFleches + " / " + GameScreen.NB_FLECHES_MAX, W - 360, H - 50);
-        font.setColor(Color.WHITE);
-        font.getData().setScale(1.5f);
-        font.setColor(1f, 0.75f, 0.3f, 1f);
-        font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
-                W / 2f - 80f, H - 20);
-        font.getData().setScale(2f);
-        font.setColor(Color.WHITE);
-        batch.end();
-        // // --- BARRE DE VIE DES ENNEMIS ---
-shapes.begin(ShapeRenderer.ShapeType.Filled); // <-- ON OUVRE ICI
-for (int i = 0; i < gs.ennemis.size; i++) {
-    Ennemi e = gs.ennemis.get(i);
-    if (e.hp > 0) {
-        float barW = e.size * 0.8f;
-        float barH = 6f;
-        float bx = e.pos.x - barW / 2f;
-        float by = e.pos.y + e.size / 2f + 10f;
-        
-        shapes.setColor(0f, 0f, 0f, 0.7f);
-        shapes.rect(bx - 1f, by - 1f, barW + 2f, barH + 2f);
-        
-        float ratio = Math.max(0f, Math.min(1f, e.hp / (float) e.maxHp));
-        if (e.boss) shapes.setColor(1f, 0.5f, 0f, 1f);
-        else shapes.setColor(1f, 0.2f, 0.2f, 1f);
-        
-        shapes.rect(bx, by, barW * ratio, barH);
+        ratio, barH);
     }
 }
 // --------------------------------
