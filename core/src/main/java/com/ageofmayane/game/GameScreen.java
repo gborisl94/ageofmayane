@@ -383,6 +383,7 @@ private void update(float delta) {
     if (stunTimer > 0f) { stunTimer -= delta; dizzyTime += delta; }
     if (stunCooldown > 0f) stunCooldown -= delta;
     if (glitchCooldown > 0f) glitchCooldown -= delta;
+    if (totemCooldown > 0f) totemCooldown -= delta;
     if (luneCooldown > 0f) luneCooldown -= delta;
     if (glitchEffectTimer > 0f) glitchEffectTimer -= delta;
     if (autoAimActive) {
