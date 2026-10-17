@@ -797,42 +797,41 @@ private void drawTotemButton(GameScreen gs) {
         gs.damage.draw(batch, font);
         batch.end();
 
-        // 7. BARRES DE VIE, TOTEMS ET PARTICULES (MODE SHAPES)
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        
-        if (texPlayer == null && playerVisible) {
-            shapes.setColor(1f, 0.4f, 0.7f, 1f);
-            shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
-        }
-        for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
+        // 7. BARRES DE VIE, TOTEMS ET PARTICULES
+shapes.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Barres de vie des ennemis
-        for (int i = 0; i < gs.ennemis.size; i++) {
-            Ennemi e = gs.ennemis.get(i);
-            if (e.hp > 0) {
-                float barW = e.size * 0.8f;
-                float barH = 6f;
-                float bx = e.pos.x - barW / 2f;
-                float by = e.pos.y + e.size / 2f + 10f;
-                shapes.setColor(0f, 0f, 0f, 0.7f);
-                shapes.rect(bx - 1f, by - 1f, barW + 2f, barH + 2f);
-                float ratio = Math.max(0f, Math.min(1f, e.hp / (float) e.maxHp));
-                if (e.boss) shapes.setColor(1f, 0.5f, 0f, 1f);
-                else shapes.setColor(1f, 0.2f, 0.2f, 1f);
-                shapes.rect(bx, by, barW * ratio, barH);
-            }
-        }
+// Barres de vie des ennemis
+for (int i = 0; i < gs.ennemis.size; i++) {
+    Ennemi e = gs.ennemis.get(i);
+    if (e.hp > 0) {
+        float barW = e.size * 0.8f;
+        float barH = 6f;
+        float bx = e.pos.x - barW / 2f;
+        float by = e.pos.y + e.size / 2f + 10f;
+        shapes.setColor(0f, 0f, 0f, 0.7f);
+        shapes.rect(bx - 1f, by - 1f, barW + 2f, barH + 2f);
+        float ratio = Math.max(0f, Math.min(1f, e.hp / (float) e.maxHp));
+        if (e.boss) shapes.setColor(1f, 0.5f, 0f, 1f);
+        else shapes.setColor(1f, 0.2f, 0.2f, 1f);
+        shapes.rect(bx, by, barW * ratio, barH);
+    }
+}
+shapes.end(); // On ferme avant les totems et particules
 
-        // Totems
-        for (int t = 0; t < gs.totems.size; t++) {
-            gs.totems.get(t).render(shapes);
-        }
+// Totems (il gère son propre begin/end ? Non, on le fait ici)
+shapes.begin(ShapeRenderer.ShapeType.Filled);
+for (int t = 0; t < gs.totems.size; t++) {
+    gs.totems.get(t).render(shapes);
+}
+shapes.end();
 
-        // Particules et etoiles
-        gs.particles.draw(shapes);
-        drawDizzyStars(gs);
-        drawAutoAimVisual(gs);
-        shapes.end();
+// Particules (Maintenant il gère son propre begin/end, donc pas besoin de le faire ici !)
+gs.particles.draw(shapes);
+
+shapes.begin(ShapeRenderer.ShapeType.Filled);
+drawDizzyStars(gs);
+drawAutoAimVisual(gs);
+shapes.end();
 
         // 8. ARC DE VISE
         shapes.begin(ShapeRenderer.ShapeType.Filled);
