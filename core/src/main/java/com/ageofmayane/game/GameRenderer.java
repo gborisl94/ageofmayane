@@ -266,16 +266,40 @@ class GameRenderer {
     private void drawFlechesSol(GameScreen gs) {
     if (gs.flechesSol == null || gs.flechesSol.size == 0) return;
     if (texArrow == null) return;
+    
     float size = 32f;
     float w = size;
     float h = size * texArrow.getHeight() / (float) texArrow.getWidth();
+    
+    // On utilise une horloge globale pour une pulsation fluide
+    // (On utilise endTimer ou on peut ajouter un timer, ici on triche un peu avec le temps de jeu)
+    float time = com.badlogic.gdx.Gdx.graphics.getFrameId() * 0.05f; 
+    
     batch.begin();
-    batch.setColor(Color.WHITE);
     for (int i = 0; i < gs.flechesSol.size; i++) {
         FlecheSol fs = gs.flechesSol.get(i);
+        
+        // Pulsation : la taille varie entre 90% et 110%
+        float pulse = 1f + 0.1f * MathUtils.sin(time * 5f);
+        float currentW = w * pulse;
+        float currentH = h * pulse;
+        
+        // Couleur : on alterne entre blanc et jaune vif
+        float alpha = 0.7f + 0.3f * MathUtils.sin(time * 5f);
+        batch.setColor(1f, 1f, 0.5f, alpha); 
+        
         batch.draw(texArrow,
-            fs.pos.x - w / 2f, fs.pos.y - h / 2f,
-            w / 2f, h / 2f, w, h,
+            fs.pos.x - currentW / 2f, fs.pos.y - currentH / 2f,
+            currentW / 2f, currentH / 2f, currentW, currentH,
+            1f, 1f, fs.angle,
+            0, 0, texArrow.getWidth(), texArrow.getHeight(),
+            false, false);
+            
+        // Petit halo lumineux derrière la flèche
+        batch.setColor(1f, 0.9f, 0.2f, 0.2f * alpha);
+        batch.draw(texArrow,
+            fs.pos.x - currentW * 0.7f, fs.pos.y - currentH * 0.7f,
+            currentW * 1.4f / 2f, currentH * 1.4f / 2f, currentW * 1.4f, currentH * 1.4f,
             1f, 1f, fs.angle,
             0, 0, texArrow.getWidth(), texArrow.getHeight(),
             false, false);
