@@ -777,13 +777,19 @@ private void drawGlitchEffect(GameScreen gs) {
         gs.damage.draw(batch, font);
         batch.end();
 
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        if (texPlayer == null && playerVisible) {
-            shapes.setColor(1f, 0.4f, 0.7f, 1f);
-            shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
-        }
-        for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
-       font.draw(batch, gs.scoreText, 20, H - 20);
+        // 1. On dessine les formes (Shapes)
+shapes.begin(ShapeRenderer.ShapeType.Filled);
+if (texPlayer == null && playerVisible) {
+    shapes.setColor(1f, 0.4f, 0.7f, 1f);
+    shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
+}
+for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
+shapes.end(); // <-- ON FERME LES FORMES ICI
+
+// 2. On dessine le texte (Batch)
+batch.begin(); // <-- ON OUVRE LE TEXTE ICI
+font.setColor(Color.WHITE);
+font.draw(batch, gs.scoreText, 20, H - 20);
 font.setColor(1f, 0.9f, 0.3f, 1f);
 font.draw(batch, "Fleches : " + gs.nbFleches + " / " + GameScreen.NB_FLECHES_MAX, W - 360, H - 50);
 font.setColor(Color.WHITE);
@@ -793,7 +799,7 @@ font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
         W / 2f - 80f, H - 20);
 font.getData().setScale(2f);
 font.setColor(Color.WHITE);
-batch.end();
+batch.end(); // <-- ON FERME LE TEXTE ICI
 
 // (Ton code de la boucle des ennemis est ici, on le garde !)
 shapes.begin(ShapeRenderer.ShapeType.Filled); 
