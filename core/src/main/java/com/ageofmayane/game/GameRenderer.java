@@ -747,9 +747,7 @@ private void drawGlitchEffect(GameScreen gs) {
 
         for (int i = 0; i < gs.fleches.size; i++) {
             Fleche f = gs.fleches.get(i);
-        for (int i = 0; i < gs.totems.size; i++) {
-    gs.totems.get(i).render(shapes);
-        }
+        
             if (f.fromEnemy) {
                 batch.end();
                 shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -806,6 +804,9 @@ for (int i = 0; i < gs.ennemis.size; i++) {
         shapes.rect(bx, by, barW * ratio, barH);
     }
 }
+       for (int i = 0; i < gs.totems.size; i++) {
+    gs.totems.get(i).render(shapes);
+       }
 // --------------------------------
         gs.particles.draw(shapes);
         drawDizzyStars(gs);
