@@ -97,15 +97,17 @@ public class GameScreen extends ScreenAdapter {
     static final float ELEVATOR_INTERACT_DIST = 120f;
     static final float TRANSITION_TIME = 1.2f;
     static final float GLITCH_COOLDOWN = 5f;
-    static final float TOTEM_COOLDOWN = 15f;
+    static final float static final float TOTEM_COOLDOWN = 15f;
 static final float TOTEM_BTN_SIZE = 110f;
 static final float TOTEM_BTN_X = 20f;
-static final float TOTEM_BTN_Y = 200f; // En dessous du bouton ARC
+static final float TOTEM_BTN_Y = 480f; // Remonté pour être visible
+
 static final float GLITCH_DISTANCE = 220f;
 static final float GLITCH_INVULN = 0.5f;
 static final float GLITCH_BTN_SIZE = 110f;
 static final float GLITCH_BTN_X = W - GLITCH_BTN_SIZE - 30f;
 static final float GLITCH_BTN_Y = H - 460f - GLITCH_BTN_SIZE * 2 - 40f;
+
 static final float LUNE_COOLDOWN = 4f;
 static final float LUNE_SPEED = 480f;
 static final float LUNE_BTN_SIZE = 110f;
