@@ -29,10 +29,11 @@ android {
     }
 
     sourceSets {
-        main {
-            jniLibs.srcDirs = ['src/main/jniLibs']
-        }
+    main {
+        jniLibs.srcDirs = ['src/main/jniLibs']
+        assets.srcDirs = [project(':core').file('assets')]
     }
+}
 
     buildTypes {
         release {
