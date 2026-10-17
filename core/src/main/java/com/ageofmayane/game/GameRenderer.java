@@ -835,10 +835,6 @@ shapes.end();
 
 // --- FLECHES AU SOL ---
 drawFlechesSol(gs);
-
-//drawFlechesSol(gs); // Ligne 921
-drawFlechesSol(gs);
-
 for (int i = 0; i < gs.flecheDrops.size; i++) {
     FlecheDrop fd = gs.flecheDrops.get(i);
     float pulse = 0.7f + 0.3f * MathUtils.sin(fd.life * 6f);
