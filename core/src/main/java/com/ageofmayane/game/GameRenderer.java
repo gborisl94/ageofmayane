@@ -917,7 +917,7 @@ shapes.begin(ShapeRenderer.ShapeType.Filled);
 drawArcAim(gs);
 shapes.end();
 
-drawFlechesSol(gs); // Ligne 921
+//drawFlechesSol(gs); // Ligne 921
 drawFlechesSol(gs);
 
 for (int i = 0; i < gs.flecheDrops.size; i++) {
