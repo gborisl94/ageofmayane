@@ -81,7 +81,7 @@ class GameInput {
         gs.newTouch = true;
     }
     gs.owner[i] = GameScreen.OWNER_IGNORED;
-            }
+           }
                 else if (gs.canInteractWithChest() && x >= GameScreen.OPEN_BTN_X
                         && x <= GameScreen.OPEN_BTN_X + GameScreen.OPEN_BTN_W
                         && y >= GameScreen.OPEN_BTN_Y && y <= GameScreen.OPEN_BTN_Y + GameScreen.OPEN_BTN_H) {
