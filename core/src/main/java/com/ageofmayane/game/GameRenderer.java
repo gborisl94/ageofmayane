@@ -856,6 +856,7 @@ shapes.end();
         drawStunButton(gs);
         drawArcTensionButton(gs);
         drawGlitchButton(gs);
+        drawTotemButton(gs);
         drawAutoAimButton(gs);
         drawArcTensionText(gs);
         drawXpBar(gs);
