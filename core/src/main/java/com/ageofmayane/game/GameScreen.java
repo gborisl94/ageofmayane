@@ -233,7 +233,7 @@ private void restart() {
 arcTendu = false;
 arcAngle = 0f;
 aimStickWasActive = false;
-    setLives(5);
+    setLives(0);
     hp = MAX_HP;
     setScore(0);
     fireTimer = 0f;
