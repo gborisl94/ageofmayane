@@ -881,53 +881,38 @@ font.getData().setScale(1.5f);
 font.setColor(1f, 0.75f, 0.3f, 1f);
 font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
         W / 2f - 80f, H - 20);
-font.getData().setScale(2f);
-font.setColor(Color.WHITE);
-batch.end();
-
-// --- BARRE DE VIE DU BOSS EN HAUT ---
-for (int i = 0; i < gs.ennemis.size; i++) {
-    Ennemi boss = gs.ennemis.get(i);
-    if (boss.boss && boss.hp > 0) {
-        float bossW = 400f;
-        float bossH = 20f;
-        float bx = (W - bossW) / 2f;
-        float by = H - 90f; // Juste sous le numéro d'étage
-        float ratio = Math.max(0f, Math.min(1f, boss.hp / (float) boss.maxHp));
-        
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0.1f, 0.1f, 0.1f, 0.8f);
-        shapes.rect(bx - 2f, by - 2f, bossW + 4f, bossH + 4f);
-        shapes.setColor(0.8f, 0.1f, 0.1f, 1f);
-        shapes.rect(bx, by, bossW * ratio, bossH);
-        shapes.end();
-        
-        batch.begin();
-        font.getData().setScale(1.2f);
+font.        font.getData().setScale(2f);
         font.setColor(Color.WHITE);
-        String bossTxt = "BOSS";
-        layout.setText(font, bossTxt);
-        font.draw(batch, bossTxt, W / 2f - layout.width / 2f, by + 16f);
-        font.getData().setScale(2f);
         batch.end();
-        break;
-    }
-}
 
-drawGlitchEffect(gs);
-
-if (gs.hitFlash > 0f) {
-    float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
-    Gdx.gl.glEnable(GL20.GL_BLEND);
-    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-    uiViewport.apply();
-    shapes.setProjectionMatrix(uiCamera.combined);
-    shapes.begin(ShapeRenderer.ShapeType.Filled);
-    shapes.setColor(1f, 0f, 0f, alpha);
-    shapes.rect(0f, 0f, W, H);
-    shapes.end();
-}
-// -----------------------------------
+        // --- BARRE DE VIE DU BOSS EN HAUT ---
+        for (int i = 0; i < gs.ennemis.size; i++) {
+            Ennemi boss = gs.ennemis.get(i);
+            if (boss.boss && boss.hp > 0) {
+                float bossW = 400f;
+                float bossH = 20f;
+                float bx = (W - bossW) / 2f;
+                float by = H - 90f; // Juste sous le numéro d'étage
+                float ratio = Math.max(0f, Math.min(1f, boss.hp / (float) boss.maxHp));
+                
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(0.1f, 0.1f, 0.1f, 0.8f);
+                shapes.rect(bx - 2f, by - 2f, bossW + 4f, bossH + 4f);
+                shapes.setColor(0.8f, 0.1f, 0.1f, 1f);
+                shapes.rect(bx, by, bossW * ratio, bossH);
+                shapes.end();
+                
+                batch.begin();
+                font.getData().setScale(1.2f);
+                font.setColor(Color.WHITE);
+                String bossTxt = "BOSS";
+                layout.setText(font, bossTxt);
+                font.draw(batch, bossTxt, W / 2f - layout.width / 2f, by + 16f);
+                font.getData().setScale(2f);
+                batch.end();
+                break;
+            }
+        }
 
         drawGlitchEffect(gs);
 
@@ -937,6 +922,13 @@ if (gs.hitFlash > 0f) {
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             uiViewport.apply();
             shapes.setProjectionMatrix(uiCamera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(1f, 0f, 0f, alpha);
+            shapes.rect(0f, 0f, W, H);
+            shapes.end();
+        }
+    } // <-- N'oublie pas de fermer la méthode draw()
+} // <-- N'oublie pas de fermer la classe GameRendererx(uiCamera.combined);
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(1f, 0f, 0f, alpha);
             shapes.rect(0f, 0f, W, H);
