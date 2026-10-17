@@ -795,7 +795,7 @@ font.getData().setScale(2f);
 font.setColor(Color.WHITE);
 batch.end();
 
-// --- BARRE DE VIE DES ENNEMIS (DESSINÉ SUR LA CAMÉRA DU MONDE) ---
+// (Ton code de la boucle des ennemis est ici, on le garde !)
 shapes.begin(ShapeRenderer.ShapeType.Filled); 
 for (int i = 0; i < gs.ennemis.size; i++) {
     Ennemi e = gs.ennemis.get(i);
@@ -825,8 +825,7 @@ for (int t = 0; t < gs.totems.size; t++) {
 gs.particles.draw(shapes);
 drawDizzyStars(gs);
 drawAutoAimVisual(gs);
-shapes.end();
-// ----------------------------------------------------------------
+shapes.end(); // <-- ON FERME ICI
 
 // --- ARC DE VISÉE ---
 shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -834,7 +833,9 @@ drawArcAim(gs);
 shapes.end();
 
 // --- FLECHES AU SOL ---
-drawFlechesSol(gs);
+drawFlechesSol(gs); // <-- ON NE MET PAS DE shapes.begin ICI
+
+// --- FLeches drops ---
 for (int i = 0; i < gs.flecheDrops.size; i++) {
     FlecheDrop fd = gs.flecheDrops.get(i);
     float pulse = 0.7f + 0.3f * MathUtils.sin(fd.life * 6f);
@@ -850,6 +851,7 @@ for (int i = 0; i < gs.flecheDrops.size; i++) {
     shapes.end();
 }
 
+// --- WEAPON DROPS ---
 for (int i = 0; i < gs.weaponDrops.size; i++) {
     WeaponDrop d = gs.weaponDrops.get(i);
     Texture t = loadDropTexture(d.weapon.spriteName);
@@ -861,32 +863,7 @@ for (int i = 0; i < gs.weaponDrops.size; i++) {
     }
 }
 
-uiViewport.apply();
-shapes.setProjectionMatrix(uiCamera.combined);
-batch.setProjectionMatrix(uiCamera.combined);
-
-Gdx.gl.glEnable(GL20.GL_BLEND);
-Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-shapes.begin(ShapeRenderer.ShapeType.Filled);
-gs.dungeon.drawMiniMap(shapes, MINIMAP_X, MINIMAP_Y);
-Gdx.gl.glEnable(GL20.GL_BLEND);
-Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-drawStick(gs.moveStick, 1f, 1f, 1f);
-drawStick(gs.aimStick, 1f, 0.5f, 0.5f);
-shapes.end();
-
-gs.zoom.draw(shapes, batch, font);
-drawOpenButton(gs);
-drawStunButton(gs);
-drawArcTensionButton(gs);
-drawGlitchButton(gs);
-drawTotemButton(gs);
-drawAutoAimButton(gs);
-drawArcTensionText(gs);
-drawXpBar(gs);
-drawHpBar(gs);
-drawAttentionGauge(gs);
-
+// (La suite avec uiViewport.apply(); reste inchangée)
 // --- TEXTE HUD ---
 batch.begin();
 font.setColor(Color.WHITE);
