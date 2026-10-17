@@ -79,7 +79,7 @@ class GameInput {
                         && y >= GameScreen.TOTEM_BTN_Y && y <= GameScreen.TOTEM_BTN_Y + GameScreen.TOTEM_BTN_SIZE) {
                     if (gs.totemCooldown <= 0f) {
                         gs.totemCooldown = GameScreen.TOTEM_COOLDOWN;
-                        gs.totems.add(new Totem(gs.playerPos.x + 80f, gs.playerPos.y, Totem.Type.FOUDRE));
+                        gs.totems.add(new Totem(gs.playerPos.x, gs.playerPos.y, Totem.Type.FOUDRE));
                         gs.newTouch = true;
                     }
                     gs.owner[i] = GameScreen.OWNER_IGNORED;
