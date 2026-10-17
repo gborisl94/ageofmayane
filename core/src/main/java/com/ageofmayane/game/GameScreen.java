@@ -433,10 +433,21 @@ private void update(float delta) {
     playerPos.x = MathUtils.clamp(playerPos.x, 0f, W);
     playerPos.y = MathUtils.clamp(playerPos.y, 0f, H);
     int exitDir = dungeon.checkDoorExit(playerPos);
-    if (exitDir >= 0) {
-        Room next = dungeon.moveThrough(exitDir, playerPos);
-        if (next != null) GameFloor.enterRoom(this, next);
+if (exitDir >= 0) {
+    Room next = dungeon.moveThrough(exitDir, playerPos);
+    if (next != null) {
+        GameFloor.enterRoom(this, next);
+        
+        // On recrée le coffre à une nouvelle position pour cette salle
+        Vector2 newChestPos = GameFloor.findRandomFloorPos(this, 40f, 150f);
+        chest = new Chest(newChestPos.x, newChestPos.y);
+        
+        // On recrée l'ascenseur à une nouvelle position aussi
+        Vector2 newElevPos = GameFloor.findRandomFloorPos(this, 60f, 200f);
+        elevator = new Elevator(newElevPos.x - 40f, newElevPos.y - 60f, 80f, 120f);
+        if (elevatorButton != null) elevatorButton.hide();
     }
+}
     fireTimer -= delta;
     boolean aimActiveNow = aimStick.active();
 if (aimActiveNow && !aimStickWasActive) {
