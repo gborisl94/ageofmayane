@@ -927,46 +927,53 @@ font.        font.getData().setScale(2f);
             shapes.rect(0f, 0f, W, H);
             shapes.end();
         }
-    } // <-- N'oublie pas de fermer la méthode draw()
-} // <-- N'oublie pas de fermer la classe GameRendererx(uiCamera.combined);
+        drawGlitchEffect(gs);
+
+        if (gs.hitFlash > 0f) {
+            float alpha = Math.min(0.55f, gs.hitFlash / GameScreen.HIT_FLASH_DURATION * 0.55f);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            uiViewport.apply();
+            shapes.setProjectionMatrix(uiCamera.combined);
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(1f, 0f, 0f, alpha);
             shapes.rect(0f, 0f, W, H);
             shapes.end();
         }
+    } // <-- CETTE ACCOLADE FERME LA MÉTHODE DRAW
+
+    private void drawTotemButton(GameScreen gs) {
+        float bx = GameScreen.TOTEM_BTN_X;
+        float by = GameScreen.TOTEM_BTN_Y;
+        float bs = GameScreen.TOTEM_BTN_SIZE;
+        boolean ready = gs.totemCooldown <= 0f;
+        
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
+        shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
+        
+        if (ready) shapes.setColor(0.6f, 0.2f, 1f, 0.95f); // Violet
+        else shapes.setColor(0.3f, 0.3f, 0.4f, 0.9f);
+        
+        shapes.rect(bx, by, bs, bs);
+        
+        if (!ready) {
+            float ratio = Math.max(0f, Math.min(1f, gs.totemCooldown / GameScreen.TOTEM_COOLDOWN));
+            shapes.setColor(0.1f, 0.1f, 0.15f, 0.75f);
+            shapes.rect(bx, by + bs - bs * ratio, bs, bs * ratio);
+        }
+        shapes.end();
+        
+        batch.begin();
+        font.getData().setScale(1.2f);
+        font.setColor(Color.WHITE);
+        String txt = "TOTEM";
+        layout.setText(font, txt);
+        font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + 22f);
+        String sub = ready ? "PRET" : String.format("%.1fs", gs.totemCooldown);
+        layout.setText(font, sub);
+        font.draw(batch, sub, bx + (bs - layout.width) / 2f, by + bs - 10f);
+        font.getData().setScale(2f);
+        batch.end();
     }
-  private void drawTotemButton(GameScreen gs) {
-    float bx = GameScreen.TOTEM_BTN_X;
-    float by = GameScreen.TOTEM_BTN_Y;
-    float bs = GameScreen.TOTEM_BTN_SIZE;
-    boolean ready = gs.totemCooldown <= 0f;
-    
-    shapes.begin(ShapeRenderer.ShapeType.Filled);
-    shapes.setColor(0.05f, 0.05f, 0.1f, 0.95f);
-    shapes.rect(bx - 3f, by - 3f, bs + 6f, bs + 6f);
-    
-    if (ready) shapes.setColor(0.6f, 0.2f, 1f, 0.95f); // Violet
-    else shapes.setColor(0.3f, 0.3f, 0.4f, 0.9f);
-    
-    shapes.rect(bx, by, bs, bs);
-    
-    if (!ready) {
-        float ratio = Math.max(0f, Math.min(1f, gs.totemCooldown / GameScreen.TOTEM_COOLDOWN));
-        shapes.setColor(0.1f, 0.1f, 0.15f, 0.75f);
-        shapes.rect(bx, by + bs - bs * ratio, bs, bs * ratio);
-    }
-    shapes.end();
-    
-    batch.begin();
-    font.getData().setScale(1.2f);
-    font.setColor(Color.WHITE);
-    String txt = "TOTEM";
-    layout.setText(font, txt);
-    font.draw(batch, txt, bx + (bs - layout.width) / 2f, by + 22f);
-    String sub = ready ? "PRET" : String.format("%.1fs", gs.totemCooldown);
-    layout.setText(font, sub);
-    font.draw(batch, sub, bx + (bs - layout.width) / 2f, by + bs - 10f);
-    font.getData().setScale(2f);
-    batch.end();
-  }
-}
+} // <-- CETTE ACCOLADE FERME LA CLASSE GAMERENDERER
