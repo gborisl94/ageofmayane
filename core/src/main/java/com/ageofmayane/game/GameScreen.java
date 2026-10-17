@@ -314,7 +314,7 @@ public void render(float delta) {
     if (!(delta > 0f) || delta > 0.05f) delta = Math.min(Math.max(delta, 0f), 0.05f);
     update(delta);
     renderer.draw(this);
-    GameFloor.drawBossArrow(this);
+   // GameFloor.drawBossArrow(this);
     if (elevator != null && !floorTransitionPending && elevator.isUnlocked()) {
         uiShapes.setProjectionMatrix(renderer.uiCamera.combined);
         uiShapes.begin(ShapeRenderer.ShapeType.Filled);
