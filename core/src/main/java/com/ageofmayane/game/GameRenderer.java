@@ -834,13 +834,7 @@ drawArcAim(gs);
 shapes.end();
 
 // --- FLECHES AU SOL ---
-drawFlechesSol(gs);
-// --------------------------------
-
-gs.particles.draw(shapes);
-drawDizzyStars(gs);
-drawAutoAimVisual(gs);
-shapes.end(); // <-- ON FERME ICI (Ligne 915)
+drawFlechesSol(gs)// <-- ON FERME ICI (Ligne 915)
 
 shapes.begin(ShapeRenderer.ShapeType.Filled);
 drawArcAim(gs);
