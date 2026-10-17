@@ -881,7 +881,7 @@ font.getData().setScale(1.5f);
 font.setColor(1f, 0.75f, 0.3f, 1f);
 font.draw(batch, "Etage " + gs.currentFloor + " / " + GameScreen.TOTAL_FLOORS,
         W / 2f - 80f, H - 20);
-font.        font.getData().setScale(2f);
+        font.getData().setScale(2f);
         font.setColor(Color.WHITE);
         batch.end();
 
