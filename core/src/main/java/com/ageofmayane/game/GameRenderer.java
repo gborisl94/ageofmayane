@@ -861,6 +861,7 @@ shapes.end();
         drawXpBar(gs);
         drawHpBar(gs);
         drawAttentionGauge(gs);
+        drawTotemButton(gs);
 
         batch.begin();
         font.setColor(Color.WHITE);
