@@ -293,31 +293,23 @@ public class ParticleSystem {
         }
     }
 
-    public void draw(ShapeRenderer shapes) {
-      com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
-      com.badlogic.gdx.Gdx.gl.glBlendFunc(
-      com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
-      com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
-        for (int i = 0; i < particles.size; i++) {
-            Particle p = particles.get(i);
-            float alpha = Math.max(0f, p.life / p.maxLife);
-            float size = p.size * (0.4f + 0.6f * alpha);
-
-            if (p.type == 1) {
-                size *= 0.85f + 0.15f * (float) Math.sin(p.life * 40f);
-            } else if (p.type == 4) {
-                size *= 0.9f + 0.1f * (float) Math.sin(p.life * 30f);
-            } else if (p.type == 5) {
-                alpha *= 0.6f;
-            } else if (p.type == 6) {
-                size *= 0.9f + 0.15f * (float) Math.sin(p.life * 12f);
-                alpha *= 0.85f;
-            }
-
-            shapes.setColor(p.r, p.g, p.b, alpha);
-            shapes.circle(p.x, p.y, size, 8);
-        }
+public void draw(ShapeRenderer shapes) {
+    // ON OUVRE ICI
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+    
+    com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+    com.badlogic.gdx.Gdx.gl.glBlendFunc(
+    com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+    com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA);
+    for (int i = 0; i < particles.size; i++) {
+        Particle p = particles.get(i);
+        // ... le reste de ton code de dessin des particules ...
+        shapes.circle(p.x, p.y, size, 8);
     }
+    
+    // ON FERME ICI
+    shapes.end();
+}
 public void spawnHalo(float x, float y, float radius, Color color) {
     for (int i = 0; i < 3; i++) {
         float angle = MathUtils.random(0f, 360f);
