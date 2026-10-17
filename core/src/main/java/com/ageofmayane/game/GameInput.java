@@ -71,7 +71,18 @@ class GameInput {
                     if (gs.glitchCooldown <= 0f) gs.activateGlitchDash();
                     gs.newTouch = true;
                     gs.owner[i] = GameScreen.OWNER_IGNORED;
-                } else if (gs.canInteractWithChest() && x >= GameScreen.OPEN_BTN_X
+                }
+                } else if (x >= GameScreen.TOTEM_BTN_X && x <= GameScreen.TOTEM_BTN_X + GameScreen.TOTEM_BTN_SIZE
+        && y >= GameScreen.TOTEM_BTN_Y && y <= GameScreen.TOTEM_BTN_Y + GameScreen.TOTEM_BTN_SIZE) {
+    if (gs.totemCooldown <= 0f) {
+        gs.totemCooldown = GameScreen.TOTEM_COOLDOWN;
+        // Crée un totem de foudre près du joueur
+        gs.totems.add(new Totem(gs.playerPos.x + 80f, gs.playerPos.y, Totem.Type.FOUDRE));
+        gs.newTouch = true;
+    }
+    gs.owner[i] = GameScreen.OWNER_IGNORED;
+            }
+                else if (gs.canInteractWithChest() && x >= GameScreen.OPEN_BTN_X
                         && x <= GameScreen.OPEN_BTN_X + GameScreen.OPEN_BTN_W
                         && y >= GameScreen.OPEN_BTN_Y && y <= GameScreen.OPEN_BTN_Y + GameScreen.OPEN_BTN_H) {
                     gs.openChest();
