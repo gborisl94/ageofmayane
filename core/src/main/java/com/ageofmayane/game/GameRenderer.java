@@ -753,6 +753,28 @@ private void drawGlitchEffect(GameScreen gs) {
             shapes.circle(gs.playerPos.x, gs.playerPos.y, GameScreen.PLAYER_RADIUS, 24);
         }
         for (int i = 0; i < gs.ennemis.size; i++) drawEnemyStunStars(gs.ennemis.get(i));
+        // --- BARRE DE VIE DES ENNEMIS ---
+for (int i = 0; i < gs.ennemis.size; i++) {
+    Ennemi e = gs.ennemis.get(i);
+    if (e.hp > 0) {
+        float barW = e.size * 0.8f;
+        float barH = 6f;
+        float bx = e.pos.x - barW / 2f;
+        float by = e.pos.y + e.size / 2f + 10f;
+        
+        // Fond noir
+        shapes.setColor(0f, 0f, 0f, 0.7f);
+        shapes.rect(bx - 1f, by - 1f, barW + 2f, barH + 2f);
+        
+        // Barre rouge (ou orange pour le boss)
+        float ratio = Math.max(0f, Math.min(1f, e.hp / (float) e.maxHp));
+        if (e.boss) shapes.setColor(1f, 0.5f, 0f, 1f); // Orange pour le boss
+        else shapes.setColor(1f, 0.2f, 0.2f, 1f);      // Rouge pour les ennemis
+        
+        shapes.rect(bx, by, barW * ratio, barH);
+    }
+}
+// --------------------------------
         gs.particles.draw(shapes);
         drawDizzyStars(gs);
         drawAutoAimVisual(gs);
