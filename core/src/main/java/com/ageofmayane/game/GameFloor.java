@@ -12,6 +12,7 @@ class GameFloor {
         if (gs.bossFledThisRun) gs.vengeance.registerFlee();
         gs.vengeance.consumePending();
         gs.currentFloor++;
+        gs.xpSystem.addXp(50 + (gs.currentFloor * 10)); // Plus on monte, plus on gagne d'XP
         gs.floorBannerTimer = 3f;
         if (gs.currentFloor > GameScreen.TOTAL_FLOORS) {
             gs.victory = true;
