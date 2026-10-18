@@ -22,28 +22,69 @@ public class Totem {
     }
 
     public void update(GameScreen gs, float delta) {
-        if (!alive) return;
-      System.out.println("Totem en vie ! Timer : " + timer + " AttackTimer : " + attackTimer);
-        
-        timer += delta; // Sert à calculer la durée de vie (10 secondes)
-        attackTimer += delta; // Sert à calculer le temps entre deux tirs
-        
-        if (type == Type.FOUDRE) {
-            // Tire un éclair toutes les 1.5 secondes
-            if (attackTimer >= 1.5f) {
-                attackTimer = 0f;
-                
-                // Cherche l'ennemi le plus proche dans un rayon de 450 pixels
-                Ennemi target = null;
-                float minDist = 450f; 
-                for (int i = 0; i < gs.ennemis.size; i++) {
-                    Ennemi e = gs.ennemis.get(i);
-                    float d = e.pos.dst(pos);
-                    if (d < minDist) {
-                        minDist = d;
-                        target = e;
-                    }
+    if (!alive) return;
+    
+    timer += delta; 
+    attackTimer += delta; 
+    
+    if (type == Type.FOUDRE) {
+        // Tire un éclair toutes les 1.5 secondes
+        if (attackTimer >= 1.5f) {
+            attackTimer = 0f;
+            
+            // --- CALCUL DE LA PROGRESSION ---
+            int playerLevel = gs.xpSystem.level;
+            // Portée de base : 300. Augmente de 50 par niveau (max 800)
+            float range = Math.min(800f, 300f + (playerLevel - 1) * 50f);
+            // Nombre de cibles : 1 au niv 1, +1 par niveau, max 6
+            int maxTargets = Math.min(6, 1 + (playerLevel / 2)); 
+            
+            // On cherche les ennemis les plus proches dans la portée
+            Array<Ennemi> targets = new Array<Ennemi>();
+            
+            for (int i = 0; i < gs.ennemis.size; i++) {
+                Ennemi e = gs.ennemis.get(i);
+                if (e.hp <= 0) continue;
+                float d = e.pos.dst(pos);
+                if (d < range) {
+                    targets.add(e);
                 }
+            }
+            
+            // On trie les cibles par distance (les plus proches en premier)
+            targets.sort(new Comparator<Ennemi>() {
+                @Override
+                public int compare(Ennemi a, Ennemi b) {
+                    return Float.compare(a.pos.dst(pos), b.pos.dst(pos));
+                }
+            });
+            
+            // On frappe les N ennemis les plus proches
+            int hitCount = Math.min(maxTargets, targets.size);
+            for (int i = 0; i < hitCount; i++) {
+                Ennemi target = targets.get(i);
+                
+                target.hp -= 2; 
+                gs.damage.add(target.pos.x, target.pos.y + 20f, "-2", false); 
+                drawLightningBolt(gs, pos.x, pos.y + 10f, target.pos.x, target.pos.y);
+                gs.particles.spawnLightning(target.pos.x, target.pos.y, 0f, 4);
+
+                if (target.hp <= 0) {
+                    target.hp = 0;
+                }
+            }
+        }
+    } else if (type == Type.SOIN) {
+        // Soigne le joueur de 5 PV toutes les 2 secondes
+        if (attackTimer >= 2f) {
+            attackTimer = 0f;
+            if (gs.hp < GameScreen.MAX_HP) {
+                gs.hp = Math.min(GameScreen.MAX_HP, gs.hp + 5);
+                gs.particles.spawnHalo(pos.x, pos.y, 40f, Color.GREEN);
+            }
+        }
+    }
+    }
                 
                 // Si un ennemi est trouvé, on le foudroie !
                 if (target != null) {
