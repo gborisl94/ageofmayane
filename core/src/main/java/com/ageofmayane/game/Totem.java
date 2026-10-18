@@ -12,18 +12,20 @@ public class Totem {
     
     public Vector2 pos = new Vector2();
     public Type type;
-    public float hp = 5f;
+    
+    // Vie et attaque
+    public float hp = 20f;       // Vie du totem
+    public float maxHp = 20f;    // Vie max pour la jauge
+    public float hitTimer = 0f;  // Pour éviter que les ennemis tapent 60 fois par seconde
+    
     public float radius = 25f;
-    public float timer = 0f;
-    public float attackTimer = 0f; // Timer séparé pour les tirs
+    public float timer = 0f;       // Durée de vie (10s)
+    public float attackTimer = 0f; // Timer pour les tirs (1.5s)
     public boolean alive = true;
 
     public Totem(float x, float y, Type type) {
         this.pos.set(x, y);
         this.type = type;
-    public float hp = 20f; // Vie du totem
-    public float maxHp = 20f; // Vie max pour la jauge
-    public float hitTimer = 0f; // Pour éviter que les ennemis tapent 60 fois par seconde
     }
 
     public void update(GameScreen gs, float delta) {
@@ -33,6 +35,29 @@ public class Totem {
         timer += delta; 
         attackTimer += delta; 
         
+        // --- 1. LES ENNEMIS ATTAQUENT LE TOTEM ---
+        hitTimer -= delta;
+        if (hitTimer <= 0f) {
+            hitTimer = 0.5f; // Les ennemis tapent toutes les 0.5 secondes max
+            
+            for (int i = 0; i < gs.ennemis.size; i++) {
+                Ennemi e = gs.ennemis.get(i);
+                // Si l'ennemi est proche du totem (distance < 40 pixels)
+                if (e.pos.dst2(pos) < 40f * 40f) {
+                    hp -= 1; // L'ennemi tape 1 PV
+                    gs.particles.spawnHitSpark(pos.x, pos.y, Color.RED);
+                    if (hp <= 0) {
+                        // Le totem est détruit
+                        alive = false;
+                        gs.particles.spawnEnemyExplosion(pos.x, pos.y, Color.RED);
+                        gs.particles.spawnSmoke(pos.x, pos.y, 8);
+                        return; // On arrête la mise à jour, le totem est mort
+                    }
+                }
+            }
+        }
+        
+        // --- 2. LE TOTEM ATTAQUE LES ENNEMIS ---
         if (type == Type.FOUDRE) {
             // Tire un éclair toutes les 1.5 secondes
             if (attackTimer >= 1.5f) {
@@ -40,9 +65,7 @@ public class Totem {
                 
                 // --- CALCUL DE LA PROGRESSION (NIVEAU DU JOUEUR) ---
                 int playerLevel = gs.xpSystem.level;
-                // Portée de base : 300. Augmente de 50 par niveau (max 800)
                 float range = Math.min(800f, 300f + (playerLevel - 1) * 50f);
-                // Nombre de cibles : 1 au niv 1, +1 tous les 2 niveaux, max 6
                 int maxTargets = Math.min(6, 1 + (playerLevel / 2)); 
                 
                 // On cherche les ennemis dans la portée
@@ -54,27 +77,6 @@ public class Totem {
                     if (d < range) {
                         targets.add(e);
                     }
-                  // --- LES ENNEMIS ATTAQUENT LE TOTEM ---
-hitTimer -= delta;
-if (hitTimer <= 0f) {
-    hitTimer = 0.5f; // Les ennemis tapent toutes les 0.5 secondes max
-    
-    for (int i = 0; i < gs.ennemis.size; i++) {
-        Ennemi e = gs.ennemis.get(i);
-        // Si l'ennemi est proche du totem (distance < 40 pixels)
-        if (e.pos.dst2(pos) < 40f * 40f) {
-            hp -= 1; // L'ennemi tape 1 PV
-            gs.particles.spawnHitSpark(pos.x, pos.y, Color.RED);
-            if (hp <= 0) {
-                // Le totem est détruit
-                alive = false;
-                gs.particles.spawnEnemyExplosion(pos.x, pos.y, Color.RED);
-                gs.particles.spawnSmoke(pos.x, pos.y, 8);
-                break;
-            }
-        }
-    }
-}
                 }
                 
                 // On trie les cibles par distance (les plus proches en premier)
@@ -90,13 +92,11 @@ if (hitTimer <= 0f) {
                 for (int i = 0; i < hitCount; i++) {
                     Ennemi target = targets.get(i);
                     
-                    // Inflige des dégâts (2 PV par tir)
                     target.hp -= 2; 
                     gs.damage.add(target.pos.x, target.pos.y + 20f, "-2", false); 
                     drawLightningBolt(gs, pos.x, pos.y + 10f, target.pos.x, target.pos.y);
                     gs.particles.spawnLightning(target.pos.x, target.pos.y, 0f, 4);
 
-                    // Si l'ennemi tombe à 0 PV, on le tue immédiatement
                     if (target.hp <= 0) {
                         gs.particles.spawnEnemyExplosion(target.pos.x, target.pos.y, new Color(0.2f, 0.9f, 0.9f, 1f));
                         gs.particles.spawnBlood(target.pos.x, target.pos.y, 10);
@@ -104,8 +104,6 @@ if (hitTimer <= 0f) {
                         
                         gs.setScore(gs.getScore() + 1);
                         gs.xpSystem.addXp(GameScreen.XP_PER_ENEMY);
-                        
-                        // Fait tomber une flèche
                         gs.flechesSol.add(new FlecheSol(target.pos.x, target.pos.y, MathUtils.random(0f, 360f)));
                     }
                 }
