@@ -23,6 +23,7 @@ public class Totem {
 
     public void update(GameScreen gs, float delta) {
         if (!alive) return;
+      System.out.println("Totem en vie ! Timer : " + timer + " AttackTimer : " + attackTimer);
         
         timer += delta; // Sert à calculer la durée de vie (10 secondes)
         attackTimer += delta; // Sert à calculer le temps entre deux tirs
