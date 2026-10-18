@@ -81,7 +81,7 @@ public class DungeonGenerator {
                 room.enemyCount = MathUtils.random(0, 2);
                 addObstacles(room, MathUtils.random(0, 2));
             } else {
-                int count = 2 + room.distance + MathUtils.random(0, 1);
+                int count = 2 + room.distance + (gs.currentFloor / 10) + MathUtils.random(0, 1);
                 room.enemyCount = MathUtils.clamp(count, 3, 6);
                 addObstacles(room, MathUtils.random(0, 4));
             }
