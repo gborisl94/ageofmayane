@@ -22,8 +22,8 @@ public class Totem {
         this.pos.set(x, y);
         this.type = type;
     public float hp = 20f; // Vie du totem
-public float maxHp = 20f; // Vie max pour la jauge
-public float hitTimer = 0f; // Pour éviter que les ennemis tapent 60 fois par seconde
+    public float maxHp = 20f; // Vie max pour la jauge
+    public float hitTimer = 0f; // Pour éviter que les ennemis tapent 60 fois par seconde
     }
 
     public void update(GameScreen gs, float delta) {
