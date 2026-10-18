@@ -65,11 +65,7 @@ class GameFloor {
         gs.triggerShake();
         gs.particles.spawnLightning(gs.playerPos.x, gs.playerPos.y, 0f, 12);
     }
-if (gs.currentFloor == 100) {
-    // C'est l'étage final ! On met un boss géant.
-    gs.triggerShake();
-    // Tu peux ajouter une musique spéciale ou un message
-}
+
     static Vector2 findRandomFloorPos(GameScreen gs, float radius, float minDistFromPlayer) {
         Vector2 out = new Vector2();
         for (int i = 0; i < 60; i++) {
