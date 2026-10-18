@@ -529,12 +529,10 @@ aimStickWasActive = aimActiveNow;
     GameEnemies.updateEnemies(this, delta);
     for (int i = totems.size - 1; i >= 0; i--) {
     Totem t = totems.get(i);
-    if (t.alive) {
-        t.timer += delta;
-        if (t.timer > 10f) t.alive = false; // Disparaît après 10s
-    }
+    t.update(this, delta); // <-- APPEL VITAL
+    if (t.timer > 10f) t.alive = false;
     if (!t.alive) totems.removeIndex(i);
-    }
+}
     updateWeaponDrops(delta);
     updateChest(delta);
     if (chest != null && !chest.opened) {
