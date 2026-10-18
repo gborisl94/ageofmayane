@@ -47,6 +47,7 @@ public class Totem {
                 // Si un ennemi est trouvé, on le foudroie !
                 if (target != null) {
                     target.hp -= 2; // Retire 2 PV
+                    if (target.hp <= 0) target.hp = 0;
                     gs.damage.add(target.pos.x, target.pos.y + 20f, "-2", false); // Affiche "-2"
                     
                     // Dessine un vrai éclair entre le totem et l'ennemi
