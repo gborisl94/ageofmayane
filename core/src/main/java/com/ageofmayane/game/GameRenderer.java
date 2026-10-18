@@ -797,7 +797,7 @@ private void drawTotemButton(GameScreen gs) {
         gs.damage.draw(batch, font);
         batch.end();
 
-        // 7. BARRES DE VIE, TOTEMS ET PARTICULES
+       // 7. BARRES DE VIE ET TOTEMS (SHAPES)
 shapes.begin(ShapeRenderer.ShapeType.Filled);
 
 // Barres de vie des ennemis
@@ -816,18 +816,18 @@ for (int i = 0; i < gs.ennemis.size; i++) {
         shapes.rect(bx, by, barW * ratio, barH);
     }
 }
-shapes.end(); // On ferme avant les totems et particules
 
-// Totems (il gère son propre begin/end ? Non, on le fait ici)
-shapes.begin(ShapeRenderer.ShapeType.Filled);
+// Totems
 for (int t = 0; t < gs.totems.size; t++) {
     gs.totems.get(t).render(shapes);
 }
-shapes.end();
 
-// Particules (Maintenant il gère son propre begin/end, donc pas besoin de le faire ici !)
+shapes.end(); // <-- ON FERME ICI AVANT LES PARTICULES
+
+// Particules (ParticleSystem gère son propre begin/end maintenant)
 gs.particles.draw(shapes);
 
+// Etoiles et AutoAim
 shapes.begin(ShapeRenderer.ShapeType.Filled);
 drawDizzyStars(gs);
 drawAutoAimVisual(gs);
