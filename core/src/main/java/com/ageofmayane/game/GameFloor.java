@@ -21,6 +21,12 @@ class GameFloor {
         }
         gs.dungeon.generate();
         gs.playerPos.set(GameScreen.W / 2f, GameScreen.H / 2f);
+        // ... code ...
+} // <-- Une accolade ferme probablement la méthode
+
+if (gs.currentFloor == 100) {
+    gs.triggerShake();
+}
         gs.fleches.clear();
         gs.ennemis.clear();
         gs.weaponDrops.clear();
