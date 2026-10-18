@@ -296,7 +296,6 @@ public class ParticleSystem {
 public void draw(ShapeRenderer shapes) {
     if (particles.size == 0) return;
 
-    // ON OUVRE ICI
     shapes.begin(ShapeRenderer.ShapeType.Filled);
 
     com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
@@ -324,7 +323,6 @@ public void draw(ShapeRenderer shapes) {
         shapes.circle(p.x, p.y, size, 8);
     }
 
-    // ON FERME ICI
     shapes.end();
 }
 public void spawnHalo(float x, float y, float radius, Color color) {
