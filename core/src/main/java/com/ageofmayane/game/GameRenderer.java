@@ -817,9 +817,27 @@ for (int i = 0; i < gs.ennemis.size; i++) {
     }
 }
 
-// Totems
+// Totems et leurs barres de vie
 for (int t = 0; t < gs.totems.size; t++) {
-    gs.totems.get(t).render(shapes);
+    Totem totem = gs.totems.get(t);
+    totem.render(shapes);
+    
+    // Jauge de vie du totem
+    if (totem.hp > 0) {
+        float barW = 50f;
+        float barH = 6f;
+        float bx = totem.pos.x - barW / 2f;
+        float by = totem.pos.y + totem.radius + 10f;
+        float ratio = Math.max(0f, Math.min(1f, totem.hp / totem.maxHp));
+        
+        // Fond noir
+        shapes.setColor(0f, 0f, 0f, 0.7f);
+        shapes.rect(bx - 1f, by - 1f, barW + 2f, barH + 2f);
+        
+        // Barre de vie
+        shapes.setColor(0.8f, 0.1f, 0.1f, 1f);
+        shapes.rect(bx, by, barW * ratio, barH);
+    }
 }
 
 shapes.end(); // <-- ON FERME ICI AVANT LES PARTICULES
