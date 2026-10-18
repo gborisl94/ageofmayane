@@ -93,7 +93,7 @@ public class GameScreen extends ScreenAdapter {
     static final int CHARGE_DMG_LVL1 = 1;
     static final int CHARGE_DMG_LVL2 = 2;
     static final int CHARGE_DMG_LVL3 = 3;
-    static final int TOTAL_FLOORS = 3;
+    static final int TOTAL_FLOORS = 100;
     static final float ELEVATOR_INTERACT_DIST = 120f;
     static final float TRANSITION_TIME = 1.2f;
     static final float GLITCH_COOLDOWN = 5f;
