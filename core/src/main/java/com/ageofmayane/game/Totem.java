@@ -54,6 +54,27 @@ public class Totem {
                     if (d < range) {
                         targets.add(e);
                     }
+                  // --- LES ENNEMIS ATTAQUENT LE TOTEM ---
+hitTimer -= delta;
+if (hitTimer <= 0f) {
+    hitTimer = 0.5f; // Les ennemis tapent toutes les 0.5 secondes max
+    
+    for (int i = 0; i < gs.ennemis.size; i++) {
+        Ennemi e = gs.ennemis.get(i);
+        // Si l'ennemi est proche du totem (distance < 40 pixels)
+        if (e.pos.dst2(pos) < 40f * 40f) {
+            hp -= 1; // L'ennemi tape 1 PV
+            gs.particles.spawnHitSpark(pos.x, pos.y, Color.RED);
+            if (hp <= 0) {
+                // Le totem est détruit
+                alive = false;
+                gs.particles.spawnEnemyExplosion(pos.x, pos.y, Color.RED);
+                gs.particles.spawnSmoke(pos.x, pos.y, 8);
+                break;
+            }
+        }
+    }
+}
                 }
                 
                 // On trie les cibles par distance (les plus proches en premier)
