@@ -385,12 +385,10 @@ class GameEnemies {
     }
 
     static int getEnemyHp(GameScreen gs) {
-    // Les ennemis gagnent 1 PV tous les 5 étages
-    return GameScreen.ENEMY_HP + (gs.currentFloor / 5);
+    return GameScreen.ENEMY_HP + (gs.currentFloor / 5); // +1 PV tous les 5 étages
 }
 
 static int getBossHp(GameScreen gs) {
-    // Le boss gagne 20 PV par étage
-    return GameScreen.BOSS_HP + (gs.currentFloor * 20);
+    return GameScreen.BOSS_HP + (gs.currentFloor * 20); // Le boss devient très fort
 }
 }
