@@ -294,6 +294,9 @@ public class ParticleSystem {
     }
 
 public void draw(ShapeRenderer shapes) {
+    if (particles.size == 0) return;
+
+    // ON OUVRE ICI
     shapes.begin(ShapeRenderer.ShapeType.Filled);
 
     com.badlogic.gdx.Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
@@ -304,7 +307,7 @@ public void draw(ShapeRenderer shapes) {
     for (int i = 0; i < particles.size; i++) {
         Particle p = particles.get(i);
         float alpha = Math.max(0f, p.life / p.maxLife);
-        float size = p.size * (0.4f + 0.6f * alpha); // <-- LA VARIABLE EST ICI
+        float size = p.size * (0.4f + 0.6f * alpha);
 
         if (p.type == 1) {
             size *= 0.85f + 0.15f * (float) Math.sin(p.life * 40f);
@@ -318,9 +321,10 @@ public void draw(ShapeRenderer shapes) {
         }
 
         shapes.setColor(p.r, p.g, p.b, alpha);
-        shapes.circle(p.x, p.y, size, 8); // <-- UTILISATION DE size
+        shapes.circle(p.x, p.y, size, 8);
     }
 
+    // ON FERME ICI
     shapes.end();
 }
 public void spawnHalo(float x, float y, float radius, Color color) {
