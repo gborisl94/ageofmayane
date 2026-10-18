@@ -49,10 +49,17 @@ public class Totem {
                 if (target != null) {
                     if (target != null) {
     // Inflige des dégâts
+    if (target != null) {
     target.hp -= 2; 
     gs.damage.add(target.pos.x, target.pos.y + 20f, "-2", false); 
     drawLightningBolt(gs, pos.x, pos.y + 10f, target.pos.x, target.pos.y);
     gs.particles.spawnLightning(target.pos.x, target.pos.y, 0f, 4);
+
+    // On ne fait QUE baisser les PV. C'est le jeu qui s'occupe de le tuer.
+    if (target.hp <= 0) {
+        target.hp = 0; 
+    }
+}
 
     // --- VERIFICATION DE MORT ---
     if (target.hp <= 0) {
