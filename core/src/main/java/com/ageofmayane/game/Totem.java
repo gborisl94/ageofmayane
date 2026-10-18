@@ -47,9 +47,27 @@ public class Totem {
                 
                 // Si un ennemi est trouvé, on le foudroie !
                 if (target != null) {
-                    target.hp -= 2; // Retire 2 PV
-                    if (target.hp <= 0) target.hp = 0;
-                    gs.damage.add(target.pos.x, target.pos.y + 20f, "-2", false); // Affiche "-2"
+                    if (target != null) {
+    // Inflige des dégâts
+    target.hp -= 2; 
+    gs.damage.add(target.pos.x, target.pos.y + 20f, "-2", false); 
+    drawLightningBolt(gs, pos.x, pos.y + 10f, target.pos.x, target.pos.y);
+    gs.particles.spawnLightning(target.pos.x, target.pos.y, 0f, 4);
+
+    // --- VERIFICATION DE MORT ---
+    if (target.hp <= 0) {
+        // On le tue et on le retire de la liste !
+        gs.particles.spawnEnemyExplosion(target.pos.x, target.pos.y, new Color(0.2f, 0.9f, 0.9f, 1f));
+        gs.particles.spawnBlood(target.pos.x, target.pos.y, 10);
+        gs.ennemis.removeValue(target, true);
+        
+        gs.setScore(gs.getScore() + 1);
+        gs.xpSystem.addXp(GameScreen.XP_PER_ENEMY);
+        
+        // Fait tomber une flèche
+        gs.flechesSol.add(new FlecheSol(target.pos.x, target.pos.y, MathUtils.random(0f, 360f)));
+    }
+} // Affiche "-2"
                     
                     // Dessine un vrai éclair entre le totem et l'ennemi
                     drawLightningBolt(gs, pos.x, pos.y + 10f, target.pos.x, target.pos.y);
